@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Organizador de Tokens</title>
+  <!-- Outfit Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-active: rgba(139, 92, 246, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-hover: #a78bfa;
+      --success: #10b981;
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Header styling */
+    header {
+      padding: 16px 20px;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-section h1 {
+      font-size: 16px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-section p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(139, 92, 246, 0.35);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--danger-hover);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* Tabs Navigation */
+    .tabs-nav {
+      display: flex;
+      background: rgba(15, 23, 42, 0.5);
+      padding: 4px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 13px;
+      border-radius: 6px;
+      position: relative;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      color: var(--text-main);
+      background: var(--bg-secondary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* Search & Filter section */
+    .search-filter-section {
+      padding: 16px 20px;
+      background: rgba(30, 41, 59, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .search-container {
+      position: relative;
+    }
+    .search-container input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px 8px 36px;
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-container input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    }
+    .search-container svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .filters-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .filter-pill {
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-main);
+    }
+    .filter-pill.active {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: var(--accent);
+      color: var(--accent-hover);
+    }
+
+    /* Content Area */
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Token List */
+    .token-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .token-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .token-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .token-item.expanded {
+      border-color: var(--border-active);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .token-summary {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .token-info-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    /* Preview styles */
+    .preview-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .preview-box-mini {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .preview-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .preview-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .preview-spacing {
+      background: var(--accent);
+      border-radius: 2px;
+      height: 8px;
+      max-width: 24px;
+    }
+
+    .preview-other {
+      color: var(--text-muted);
+    }
+
+    .token-details-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .token-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .token-name {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .token-source {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .token-source.variable {
+      background: rgba(139, 92, 246, 0.1);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+    .token-source.style {
+      background: rgba(59, 130, 246, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .token-prop-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .token-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .token-usage-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .token-usage-badge.used {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+    .token-usage-badge.unused {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .arrow-icon {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .token-item.expanded .arrow-icon {
+      transform: rotate(180deg);
+      color: var(--text-main);
+    }
+
+    /* Expanded Details Panel */
+    .token-expanded-details {
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.4);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    input[type="text"], select {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      outline: none;
+      font-size: 13px;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    .color-input-container {
+      display: flex;
+      gap: 8px;
+    }
+    .color-input-container input[type="text"] {
+      flex: 1;
+    }
+    .color-input-container input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+    }
+    .color-input-container input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-input-container input[type="color"]::-webkit-color-swatch {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .replace-box {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .replace-box select {
+      flex: 1;
+    }
+
+    .panel-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 12px;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+
+    .modal-container {
+      width: 420px;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(10px) scale(0.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 16px;
+    }
+
+    /* Duplicates tab styling */
+    .duplicate-group {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .duplicate-group-header {
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.3);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dup-header-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .duplicate-group-list {
+      padding: 8px 16px;
+    }
+
+    .dup-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .dup-item:last-child {
+      border-bottom: none;
+    }
+
+    .dup-token-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dup-token-selector input[type="radio"], 
+    .dup-token-selector input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .consolidate-btn-row {
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.2);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Status Toast Overlay */
+    .toast-overlay {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      z-index: 2000;
+      animation: toastFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastFade {
+      from { transform: translate(-50%, 10px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+
+    /* Spinner Overlay */
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(139, 92, 246, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .empty-state h3 {
+      color: var(--text-main);
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .empty-state p {
+      font-size: 12px;
+      max-width: 240px;
+    }
+    .counter-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .token-counter-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--accent);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      gap: 4px;
+    }
+    .btn-outline:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: var(--accent);
+    }
+
+    /* Duplicates Config Panel */
+    .dup-config-panel {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .dup-config-panel h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dup-config-section {
+      margin-bottom: 14px;
+    }
+    .dup-config-section:last-child {
+      margin-bottom: 0;
+    }
+    .dup-config-section label.section-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .dup-type-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .dup-type-filters .filter-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+    .tolerance-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .tolerance-row input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 4px;
+      background: var(--bg-tertiary);
+      outline: none;
+    }
+    .tolerance-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-primary);
+    }
+    .tolerance-value {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+      min-width: 28px;
+      text-align: right;
+    }
+    .text-props-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .text-prop-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-main);
+      background: var(--bg-secondary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .text-prop-checkbox:hover {
+      border-color: var(--accent);
+    }
+    .text-prop-checkbox input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .text-prop-checkbox.checked {
+      border-color: var(--accent);
+      background: rgba(139, 92, 246, 0.1);
+    }
+    .dup-config-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+      gap: 8px;
+    }
+    .dup-counter-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Spinner Loader -->
+  <div id="spinner-loader" class="spinner-overlay">
+    <div class="spinner"></div>
+    <div id="spinner-text" class="spinner-text">Analisando o Figma...</div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-section">
+      <h1>Organizador de Tokens</h1>
+      <p>Gerencie estilos e variáveis locais</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="analyzeDocument()" title="Atualizar dados">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      </button>
+      <button class="btn-primary" onclick="openAddModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Novo Token
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-nav">
+    <button id="tab-all-btn" class="tab-btn active" onclick="switchTab('all')">Todos os Tokens</button>
+    <button id="tab-dup-btn" class="tab-btn" onclick="switchTab('duplicates')">Tokens Duplicados</button>
+  </div>
+
+  <!-- Search & Filters (Only visible in All Tokens Tab) -->
+  <div id="search-filter-container" class="search-filter-section">
+    <div class="search-container">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="search-input" placeholder="Buscar token..." oninput="handleSearch(this.value)">
+    </div>
+    <div class="filters-row">
+      <button class="filter-pill active" onclick="setFilter('all')">Todos</button>
+      <button class="filter-pill" onclick="setFilter('color')">Cores</button>
+      <button class="filter-pill" onclick="setFilter('text')">Textos</button>
+      <button class="filter-pill" onclick="setFilter('spacing')">Espaçamentos</button>
+      <button class="filter-pill" onclick="setFilter('other')">Outros</button>
+    </div>
+  </div>
+
+  <!-- Tab Contents: All Tokens -->
+  <div id="tab-all-content" class="tab-content">
+    <div class="counter-container">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="master-select-checkbox" onclick="toggleSelectAllVisible(this)" style="accent-color: var(--accent); cursor: pointer;" title="Selecionar todos os visíveis">
+        <div id="token-counter" class="token-counter-text">Total: 0 tokens</div>
+      </div>
+      <div style="display: flex; gap: 6px; margin-left: auto;">
+        <button id="delete-selected-btn" class="btn-danger btn-small hidden" onclick="deleteSelectedTokens()">Excluir Selecionados (0)</button>
+        <button id="delete-unused-btn" class="btn-danger btn-small hidden" onclick="deleteUnusedTokens()">Limpar Não Utilizados</button>
+      </div>
+    </div>
+    <div id="token-list" class="token-list">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+
+  <!-- Tab Contents: Duplicates -->
+  <div id="tab-duplicates-content" class="tab-content hidden">
+    <div class="dup-config-panel" id="dup-config-panel">
+      <h4>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configuração de Detecção
+      </h4>
+
+      <div class="dup-config-section">
+        <label class="section-label">Filtrar por Tipo</label>
+        <div class="dup-type-filters">
+          <button class="filter-pill active" onclick="setDupFilter('all')">Todos</button>
+          <button class="filter-pill" onclick="setDupFilter('color')">Cores</button>
+          <button class="filter-pill" onclick="setDupFilter('text')">Textos</button>
+          <button class="filter-pill" onclick="setDupFilter('spacing')">Espaçamentos</button>
+        </div>
+      </div>
+
+      <div class="dup-config-section" id="color-tolerance-section">
+        <label class="section-label">Tolerância de Cor (Delta E)</label>
+        <div class="tolerance-row">
+          <input type="range" id="color-tolerance" min="0" max="30" value="0" step="1" oninput="updateToleranceLabel(this.value)">
+          <span class="tolerance-value" id="tolerance-label">0</span>
+        </div>
+        <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">0 = exato | 5 = sutil | 10 = parecido | 20+ = amplo</p>
+        <label class="text-prop-checkbox" onclick="toggleCheckboxStyle(this)" style="margin-top: 8px;">
+          <input type="checkbox" id="dup-color-ignore-opacity"> Ignorar opacidade
+        </label>
+      </div>
+
+      <div class="dup-config-section hidden" id="text-props-section">
+        <label class="section-label">Propriedades de Texto para Comparar</label>
+        <div class="tolerance-row" style="margin-bottom: 6px;">
+          <label class="section-label" for="text-size-tolerance" style="min-width: 118px; margin: 0;">Tolerância de tamanho</label>
+          <input type="range" id="text-size-tolerance" min="0" max="20" value="0" step="0.5" oninput="updateTextToleranceLabel(this.value)">
+          <span class="tolerance-value" id="text-size-tolerance-label">0 px</span>
+        </div>
+        <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">0 = tamanho exato; valores maiores aceitam diferenças em pixels.</p>
+        <div class="text-props-grid">
+          <label class="text-prop-checkbox checked" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-size" checked> Tamanho
+          </label>
+          <label class="text-prop-checkbox checked" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-weight" checked> Peso (Weight)
+          </label>
+          <label class="text-prop-checkbox checked" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-family" checked> Família
+          </label>
+          <label class="text-prop-checkbox" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-lineheight"> Line Height
+          </label>
+          <label class="text-prop-checkbox" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-letterspacing"> Letter Spacing
+          </label>
+          <label class="text-prop-checkbox" onclick="toggleCheckboxStyle(this)">
+            <input type="checkbox" id="dup-text-roundsize"> Arredondar Tamanho
+          </label>
+        </div>
+      </div>
+
+      <div class="dup-config-actions">
+        <button class="btn-secondary btn-small" onclick="runSmartDetection()" title="Identifica cores por famílias (vermelho, azul, cinza...) e agrupa tamanhos próximos">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Detecção Inteligente
+        </button>
+        <button class="btn-primary btn-small" onclick="redetectDuplicates()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Re-detectar Duplicados
+        </button>
+      </div>
+    </div>
+
+    <div class="dup-counter-container">
+      <div id="dup-counter" class="token-counter-text">0 grupos de duplicados</div>
+      <button id="consolidate-all-btn" class="btn-primary btn-small" onclick="handleConsolidateAll()" disabled>
+        Consolidar todos os exibidos
+      </button>
+    </div>
+
+    <div id="duplicates-container">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+
+  <!-- Modal: Add New Token -->
+  <div id="add-modal" class="modal-overlay hidden">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Criar Novo Token</h2>
+        <button class="btn-icon" onclick="closeAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="add-name">Nome do Token (Ex: Cores/Brand/Primary)</label>
+          <input type="text" id="add-name" placeholder="Inserir nome">
+        </div>
+        <div class="form-group">
+          <label for="add-source">Origem do Token</label>
+          <select id="add-source" onchange="adjustAddModalValueType()">
+            <option value="variable">Variável (Variable)</option>
+            <option value="style">Estilo (Style)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="add-category">Tipo de Token</label>
+          <select id="add-category" onchange="adjustAddModalValueType()">
+            <option value="color">Cor</option>
+            <option value="spacing">Espaçamento / FLOAT</option>
+            <option value="text">Texto / STRING</option>
+            <option value="other">Boolean / Outro</option>
+          </select>
+        </div>
+        <div class="form-group full-width" id="add-value-group">
+          <label for="add-value" id="add-value-label">Valor Inicial</label>
+          <div id="add-value-input-wrapper">
+            <!-- Dynamic input type -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeAddModal()">Cancelar</button>
+        <button class="btn-primary" onclick="handleAddTokenSubmit()">Criar Token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-overlay hidden">
+    <span id="toast-message">Mensagem</span>
+  </div>
+
+  <script>
+    let tokens = [];
+    let duplicates = [];
+    let activeTab = 'all';
+    let activeFilter = 'all';
+    let searchQuery = '';
+    let expandedTokenId = null;
+    let dupFilter = 'all';
+    let computedDuplicates = [];
+    let bulkConsolidationQueue = [];
+    let bulkConsolidationInProgress = false;
+    let isSmartMode = false;
+    let selectedTokenIds = new Set();
+
+    // Start loading on load
+    window.onload = () => {
+      analyzeDocument();
+    };
+
+    // Receive message from Figma
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'status') {
+        showLoader(true, msg.text);
+      }
+
+      if (msg.type === 'error') {
+        bulkConsolidationQueue = [];
+        bulkConsolidationInProgress = false;
+        showLoader(false);
+        showToast(msg.text);
+        renderDuplicatesList();
+      }
+
+      if (msg.type === 'analysis-result') {
+        tokens = msg.tokens || [];
+        duplicates = msg.duplicates || [];
+        computedDuplicates = duplicates;
+        
+        // Clean up selectedTokenIds to only contain IDs that still exist
+        const currentIds = new Set(tokens.map(t => t.id));
+        selectedTokenIds = new Set([...selectedTokenIds].filter(id => currentIds.has(id)));
+        
+        showLoader(false);
+        if (isSmartMode) {
+          runSmartDetection();
+        } else {
+          redetectDuplicates();
+        }
+        render();
+        processNextBulkConsolidation();
+        updateSelectedCount();
+      }
+
+      if (msg.type === 'select-done') {
+        // Selection completed, nothing else to do in UI
+      }
+    };
+
+    // Send actions to Figma Code
+    function analyzeDocument() {
+      showLoader(true, "Analisando o documento...");
+      parent.postMessage({ pluginMessage: { type: 'analyze' } }, '*');
+    }
+
+    function selectElements(id, source) {
+      parent.postMessage({ pluginMessage: { type: 'select-elements', id, source } }, '*');
+    }
+
+    function deleteToken(id, source) {
+      if (confirm("Tem certeza que deseja excluir este token? Essa ação pode ser destrutiva se o token estiver em uso.")) {
+        showLoader(true, "Excluindo token...");
+        parent.postMessage({ pluginMessage: { type: 'delete-token', id, source } }, '*');
+      }
+    }
+
+    function deleteSelectedTokens() {
+      if (selectedTokenIds.size === 0) return;
+      
+      const count = selectedTokenIds.size;
+      if (confirm(`Tem certeza de que deseja excluir os ${count} tokens selecionados? Essa ação é destrutiva para os elementos em uso.`)) {
+        showLoader(true, "Excluindo tokens selecionados...");
+        
+        const tokensToDelete = [];
+        selectedTokenIds.forEach(id => {
+          const found = tokens.find(t => t.id === id);
+          if (found) {
+            tokensToDelete.push({ id: found.id, source: found.source });
+          }
+        });
+        
+        parent.postMessage({
+          pluginMessage: {
+            type: 'delete-multiple-tokens',
+            tokens: tokensToDelete
+          }
+        }, '*');
+        
+        selectedTokenIds.clear();
+      }
+    }
+
+    function deleteUnusedTokens() {
+      const filtered = tokens.filter(t => {
+        if (activeFilter !== 'all' && t.category !== activeFilter) return false;
+        if (searchQuery) {
+          const matchName = t.name.toLowerCase().includes(searchQuery);
+          const matchProp = t.propertiesText.toLowerCase().includes(searchQuery);
+          const matchFolder = t.collectionOrFolder.toLowerCase().includes(searchQuery);
+          if (!matchName && !matchProp && !matchFolder) return false;
+        }
+        return true;
+      });
+
+      const unused = filtered.filter(t => t.count === 0);
+      if (unused.length === 0) {
+        showToast("Nenhum token não utilizado nesta visualização.");
+        return;
+      }
+
+      const msg = activeFilter === 'all'
+        ? `Tem certeza de que deseja excluir todos os ${unused.length} tokens não utilizados?`
+        : `Tem certeza de que deseja excluir todos os ${unused.length} tokens de ${activeFilter} não utilizados?`;
+
+      if (confirm(msg)) {
+        showLoader(true, "Excluindo tokens não utilizados...");
+        parent.postMessage({
+          pluginMessage: {
+            type: 'delete-multiple-tokens',
+            tokens: unused.map(t => ({ id: t.id, source: t.source }))
+          }
+        }, '*');
+      }
+    }
+
+    function updateToken(id, source, name, value) {
+      showLoader(true, "Salvando alterações...");
+      parent.postMessage({ pluginMessage: { type: 'update-token', id, source, name, value } }, '*');
+    }
+
+    function replaceToken(oldTokenId, source, newTokenId) {
+      if (!newTokenId) {
+        showToast("Selecione um token de substituição.");
+        return;
+      }
+      showLoader(true, "Substituindo tokens...");
+      parent.postMessage({ pluginMessage: { type: 'replace-token', oldTokenId, source, newTokenId } }, '*');
+    }
+
+    function consolidateDuplicates(canonicalId, duplicateIds, source) {
+      showLoader(true, "Consolidando duplicados...");
+      parent.postMessage({ pluginMessage: { type: 'consolidate-duplicates', canonicalId, duplicateIds, source } }, '*');
+    }
+
+    function handleAddTokenSubmit() {
+      const name = document.getElementById('add-name').value.trim();
+      const source = document.getElementById('add-source').value;
+      const category = document.getElementById('add-category').value;
+      
+      let valueInput = document.getElementById('add-value-input');
+      let value = valueInput ? valueInput.value : '';
+
+      if (!name) {
+        showToast("Digite o nome do token.");
+        return;
+      }
+
+      showLoader(true, "Criando token...");
+      parent.postMessage({ pluginMessage: { type: 'add-token', name, source, category, value } }, '*');
+      closeAddModal();
+    }
+
+    // --- UI VIEW RENDERERS ---
+
+    function render() {
+      if (activeTab === 'all') {
+        renderTokensList();
+      } else {
+        renderDuplicatesList();
+      }
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      
+      const tabAllBtn = document.getElementById('tab-all-btn');
+      const tabDupBtn = document.getElementById('tab-dup-btn');
+      const tabAllContent = document.getElementById('tab-all-content');
+      const tabDupContent = document.getElementById('tab-duplicates-content');
+      const searchFilter = document.getElementById('search-filter-container');
+
+      if (tab === 'all') {
+        tabAllBtn.classList.add('active');
+        tabDupBtn.classList.remove('active');
+        tabAllContent.classList.remove('hidden');
+        tabDupContent.classList.add('hidden');
+        searchFilter.classList.remove('hidden');
+      } else {
+        tabAllBtn.classList.remove('active');
+        tabDupBtn.classList.add('active');
+        tabAllContent.classList.add('hidden');
+        tabDupContent.classList.remove('hidden');
+        searchFilter.classList.add('hidden');
+      }
+      render();
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.querySelectorAll('.filter-pill').forEach(pill => {
+        pill.classList.remove('active');
+        if (pill.textContent.toLowerCase().includes(
+          filter === 'all' ? 'todos' : 
+          filter === 'color' ? 'cores' : 
+          filter === 'text' ? 'textos' : 
+          filter === 'spacing' ? 'espaçamentos' : 'outros'
+        )) {
+          pill.classList.add('active');
+        }
+      });
+      renderTokensList();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.toLowerCase().trim();
+      renderTokensList();
+    }
+
+    // Convert font weights helper
+    function getCssStylesForFont(fontName) {
+      if (!fontName) return 'font-weight: 400; font-style: normal;';
+      const style = fontName.style.toLowerCase();
+      let weight = 400;
+      let italic = 'normal';
+      
+      if (style.includes('thin') || style.includes('hairline')) weight = 100;
+      else if (style.includes('extralight') || style.includes('ultralight')) weight = 200;
+      else if (style.includes('light')) weight = 300;
+      else if (style.includes('regular') || style.includes('normal')) weight = 400;
+      else if (style.includes('medium')) weight = 500;
+      else if (style.includes('semibold') || style.includes('demibold')) weight = 600;
+      else if (style.includes('bold')) weight = 700;
+      else if (style.includes('extrabold') || style.includes('ultrabold')) weight = 800;
+      else if (style.includes('black') || style.includes('heavy')) weight = 900;
+      
+      if (style.includes('italic')) italic = 'italic';
+      
+      return `font-family: '${fontName.family}', sans-serif; font-weight: ${weight}; font-style: ${italic};`;
+    }
+
+    // Mini Preview Helper
+    function getMiniPreview(t) {
+      if (t.category === 'color') {
+        const colorVal = t.rawValue;
+        let colorString = '#6b7280';
+        if (colorVal && colorVal.r !== undefined) {
+          const r = Math.round(colorVal.r * 255);
+          const g = Math.round(colorVal.g * 255);
+          const b = Math.round(colorVal.b * 255);
+          const a = colorVal.a !== undefined ? colorVal.a : 1;
+          colorString = `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+        return `<div class="preview-color" style="background: ${colorString}; width: 14px; height: 14px; border-radius: 50%;"></div>`;
+      } else if (t.category === 'text') {
+        let fontStyles = '';
+        if (t.subType === 'text' && t.rawValue && t.rawValue.fontName) {
+          fontStyles = getCssStylesForFont(t.rawValue.fontName);
+        }
+        return `<div class="preview-text" style="${fontStyles}; font-size: 10px; font-weight:700;">Aa</div>`;
+      } else if (t.category === 'spacing') {
+        const pxVal = typeof t.rawValue === 'number' ? Math.min(16, Math.max(2, t.rawValue)) : 6;
+        return `<div class="preview-spacing" style="background: var(--accent); border-radius: 2px; height: 6px; width: ${pxVal}px"></div>`;
+      } else {
+        return `<svg class="preview-other" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
+      }
+    }
+
+    // Bulk selection handlers
+    function toggleSelectToken(event, id) {
+      if (event.target.checked) {
+        selectedTokenIds.add(id);
+      } else {
+        selectedTokenIds.delete(id);
+      }
+      updateSelectedCount();
+      
+      // Update master checkbox state depending on visibile items
+      const filtered = getFilteredTokensList();
+      const masterCb = document.getElementById('master-select-checkbox');
+      if (masterCb) {
+        if (filtered.length > 0 && filtered.every(t => selectedTokenIds.has(t.id))) {
+          masterCb.checked = true;
+        } else {
+          masterCb.checked = false;
+        }
+      }
+    }
+
+    function getFilteredTokensList() {
+      return tokens.filter(t => {
+        if (activeFilter !== 'all' && t.category !== activeFilter) return false;
+        if (searchQuery) {
+          const matchName = t.name.toLowerCase().includes(searchQuery);
+          const matchProp = t.propertiesText.toLowerCase().includes(searchQuery);
+          const matchFolder = t.collectionOrFolder.toLowerCase().includes(searchQuery);
+          if (!matchName && !matchProp && !matchFolder) return false;
+        }
+        return true;
+      });
+    }
+
+    function toggleSelectAllVisible(masterCb) {
+      const filtered = getFilteredTokensList();
+      if (masterCb.checked) {
+        filtered.forEach(t => selectedTokenIds.add(t.id));
+      } else {
+        filtered.forEach(t => selectedTokenIds.delete(t.id));
+      }
+      
+      renderTokensList();
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const deleteSelBtn = document.getElementById('delete-selected-btn');
+      if (deleteSelBtn) {
+        const count = selectedTokenIds.size;
+        if (count > 0) {
+          deleteSelBtn.classList.remove('hidden');
+          deleteSelBtn.textContent = `Excluir Selecionados (${count})`;
+        } else {
+          deleteSelBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    // Render list of all tokens
+    function renderTokensList() {
+      const container = document.getElementById('token-list');
+      container.innerHTML = '';
+
+      const filtered = getFilteredTokensList();
+
+      // Sort by count descending
+      filtered.sort((a, b) => b.count - a.count);
+
+      // Update total token counter dynamically
+      const counterEl = document.getElementById('token-counter');
+      if (counterEl) {
+        const total = filtered.length;
+        counterEl.textContent = `Total: ${total} token${total === 1 ? '' : 's'}`;
+      }
+
+      // Sync master checkbox state
+      const masterCb = document.getElementById('master-select-checkbox');
+      if (masterCb) {
+        if (filtered.length > 0 && filtered.every(t => selectedTokenIds.has(t.id))) {
+          masterCb.checked = true;
+        } else {
+          masterCb.checked = false;
+        }
+      }
+
+      // Check if there are unused tokens in the filtered list
+      const unusedCount = filtered.filter(t => t.count === 0).length;
+      const cleanBtn = document.getElementById('delete-unused-btn');
+      if (cleanBtn) {
+        if (unusedCount > 0) {
+          cleanBtn.classList.remove('hidden');
+          cleanBtn.textContent = `Limpar Não Utilizados (${unusedCount})`;
+        } else {
+          cleanBtn.classList.add('hidden');
+        }
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3>Nenhum token encontrado</h3>
+            <p>Tente ajustar os filtros ou a sua busca para encontrar tokens.</p>
+          </div>`;
+        return;
+      }
+
+      filtered.forEach(t => {
+        const isExpanded = expandedTokenId === t.id;
+        const item = document.createElement('div');
+        item.className = `token-item ${isExpanded ? 'expanded' : ''}`;
+        
+        // Preview generator
+        let previewHtml = '';
+        if (t.category === 'color') {
+          const colorVal = t.rawValue;
+          let colorString = '#6b7280';
+          if (colorVal && colorVal.r !== undefined) {
+            const r = Math.round(colorVal.r * 255);
+            const g = Math.round(colorVal.g * 255);
+            const b = Math.round(colorVal.b * 255);
+            const a = colorVal.a !== undefined ? colorVal.a : 1;
+            colorString = `rgba(${r}, ${g}, ${b}, ${a})`;
+          }
+          previewHtml = `<div class="preview-color" style="background: ${colorString}"></div>`;
+        } else if (t.category === 'text') {
+          let fontStyles = '';
+          if (t.subType === 'text' && t.rawValue && t.rawValue.fontName) {
+            fontStyles = getCssStylesForFont(t.rawValue.fontName);
+          }
+          previewHtml = `<div class="preview-text" style="${fontStyles}">Aa</div>`;
+        } else if (t.category === 'spacing') {
+          const pxVal = typeof t.rawValue === 'number' ? Math.min(24, Math.max(2, t.rawValue)) : 8;
+          previewHtml = `<div class="preview-spacing" style="width: ${pxVal}px"></div>`;
+        } else {
+          previewHtml = `<svg class="preview-other" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
+        }
+
+        // Dropdown of other compatible tokens for replacement
+        const otherCompatibleTokens = tokens.filter(ot => ot.id !== t.id && ot.category === t.category && ot.source === t.source);
+        let replacementOptions = '<option value="">Selecionar token...</option>';
+        otherCompatibleTokens.forEach(ot => {
+          replacementOptions += `<option value="${ot.id}">${ot.name} (${ot.propertiesText})</option>`;
+        });
+
+        // Properties Input HTML based on category
+        let propertiesEditHtml = '';
+        if (t.category === 'color') {
+          let hex = '';
+          if (t.rawValue && t.rawValue.r !== undefined) {
+            const hexDigit = c => Math.round(c * 255).toString(16).padStart(2, '0');
+            hex = `#${hexDigit(t.rawValue.r)}${hexDigit(t.rawValue.g)}${hexDigit(t.rawValue.b)}`;
+          } else {
+            hex = '#000000';
+          }
+          propertiesEditHtml = `
+            <div class="form-group">
+              <label>Valor da Cor (Hex)</label>
+              <div class="color-input-container">
+                <input type="color" id="edit-color-picker-${t.id}" value="${hex}" oninput="document.getElementById('edit-value-${t.id}').value = this.value.toUpperCase()">
+                <input type="text" id="edit-value-${t.id}" value="${hex.toUpperCase()}" oninput="document.getElementById('edit-color-picker-${t.id}').value = this.value">
+              </div>
+            </div>`;
+        } else if (t.category === 'spacing') {
+          propertiesEditHtml = `
+            <div class="form-group">
+              <label>Valor de Espaçamento (número)</label>
+              <input type="text" id="edit-value-${t.id}" value="${t.rawValue !== null ? t.rawValue : 0}">
+            </div>`;
+        } else if (t.category === 'text' && t.subType === 'STRING') {
+          propertiesEditHtml = `
+            <div class="form-group">
+              <label>Valor do Texto (string)</label>
+              <input type="text" id="edit-value-${t.id}" value="${t.rawValue !== null ? t.rawValue : ''}">
+            </div>`;
+        } else if (t.category === 'text' && t.subType === 'text') {
+          const rv = t.rawValue;
+          const fontSize = rv ? rv.fontSize : 16;
+          const fontFamily = rv && rv.fontName ? rv.fontName.family : 'Inter';
+          const fontStyle = rv && rv.fontName ? rv.fontName.style : 'Regular';
+          propertiesEditHtml = `
+            <div class="form-group">
+              <label>Tamanho da Fonte (px)</label>
+              <input type="text" id="edit-text-size-${t.id}" value="${fontSize}">
+            </div>
+            <div class="form-grid" style="grid-column: span 2; display:none">
+              <input type="hidden" id="edit-text-family-${t.id}" value="${fontFamily}">
+              <input type="hidden" id="edit-text-style-${t.id}" value="${fontStyle}">
+            </div>`;
+        } else if (t.category === 'other' && t.subType === 'BOOLEAN') {
+          propertiesEditHtml = `
+            <div class="form-group">
+              <label>Valor (True/False)</label>
+              <select id="edit-value-${t.id}">
+                <option value="true" ${t.rawValue === true ? 'selected' : ''}>True</option>
+                <option value="false" ${t.rawValue === false ? 'selected' : ''}>False</option>
+              </select>
+            </div>`;
+        }
+
+        const usageClass = t.count > 0 ? 'used' : 'unused';
+        const usageText = t.count === 1 ? '1 elemento' : `${t.count} elementos`;
+
+        item.innerHTML = `
+          <div class="token-summary" onclick="toggleTokenExpand('${t.id}')">
+            <div class="token-info-wrapper">
+              <!-- Inline Checkbox for bulk deletion selection -->
+              <input type="checkbox" class="token-select-checkbox" data-id="${t.id}" ${selectedTokenIds.has(t.id) ? 'checked' : ''} onchange="toggleSelectToken(event, '${t.id}')" onclick="event.stopPropagation()" style="accent-color: var(--accent); cursor: pointer; width: 14px; height: 14px; margin-right: 4px; flex-shrink: 0;">
+              
+              <div class="preview-box">
+                ${previewHtml}
+              </div>
+              <div class="token-details-text">
+                <div class="token-name-row">
+                  <span class="token-name">${t.name}</span>
+                  <span class="token-source ${t.source}">${t.source === 'variable' ? 'Var' : 'Style'}</span>
+                </div>
+                <span class="token-prop-desc">${t.collectionOrFolder} • ${t.propertiesText}</span>
+              </div>
+            </div>
+            <div class="token-meta">
+              <span class="token-usage-badge ${usageClass}">${usageText}</span>
+              <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          
+          <div class="token-expanded-details ${isExpanded ? '' : 'hidden'}">
+            <!-- Edit Section -->
+            <div>
+              <div class="detail-section-title">Editar Token</div>
+              <div class="form-grid">
+                <div class="form-group full-width">
+                  <label>Nome do Token</label>
+                  <input type="text" id="edit-name-${t.id}" value="${t.name}">
+                </div>
+                ${propertiesEditHtml}
+              </div>
+              <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                <button class="btn-primary" onclick="submitEdit('${t.id}', '${t.source}', '${t.category}', '${t.subType}')">Salvar Alterações</button>
+              </div>
+            </div>
+
+            <!-- Replace Section -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+              <div class="detail-section-title">Substituir Token no Documento</div>
+              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                Isso alterará todos os elementos no documento que usam este token para o token selecionado abaixo.
+              </p>
+              <div class="replace-box">
+                <div class="form-group" style="flex: 1;">
+                  <label>Substituir por</label>
+                  <select id="replace-select-${t.id}">
+                    ${replacementOptions}
+                  </select>
+                </div>
+                <button class="btn-primary" onclick="submitReplace('${t.id}', '${t.source}')">Substituir Tudo</button>
+              </div>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="panel-footer-actions">
+              <span style="font-size: 11px; color: var(--text-muted); display:flex; align-items:center;">ID: ${t.id}</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="btn-outline" onclick="selectElements('${t.id}', '${t.source}')" ${t.count === 0 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+                  Selecionar Elementos (${t.count})
+                </button>
+                <button class="btn-danger" onclick="deleteToken('${t.id}', '${t.source}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Excluir Token
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function toggleTokenExpand(id) {
+      if (expandedTokenId === id) {
+        expandedTokenId = null;
+      } else {
+        expandedTokenId = id;
+      }
+      renderTokensList();
+    }
+
+    function submitEdit(id, source, category, subType) {
+      const name = document.getElementById(`edit-name-${id}`).value.trim();
+      let value = null;
+
+      if (!name) {
+        showToast("O nome do token não pode ser vazio.");
+        return;
+      }
+
+      if (category === 'color') {
+        value = document.getElementById(`edit-value-${id}`).value.trim();
+      } else if (category === 'spacing' || (category === 'text' && subType === 'STRING')) {
+        value = document.getElementById(`edit-value-${id}`).value.trim();
+      } else if (category === 'other' && subType === 'BOOLEAN') {
+        value = document.getElementById(`edit-value-${id}`).value;
+      } else if (category === 'text' && subType === 'text') {
+        const sizeInput = document.getElementById(`edit-text-size-${id}`);
+        const familyInput = document.getElementById(`edit-text-family-${id}`);
+        const styleInput = document.getElementById(`edit-text-style-${id}`);
+        value = {
+          fontSize: sizeInput ? sizeInput.value : 16,
+          fontFamily: familyInput ? familyInput.value : 'Inter',
+          fontStyle: styleInput ? styleInput.value : 'Regular'
+        };
+      }
+
+      updateToken(id, source, name, value);
+    }
+
+    function submitReplace(oldTokenId, source) {
+      const select = document.getElementById(`replace-select-${oldTokenId}`);
+      const newTokenId = select.value;
+      replaceToken(oldTokenId, source, newTokenId);
+    }
+
+    // --- DUPLICATE CONFIG HELPERS ---
+
+    function setDupFilter(filter) {
+      dupFilter = filter;
+      const pills = document.querySelectorAll('.dup-type-filters .filter-pill');
+      pills.forEach(p => {
+        p.classList.remove('active');
+        const label = p.textContent.toLowerCase().trim();
+        if (
+          (filter === 'all' && label === 'todos') ||
+          (filter === 'color' && label === 'cores') ||
+          (filter === 'text' && label === 'textos') ||
+          (filter === 'spacing' && label === 'espaçamentos')
+        ) {
+          p.classList.add('active');
+        }
+      });
+
+      // Show/hide config sections based on filter
+      const colorSection = document.getElementById('color-tolerance-section');
+      const textSection = document.getElementById('text-props-section');
+
+      if (filter === 'text') {
+        colorSection.classList.add('hidden');
+        textSection.classList.remove('hidden');
+      } else if (filter === 'color') {
+        colorSection.classList.remove('hidden');
+        textSection.classList.add('hidden');
+      } else {
+        colorSection.classList.remove('hidden');
+        textSection.classList.remove('hidden');
+      }
+
+      if (isSmartMode) {
+        runSmartDetection();
+      } else {
+        renderDuplicatesList();
+      }
+    }
+
+    function updateToleranceLabel(val) {
+      document.getElementById('tolerance-label').textContent = val;
+    }
+
+    function updateTextToleranceLabel(val) {
+      document.getElementById('text-size-tolerance-label').textContent = `${val} px`;
+    }
+
+    function toggleCheckboxStyle(label) {
+      setTimeout(() => {
+        const cb = label.querySelector('input[type="checkbox"]');
+        if (cb.checked) {
+          label.classList.add('checked');
+        } else {
+          label.classList.remove('checked');
+        }
+      }, 0);
+    }
+
+    // --- COLOR DISTANCE (CIE76 Delta E approximation) ---
+
+    function rgbToLab(r, g, b) {
+      // r, g, b in 0-1 range
+      let rL = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+      let gL = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+      let bL = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+
+      rL *= 100; gL *= 100; bL *= 100;
+
+      let x = rL * 0.4124564 + gL * 0.3575761 + bL * 0.1804375;
+      let y = rL * 0.2126729 + gL * 0.7151522 + bL * 0.0721750;
+      let z = rL * 0.0193339 + gL * 0.1191920 + bL * 0.9503041;
+
+      x /= 95.047; y /= 100.0; z /= 108.883;
+
+      x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+      y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+      z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+
+      return {
+        L: (116 * y) - 16,
+        a: 500 * (x - y),
+        b: 200 * (y - z)
+      };
+    }
+
+    function colorDeltaE(c1, c2) {
+      const lab1 = rgbToLab(c1.r, c1.g, c1.b);
+      const lab2 = rgbToLab(c2.r, c2.g, c2.b);
+      return Math.sqrt(
+        Math.pow(lab1.L - lab2.L, 2) +
+        Math.pow(lab1.a - lab2.a, 2) +
+        Math.pow(lab1.b - lab2.b, 2)
+      );
+    }
+
+    // --- SMART DETECTION (Detecção Inteligente) HSL helpers ---
+
+    function rgbToHsl(r, g, b) {
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+
+      if (max === min) {
+        h = s = 0; // achromatic
+      } else {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return { h: h * 360, s: s, l: l };
+    }
+
+    function getColorFamilyName(r, g, b) {
+      const { h, s, l } = rgbToHsl(r, g, b);
+      
+      // Neutral / Grayscales
+      if (s < 0.15) {
+        if (l < 0.15) return "Preto / Tons Escuros";
+        if (l > 0.85) return "Branco / Tons Claros";
+        return "Cinza / Neutros";
+      }
+      
+      if (l < 0.12) return "Preto / Tons Escuros";
+      if (l > 0.90) return "Branco / Tons Claros";
+
+      // Color hues
+      if (h >= 345 || h < 15) return "Vermelho";
+      if (h >= 15 && h < 45) return "Laranja";
+      if (h >= 45 && h < 70) return "Amarelo";
+      if (h >= 70 && h < 165) return "Verde";
+      if (h >= 165 && h < 200) {
+        return l > 0.6 ? "Azul Claro / Ciano" : "Azul / Azul Escuro";
+      }
+      if (h >= 200 && h < 255) {
+        return l > 0.6 ? "Azul Claro" : "Azul Escuro";
+      }
+      if (h >= 255 && h < 295) return "Roxo / Violeta";
+      if (h >= 295 && h < 345) return "Rosa / Magenta";
+      
+      return "Outras Cores";
+    }
+
+    // Run Smart Detection algorithm
+    function runSmartDetection() {
+      isSmartMode = true;
+      const groups = {};
+
+      // 1. Color grouping by HSL semantic families
+      const colorTokens = tokens.filter(t => t.category === 'color' && t.rawValue && t.rawValue.r !== undefined);
+      colorTokens.forEach(t => {
+        const family = getColorFamilyName(t.rawValue.r, t.rawValue.g, t.rawValue.b);
+        // Group by source and family to keep Variable-Variable and Style-Style structures
+        const key = `smart-color-${t.source}-${family.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        if (!groups[key]) {
+          groups[key] = {
+            name: `Coleta Inteligente: Cores - ${family}`,
+            type: 'color',
+            source: t.source,
+            propertiesText: family,
+            tokens: []
+          };
+        }
+        groups[key].tokens.push(t);
+      });
+
+      // 2. Spacing clustering within a 4px range
+      const spacingTokens = tokens.filter(t => t.category === 'spacing' && t.subType === 'FLOAT' && typeof t.rawValue === 'number');
+      if (spacingTokens.length > 0) {
+        const parent = spacingTokens.map((_, i) => i);
+        function find(i) {
+          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+          return i;
+        }
+        function union(i, j) {
+          const ri = find(i), rj = find(j);
+          if (ri !== rj) parent[ri] = rj;
+        }
+        for (let i = 0; i < spacingTokens.length; i++) {
+          for (let j = i + 1; j < spacingTokens.length; j++) {
+            if (Math.abs(spacingTokens[i].rawValue - spacingTokens[j].rawValue) <= 4) {
+              union(i, j);
+            }
+          }
+        }
+        const spacingGroups = {};
+        for (let i = 0; i < spacingTokens.length; i++) {
+          const root = find(i);
+          if (!spacingGroups[root]) spacingGroups[root] = [];
+          spacingGroups[root].push(spacingTokens[i]);
+        }
+        for (const root in spacingGroups) {
+          if (spacingGroups[root].length > 1) {
+            const sorted = spacingGroups[root].sort((a,b) => a.rawValue - b.rawValue);
+            const minVal = sorted[0].rawValue;
+            const maxVal = sorted[sorted.length - 1].rawValue;
+            const key = `smart-spacing-${root}`;
+            groups[key] = {
+              name: `Coleta Inteligente: Espaçamentos Próximos (${minVal}px - ${maxVal}px)`,
+              type: 'spacing',
+              source: sorted[0].source,
+              propertiesText: `Valores entre ${minVal}px e ${maxVal}px`,
+              tokens: sorted
+            };
+          }
+        }
+      }
+
+      // 3. Text clustering within a 3px font size difference
+      const textTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text' && t.rawValue && t.rawValue.fontName);
+      if (textTokens.length > 0) {
+        const parent = textTokens.map((_, i) => i);
+        function find(i) {
+          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+          return i;
+        }
+        function union(i, j) {
+          const ri = find(i), rj = find(j);
+          if (ri !== rj) parent[ri] = rj;
+        }
+        for (let i = 0; i < textTokens.length; i++) {
+          for (let j = i + 1; j < textTokens.length; j++) {
+            const a = textTokens[i].rawValue, b = textTokens[j].rawValue;
+            if (a.fontName.family === b.fontName.family && Math.abs(a.fontSize - b.fontSize) <= 3) {
+              union(i, j);
+            }
+          }
+        }
+        const textGroups = {};
+        for (let i = 0; i < textTokens.length; i++) {
+          const root = find(i);
+          if (!textGroups[root]) textGroups[root] = [];
+          textGroups[root].push(textTokens[i]);
+        }
+        for (const root in textGroups) {
+          if (textGroups[root].length > 1) {
+            const sorted = textGroups[root].sort((a,b) => a.rawValue.fontSize - b.rawValue.fontSize);
+            const minSize = sorted[0].rawValue.fontSize;
+            const maxSize = sorted[sorted.length - 1].rawValue.fontSize;
+            const family = sorted[0].rawValue.fontName.family;
+            const key = `smart-text-${root}`;
+            groups[key] = {
+              name: `Coleta Inteligente: Textos (${family} ${minSize}px - ${maxSize}px)`,
+              type: 'text',
+              source: sorted[0].source,
+              propertiesText: `${family} (${minSize}px a ${maxSize}px)`,
+              tokens: sorted
+            };
+          }
+        }
+      }
+
+      // Build array
+      const result = [];
+      for (const key in groups) {
+        if (groups[key].tokens.length > 1) {
+          result.push({
+            key: key,
+            type: groups[key].type,
+            source: groups[key].source,
+            propertiesText: groups[key].propertiesText,
+            name: groups[key].name,
+            tokens: groups[key].tokens
+          });
+        }
+      }
+
+      computedDuplicates = result;
+      showToast("Detecção Inteligente ativada por proximidade de valores!");
+      renderDuplicatesList();
+    }
+
+    // --- CLIENT-SIDE DUPLICATE RE-DETECTION (Standard) ---
+
+    function redetectDuplicates() {
+      isSmartMode = false;
+      const tolerance = parseInt(document.getElementById('color-tolerance').value) || 0;
+      const textSizeTolerance = parseFloat(document.getElementById('text-size-tolerance').value) || 0;
+      const ignoreColorOpacity = document.getElementById('dup-color-ignore-opacity').checked;
+      const checkSize = document.getElementById('dup-text-size').checked;
+      const checkWeight = document.getElementById('dup-text-weight').checked;
+      const checkFamily = document.getElementById('dup-text-family').checked;
+      const checkLineHeight = document.getElementById('dup-text-lineheight').checked;
+      const checkLetterSpacing = document.getElementById('dup-text-letterspacing').checked;
+      const checkRoundSize = document.getElementById('dup-text-roundsize').checked;
+
+      const groups = {};
+      const colorTokens = [];
+      const textTokens = [];
+
+      tokens.forEach(t => {
+        let key = null;
+
+        if (t.category === 'color') {
+          if (tolerance > 0) {
+            // Tolerance-based: defer to pairwise grouping
+            if (t.rawValue && t.rawValue.r !== undefined) {
+              colorTokens.push(t);
+            }
+            return;
+          } else {
+            if (t.rawValue && t.rawValue.r !== undefined) {
+              const r = Math.round(t.rawValue.r * 255);
+              const g = Math.round(t.rawValue.g * 255);
+              const b = Math.round(t.rawValue.b * 255);
+              const a = t.rawValue.a !== undefined ? Math.round(t.rawValue.a * 100) : 100;
+              key = `${t.source}-color-${r}-${g}-${b}-${ignoreColorOpacity ? 'any' : a}`;
+            }
+          }
+        } else if (t.category === 'spacing' && t.subType === 'FLOAT') {
+          if (t.rawValue !== null && typeof t.rawValue === 'number') {
+            key = `spacing-${t.rawValue}`;
+          }
+        } else if (t.category === 'text' && t.subType === 'text') {
+          const rv = t.rawValue;
+          if (rv && rv.fontName) {
+            if (textSizeTolerance > 0 && checkSize) {
+              textTokens.push(t);
+              return;
+            }
+            let parts = ['textstyle'];
+            if (checkFamily) parts.push(rv.fontName.family);
+            if (checkWeight) parts.push(rv.fontName.style);
+            if (checkSize) {
+              const sz = checkRoundSize ? Math.round(rv.fontSize) : rv.fontSize;
+              parts.push(String(sz));
+            }
+            if (checkLineHeight && rv.lineHeight) {
+              parts.push(rv.lineHeight.unit || 'AUTO');
+              parts.push(String(rv.lineHeight.value || 0));
+            }
+            if (checkLetterSpacing && rv.letterSpacing) {
+              parts.push(rv.letterSpacing.unit || 'PIXELS');
+              parts.push(String(rv.letterSpacing.value || 0));
+            }
+            key = parts.join('-');
+          }
+        } else if (t.category === 'text' && t.subType === 'STRING') {
+          if (t.rawValue !== null) {
+            key = `stringvar-${t.rawValue}`;
+          }
+        }
+
+        if (key) {
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(t);
+        }
+      });
+
+      // Text sizes need pairwise comparison when a tolerance is configured.
+      if (textSizeTolerance > 0 && textTokens.length > 0) {
+        const parent = textTokens.map((_, i) => i);
+        function findText(i) {
+          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+          return i;
+        }
+        function unionText(i, j) {
+          const ri = findText(i), rj = findText(j);
+          if (ri !== rj) parent[ri] = rj;
+        }
+        function sameTextProperties(a, b) {
+          const av = a.rawValue, bv = b.rawValue;
+          if (!av || !bv || !av.fontName || !bv.fontName) return false;
+          if (checkFamily && av.fontName.family !== bv.fontName.family) return false;
+          if (checkWeight && av.fontName.style !== bv.fontName.style) return false;
+          if (Math.abs(av.fontSize - bv.fontSize) > textSizeTolerance) return false;
+          if (checkLineHeight) {
+            const al = av.lineHeight || { unit: 'AUTO', value: 0 };
+            const bl = bv.lineHeight || { unit: 'AUTO', value: 0 };
+            if (al.unit !== bl.unit || (al.value || 0) !== (bl.value || 0)) return false;
+          }
+          if (checkLetterSpacing) {
+            const al = av.letterSpacing || { unit: 'PIXELS', value: 0 };
+            const bl = bv.letterSpacing || { unit: 'PIXELS', value: 0 };
+            if (al.unit !== bl.unit || (al.value || 0) !== (bl.value || 0)) return false;
+          }
+          return true;
+        }
+        for (let i = 0; i < textTokens.length; i++) {
+          for (let j = i + 1; j < textTokens.length; j++) {
+            if (sameTextProperties(textTokens[i], textTokens[j])) unionText(i, j);
+          }
+        }
+        const textGroups = {};
+        for (let i = 0; i < textTokens.length; i++) {
+          const root = findText(i);
+          if (!textGroups[root]) textGroups[root] = [];
+          textGroups[root].push(textTokens[i]);
+        }
+        for (const key in textGroups) {
+          if (textGroups[key].length > 1) groups[`text-tolerance-${key}`] = textGroups[key];
+        }
+      }
+
+      // Tolerance-based color grouping using Union-Find
+      if (tolerance > 0 && colorTokens.length > 0) {
+        const parent = colorTokens.map((_, i) => i);
+        function find(i) {
+          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+          return i;
+        }
+        function union(i, j) {
+          const ri = find(i), rj = find(j);
+          if (ri !== rj) parent[ri] = rj;
+        }
+
+        for (let i = 0; i < colorTokens.length; i++) {
+          for (let j = i + 1; j < colorTokens.length; j++) {
+            // Only group same source tokens
+            if (colorTokens[i].source !== colorTokens[j].source) continue;
+            if (!ignoreColorOpacity) {
+              const alphaI = colorTokens[i].rawValue.a !== undefined ? colorTokens[i].rawValue.a : 1;
+              const alphaJ = colorTokens[j].rawValue.a !== undefined ? colorTokens[j].rawValue.a : 1;
+              if (alphaI !== alphaJ) continue;
+            }
+            const dist = colorDeltaE(colorTokens[i].rawValue, colorTokens[j].rawValue);
+            if (dist <= tolerance) {
+              union(i, j);
+            }
+          }
+        }
+
+        const colorGroups = {};
+        for (let i = 0; i < colorTokens.length; i++) {
+          const root = find(i);
+          if (!colorGroups[root]) colorGroups[root] = [];
+          colorGroups[root].push(colorTokens[i]);
+        }
+        for (const key in colorGroups) {
+          if (colorGroups[key].length > 1) {
+            const gKey = `tolerance-color-${key}`;
+            groups[gKey] = colorGroups[key];
+          }
+        }
+      }
+
+      // Build result
+      const result = [];
+      for (const key in groups) {
+        if (groups[key].length > 1) {
+          result.push({
+            key: key,
+            type: groups[key][0].category,
+            subType: groups[key][0].subType,
+            source: groups[key][0].source,
+            propertiesText: groups[key][0].propertiesText,
+            rawValue: groups[key][0].rawValue,
+            tokens: groups[key]
+          });
+        }
+      }
+
+      computedDuplicates = result;
+      renderDuplicatesList();
+    }
+
+    // Dynamic checkboxes state sync when radio button changes
+    function updateDupCheckboxes(gIdx, selectedIdx) {
+      const checkboxes = document.getElementsByName(`dup-group-${gIdx}-consolidate`);
+      for (let i = 0; i < checkboxes.length; i++) {
+        if (i === selectedIdx) {
+          checkboxes[i].checked = false;
+          checkboxes[i].disabled = true;
+        } else {
+          checkboxes[i].disabled = false;
+          checkboxes[i].checked = true;
+        }
+      }
+    }
+
+    // Render list of duplicates
+    function renderDuplicatesList() {
+      const container = document.getElementById('duplicates-container');
+      container.innerHTML = '';
+
+      // Filter by type
+      let filtered = computedDuplicates;
+      if (dupFilter !== 'all') {
+        filtered = computedDuplicates.filter(g => g.type === dupFilter);
+      }
+
+      // Update counter
+      const counterEl = document.getElementById('dup-counter');
+      if (counterEl) {
+        const total = filtered.length;
+        const totalTokens = filtered.reduce((acc, g) => acc + g.tokens.length, 0);
+        counterEl.textContent = `${total} grupo${total === 1 ? '' : 's'} de duplicados (${totalTokens} tokens)`;
+      }
+      const consolidateAllBtn = document.getElementById('consolidate-all-btn');
+      if (consolidateAllBtn) {
+        consolidateAllBtn.disabled = filtered.length === 0 || bulkConsolidationInProgress;
+      }
+
+      if (filtered.length === 0) {
+        const tolerance = parseInt(document.getElementById('color-tolerance').value) || 0;
+        const hint = tolerance > 0 || isSmartMode
+          ? 'Tente aumentar a tolerância, resetar a detecção ou mudar o filtro de tipo.'
+          : 'Não encontramos nenhum token com propriedades duplicadas no seu documento.';
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            <h3>Tudo limpo!</h3>
+            <p>${hint}</p>
+          </div>`;
+        return;
+      }
+
+      filtered.forEach((group, gIdx) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'duplicate-group';
+
+        // Set header color/preview
+        let headerPreview = '';
+        if (group.type === 'color') {
+          // Show all distinct colors as small swatches
+          const swatches = group.tokens.map(t => {
+            if (t.rawValue && t.rawValue.r !== undefined) {
+              const r = Math.round(t.rawValue.r * 255);
+              const g = Math.round(t.rawValue.g * 255);
+              const b = Math.round(t.rawValue.b * 255);
+              const a = t.rawValue.a !== undefined ? t.rawValue.a : 1;
+              return `rgba(${r}, ${g}, ${b}, ${a})`;
+            }
+            return '#6b7280';
+          });
+          const uniqueSwatches = [...new Set(swatches)];
+          headerPreview = uniqueSwatches.map(c =>
+            `<div class="preview-color" style="background: ${c}; margin-right: 2px; width: 16px; height: 16px; border-radius: 4px;"></div>`
+          ).join('');
+        }
+
+        const typeLabels = { color: 'Cor', text: 'Texto', spacing: 'Espaçamento', other: 'Outro' };
+        const typeLabel = typeLabels[group.type] || group.type;
+        const groupTitle = group.name ? group.name : group.propertiesText;
+
+        groupEl.innerHTML = `
+          <div class="duplicate-group-header">
+            <div class="dup-header-info" style="display:flex; align-items:center; gap:6px;">
+              ${headerPreview}
+              <strong style="font-size: 13px;">${groupTitle}</strong>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-transform: uppercase;">
+                ${typeLabel}
+              </span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">${group.tokens.length} tokens similares</span>
+          </div>
+          <div class="duplicate-group-list">
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+              Escolha qual token deseja manter como o principal. Os outros serão apagados e seus usos serão redirecionados ao principal. Use a caixinha à direita para ignorar algum token específico da consolidação.
+            </p>
+            <div id="dup-group-${gIdx}-tokens-list">
+              <!-- Tokens will be rendered here -->
+            </div>
+          </div>
+          <div class="consolidate-btn-row">
+            <button class="btn-primary" onclick="handleConsolidateSubmit(${gIdx})">
+              Consolidar Duplicados
+            </button>
+          </div>
+        `;
+
+        const tokensContainer = groupEl.querySelector(`#dup-group-${gIdx}-tokens-list`);
+
+        group.tokens.forEach((t, tIdx) => {
+          const dupItem = document.createElement('div');
+          dupItem.className = 'dup-item';
+
+          const isDefault = tIdx === 0;
+          const miniPreview = getMiniPreview(t);
+
+          // Show individual properties for this token
+          let extraInfo = t.propertiesText;
+          if (t.category === 'color' && t.rawValue && t.rawValue.r !== undefined) {
+            const r = Math.round(t.rawValue.r * 255);
+            const g = Math.round(t.rawValue.g * 255);
+            const b = Math.round(t.rawValue.b * 255);
+            const hexD = c => c.toString(16).padStart(2, '0');
+            extraInfo = `#${hexD(r)}${hexD(g)}${hexD(b)}`.toUpperCase();
+          }
+
+          dupItem.innerHTML = `
+            <div class="dup-token-selector" style="display: flex; align-items: center; gap: 8px;">
+              <!-- Checkbox: Include / Exclude from consolidation -->
+              <input type="checkbox" name="dup-group-${gIdx}-consolidate" id="dup-checkbox-${gIdx}-${tIdx}" value="${t.id}" ${isDefault ? 'disabled' : 'checked'} title="Selecionar para consolidar">
+              
+              <!-- Radio Button: Keep as canonical -->
+              <input type="radio" name="dup-group-${gIdx}-canonical" id="dup-radio-${gIdx}-${tIdx}" value="${t.id}" ${isDefault ? 'checked' : ''} onchange="updateDupCheckboxes(${gIdx}, ${tIdx})" title="Definir como principal">
+              
+              <!-- Small Icon Preview -->
+              <div class="preview-box-mini">
+                ${miniPreview}
+              </div>
+
+              <label for="dup-radio-${gIdx}-${tIdx}" style="color: var(--text-main); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                ${t.name}
+                <span style="font-size: 9px; opacity:0.6; margin-left: 2px;">(${t.collectionOrFolder})</span>
+                <span style="font-size: 9px; opacity:0.5; margin-left: 2px;">${extraInfo}</span>
+              </label>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">Uso: ${t.count} elementos</span>
+          `;
+          tokensContainer.appendChild(dupItem);
+        });
+
+        container.appendChild(groupEl);
+      });
+    }
+
+    function handleConsolidateSubmit(groupIndex) {
+      // Filter to get the same list as rendered
+      let filtered = computedDuplicates;
+      if (dupFilter !== 'all') {
+        filtered = computedDuplicates.filter(g => g.type === dupFilter);
+      }
+
+      const group = filtered[groupIndex];
+      if (!group) return;
+
+      const radios = document.getElementsByName(`dup-group-${groupIndex}-canonical`);
+      let canonicalId = '';
+
+      for (let i = 0; i < radios.length; i++) {
+        if (radios[i].checked) {
+          canonicalId = radios[i].value;
+          break;
+        }
+      }
+
+      // Read only checked checkboxes for the consolidation process
+      const checkboxes = document.getElementsByName(`dup-group-${groupIndex}-consolidate`);
+      const duplicateIds = [];
+      for (let i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked && checkboxes[i].value !== canonicalId) {
+          duplicateIds.push(checkboxes[i].value);
+        }
+      }
+
+      if (duplicateIds.length === 0) {
+        showToast("Nenhum token secundário foi selecionado para consolidar.");
+        return;
+      }
+
+      if (confirm(`Isso irá consolidar os tokens. Tem certeza que deseja substituir os outros ${duplicateIds.length} tokens selecionados por este principal?`)) {
+        consolidateDuplicates(canonicalId, duplicateIds, group.source);
+      }
+    }
+
+    function handleConsolidateAll() {
+      let filtered = computedDuplicates;
+      if (dupFilter !== 'all') {
+        filtered = computedDuplicates.filter(g => g.type === dupFilter);
+      }
+
+      const groups = [];
+      filtered.forEach((group, gIdx) => {
+        const radios = document.getElementsByName(`dup-group-${gIdx}-canonical`);
+        let canonicalId = '';
+        for (let i = 0; i < radios.length; i++) {
+          if (radios[i].checked) {
+            canonicalId = radios[i].value;
+            break;
+          }
+        }
+
+        const checkboxes = document.getElementsByName(`dup-group-${gIdx}-consolidate`);
+        const duplicateIds = [];
+        for (let i = 0; i < checkboxes.length; i++) {
+          if (checkboxes[i].checked && checkboxes[i].value !== canonicalId) {
+            duplicateIds.push(checkboxes[i].value);
+          }
+        }
+
+        if (canonicalId && duplicateIds.length > 0) {
+          groups.push({
+            canonicalId: canonicalId,
+            duplicateIds: duplicateIds,
+            source: group.source
+          });
+        }
+      });
+
+      if (groups.length === 0) {
+        showToast("Nenhum token elegível para consolidação.");
+        return;
+      }
+
+      const totalDuplicates = groups.reduce((total, group) => total + group.duplicateIds.length, 0);
+      if (!confirm(`Isso irá consolidar todos os ${groups.length} grupos exibidos e remover ${totalDuplicates} tokens duplicados selecionados. Deseja continuar?`)) {
+        return;
+      }
+
+      bulkConsolidationQueue = groups;
+      bulkConsolidationInProgress = true;
+      renderDuplicatesList();
+      processNextBulkConsolidation();
+    }
+
+    function processNextBulkConsolidation() {
+      if (bulkConsolidationQueue.length === 0) {
+        if (bulkConsolidationInProgress) {
+          bulkConsolidationInProgress = false;
+          renderDuplicatesList();
+          showToast('Consolidação em massa concluída.');
+        }
+        return;
+      }
+
+      const nextGroup = bulkConsolidationQueue.shift();
+      consolidateDuplicates(nextGroup.canonicalId, nextGroup.duplicateIds, nextGroup.source);
+    }
+
+    // --- MODAL & LOADER HELPERS ---
+
+    function openAddModal() {
+      document.getElementById('add-modal').classList.remove('hidden');
+      adjustAddModalValueType();
+    }
+
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.add('hidden');
+      // Reset inputs
+      document.getElementById('add-name').value = '';
+    }
+
+    function adjustAddModalValueType() {
+      const source = document.getElementById('add-source').value;
+      const category = document.getElementById('add-category').value;
+      const wrapper = document.getElementById('add-value-input-wrapper');
+      const label = document.getElementById('add-value-label');
+
+      wrapper.innerHTML = '';
+
+      if (category === 'color') {
+        label.textContent = "Valor Inicial da Cor";
+        wrapper.innerHTML = `
+          <div class="color-input-container">
+            <input type="color" id="add-color-picker" value="#3B82F6" oninput="document.getElementById('add-value-input').value = this.value.toUpperCase()">
+            <input type="text" id="add-value-input" value="#3B82F6" oninput="document.getElementById('add-color-picker').value = this.value">
+          </div>`;
+      } else if (category === 'spacing') {
+        label.textContent = "Valor Inicial do Espaçamento (FLOAT)";
+        wrapper.innerHTML = `<input type="text" id="add-value-input" value="8" style="width: 100%">`;
+      } else if (category === 'text') {
+        if (source === 'variable') {
+          label.textContent = "Texto Inicial (STRING)";
+          wrapper.innerHTML = `<input type="text" id="add-value-input" value="Texto" style="width: 100%">`;
+        } else {
+          label.textContent = "Tamanho da Fonte Inicial (px)";
+          wrapper.innerHTML = `<input type="text" id="add-value-input" value="16" style="width: 100%">`;
+        }
+      } else if (category === 'other') {
+        label.textContent = "Valor Inicial (Boolean)";
+        wrapper.innerHTML = `
+          <select id="add-value-input" style="width: 100%">
+            <option value="true">True</option>
+            <option value="false">False</option>
+          </select>`;
+      }
+    }
+
+    function showLoader(show, text = "Processando...") {
+      const loader = document.getElementById('spinner-loader');
+      const loaderText = document.getElementById('spinner-text');
+      if (show) {
+        loaderText.textContent = text;
+        loader.classList.remove('hidden');
+      } else {
+        loader.classList.add('hidden');
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = message;
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

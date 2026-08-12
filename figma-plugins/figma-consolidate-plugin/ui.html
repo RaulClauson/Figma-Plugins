@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1e293b;
+      font-size: 13px;
+      padding: 16px;
+      background: #f8fafc;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .notice {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      color: #92400e;
+      font-size: 11px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border-radius: 10px;
+      color: #dc2626;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+    }
+
+    .badge-info {
+      background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+      color: #4338ca;
+    }
+
+    /* --- Painel de campos selecionáveis --- */
+
+    .fields-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .fields-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .fields-actions button {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      color: #475569;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      transition: all 0.15s ease;
+    }
+
+    .fields-actions button:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+    }
+
+    .field-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+
+    .field-item:hover {
+      background: #f1f5f9;
+    }
+
+    .field-item input[type="checkbox"] {
+      accent-color: #2563eb;
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .field-item label {
+      font-size: 12px;
+      color: #334155;
+      cursor: pointer;
+      line-height: 1.3;
+    }
+
+    /* --- Grupos de duplicados --- */
+
+    .groups { max-height: 220px; overflow-y: auto; }
+
+    .group {
+      border-top: 1px solid #f1f5f9;
+      padding: 9px 0;
+    }
+
+    .group:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .group-head {
+      align-items: flex-start;
+      display: flex;
+      gap: 7px;
+    }
+
+    .group-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+      color: #1e293b;
+    }
+
+    .group-meta {
+      color: #64748b;
+      font-size: 11px;
+      margin: 4px 0 6px 24px;
+    }
+
+    select {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      display: block;
+      font-size: 11px;
+      font-family: 'Inter', sans-serif;
+      margin-left: 24px;
+      padding: 6px 8px;
+      width: calc(100% - 24px);
+      transition: border-color 0.15s ease;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    /* --- Botões --- */
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      transition: all 0.2s ease;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    /* --- Status & Log --- */
+
+    #status {
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 18px;
+    }
+
+    .log-box {
+      background: #0f172a;
+      border-radius: 10px;
+      color: #cbd5e1;
+      display: none;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 11px;
+      margin-top: 14px;
+      max-height: 150px;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .log-line {
+      padding: 1px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .done-banner {
+      border-radius: 10px;
+      display: none;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 12px;
+      padding: 12px;
+    }
+
+    .done-banner.ok {
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    .done-banner.warn {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    /* Scrollbar estilizada */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+
+<body>
+  <h2>Consolidar Componentes Duplicados</h2>
+
+  <p class="subtitle">
+    Componentes são agrupados quando as propriedades selecionadas coincidem.
+    Escolha quais propriedades comparar, analise e defina qual cópia manter.
+  </p>
+
+  <div class="notice">
+    Revise o plano antes de aplicar. Uma cópia só é removida depois que todas
+    as instâncias dela forem redirecionadas com sucesso.
+  </div>
+
+  <!-- Painel de propriedades selecionáveis -->
+  <div class="card" id="card-fields">
+    <div class="fields-header">
+      <div class="card-title" style="margin-bottom:0">
+        ⚙️ Propriedades para Comparação
+        <span class="badge badge-info" id="fields-counter">0/0</span>
+      </div>
+      <div class="fields-actions">
+        <button id="btn-select-all">Selecionar todas</button>
+        <button id="btn-clear-all">Limpar</button>
+      </div>
+    </div>
+    <div class="fields-grid" id="fields-grid">
+      <!-- Gerado dinamicamente -->
+    </div>
+  </div>
+
+  <div class="card" id="card-sets" style="display:none">
+    <div class="card-title">
+      📦 COMPONENT_SET compatíveis
+      <span class="badge" id="sets-count">0</span>
+    </div>
+    <div class="groups" id="sets-list"></div>
+  </div>
+
+  <div class="card" id="card-loose" style="display:none">
+    <div class="card-title">
+      🧩 Componentes soltos compatíveis
+      <span class="badge" id="loose-count">0</span>
+    </div>
+    <div class="groups" id="loose-list"></div>
+  </div>
+
+  <div class="card" id="card-empty" style="display:none">
+    <div class="card-title" style="color:#16a34a">
+      ✓ Nenhum duplicado estrutural encontrado
+    </div>
+    <p style="font-size:12px;color:#64748b">
+      Componentes com o mesmo nome, mas estruturas diferentes, foram mantidos separados.
+    </p>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="btn-analyze">🔍 Analisar</button>
+    <button class="btn-secondary" id="btn-simulate" disabled>
+      ▶ Simular plano
+    </button>
+    <button class="btn-danger" id="btn-apply" disabled>
+      ⚡ Aplicar plano
+    </button>
+    <button class="btn-ghost" id="btn-close">Fechar</button>
+  </div>
+
+  <div class="log-box" id="log-box"></div>
+  <div class="done-banner" id="done-banner"></div>
+
+  <script>
+    const byId = (id) => document.getElementById(id);
+
+    const btnAnalyze = byId("btn-analyze");
+    const btnSimulate = byId("btn-simulate");
+    const btnApply = byId("btn-apply");
+    const logBox = byId("log-box");
+    const doneBanner = byId("done-banner");
+    const status = byId("status");
+    const fieldsGrid = byId("fields-grid");
+    const fieldsCounter = byId("fields-counter");
+
+    let groups = [];
+    let fieldDefinitions = []; // preenchido pela mensagem "field-definitions"
+
+    // --- Geração dinâmica dos checkboxes de campos ---
+
+    function renderFieldCheckboxes(fields) {
+      fieldDefinitions = fields;
+      fieldsGrid.innerHTML = "";
+
+      fields.forEach((field) => {
+        const item = document.createElement("div");
+        item.className = "field-item";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = true; // todas selecionadas por padrão
+        cb.id = "field-" + field.key;
+        cb.dataset.fieldKey = field.key;
+        cb.addEventListener("change", updateFieldsCounter);
+
+        const lbl = document.createElement("label");
+        lbl.htmlFor = cb.id;
+        lbl.textContent = field.label;
+
+        item.appendChild(cb);
+        item.appendChild(lbl);
+
+        // Clicar no item inteiro faz toggle no checkbox
+        item.addEventListener("click", (e) => {
+          if (e.target !== cb) {
+            cb.checked = !cb.checked;
+            updateFieldsCounter();
+          }
+        });
+
+        fieldsGrid.appendChild(item);
+      });
+
+      updateFieldsCounter();
+    }
+
+    function updateFieldsCounter() {
+      const total = fieldDefinitions.length;
+      const checked = document.querySelectorAll('#fields-grid input[type="checkbox"]:checked').length;
+      fieldsCounter.textContent = checked + "/" + total;
+    }
+
+    function getSelectedFields() {
+      const result = {};
+      fieldDefinitions.forEach((field) => {
+        const cb = document.getElementById("field-" + field.key);
+        result[field.key] = cb ? cb.checked : false;
+      });
+      return result;
+    }
+
+    // Selecionar todas / Limpar
+    byId("btn-select-all").onclick = () => {
+      document.querySelectorAll('#fields-grid input[type="checkbox"]').forEach((cb) => {
+        cb.checked = true;
+      });
+      updateFieldsCounter();
+    };
+
+    byId("btn-clear-all").onclick = () => {
+      document.querySelectorAll('#fields-grid input[type="checkbox"]').forEach((cb) => {
+        cb.checked = false;
+      });
+      updateFieldsCounter();
+    };
+
+    // --- Funções auxiliares ---
+
+    function post(type, extra) {
+      const msg = Object.assign({ type: type }, extra || {});
+      parent.postMessage({ pluginMessage: msg }, "*");
+    }
+
+    function setStatus(text) {
+      status.textContent = text;
+    }
+
+    function showLog(visible) {
+      logBox.style.display = visible ? "block" : "none";
+    }
+
+    function clearLog() {
+      logBox.innerHTML = "";
+    }
+
+    function addLog(text) {
+      const line = document.createElement("div");
+      line.className = "log-line";
+      line.textContent = text;
+      logBox.appendChild(line);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function renderGroups(container, data) {
+      container.innerHTML = "";
+
+      data.forEach((group) => {
+        const row = document.createElement("div");
+        row.className = "group";
+
+        const head = document.createElement("div");
+        head.className = "group-head";
+
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.checked = true;
+        check.className = "group-check";
+        check.dataset.groupId = group.id;
+
+        const name = document.createElement("span");
+        name.className = "group-name";
+        name.textContent = group.name;
+
+        const copies = document.createElement("span");
+        copies.className = "badge";
+        copies.textContent = group.candidates.length + " cópias";
+
+        head.append(check, name, copies);
+        row.appendChild(head);
+
+        const meta = document.createElement("div");
+        meta.className = "group-meta";
+        meta.textContent = "Escolha a cópia canônica:";
+        row.appendChild(meta);
+
+        const select = document.createElement("select");
+        select.className = "canonical-select";
+        select.dataset.groupId = group.id;
+
+        group.candidates.forEach((candidate, index) => {
+          const option = document.createElement("option");
+          option.value = candidate.id;
+          option.textContent =
+            (index === 0 ? "Padrão — " : "") +
+            candidate.page +
+            " · " +
+            candidate.path;
+
+          select.appendChild(option);
+        });
+
+        row.appendChild(select);
+        container.appendChild(row);
+      });
+    }
+
+    function selectedPlans() {
+      return groups
+        .map((group) => {
+          const checkbox = document.querySelector(
+            '.group-check[data-group-id="' + group.id + '"]'
+          );
+
+          const select = document.querySelector(
+            '.canonical-select[data-group-id="' + group.id + '"]'
+          );
+
+          if (!checkbox || !checkbox.checked || !select) return null;
+
+          const canonicalId = select.value;
+
+          return {
+            type: group.type,
+            canonicalId,
+            duplicateIds: group.candidates
+              .map((candidate) => candidate.id)
+              .filter((id) => id !== canonicalId),
+          };
+        })
+        .filter(Boolean);
+    }
+
+    // --- Handlers dos botões ---
+
+    btnAnalyze.onclick = () => {
+      setStatus("Analisando com as propriedades selecionadas...");
+      btnAnalyze.disabled = true;
+      btnSimulate.disabled = true;
+      btnApply.disabled = true;
+      doneBanner.style.display = "none";
+      showLog(false);
+      post("analyze", { selectedFields: getSelectedFields() });
+    };
+
+    btnSimulate.onclick = () => {
+      const plans = selectedPlans();
+
+      if (!plans.length) {
+        setStatus("Selecione ao menos um grupo.");
+        return;
+      }
+
+      showLog(true);
+      clearLog();
+      doneBanner.style.display = "none";
+      post("simulate", { plans: plans, selectedFields: getSelectedFields() });
+    };
+
+    btnApply.onclick = () => {
+      const plans = selectedPlans();
+
+      if (!plans.length) {
+        setStatus("Selecione ao menos um grupo.");
+        return;
+      }
+
+      const confirmed = confirm(
+        "Aplicar este plano? Componentes só serão removidos após todas as instâncias serem redirecionadas."
+      );
+
+      if (!confirmed) return;
+
+      showLog(true);
+      clearLog();
+      doneBanner.style.display = "none";
+      btnApply.disabled = true;
+      post("apply", { plans: plans, selectedFields: getSelectedFields() });
+    };
+
+    byId("btn-close").onclick = () => post("close");
+
+    // --- Handler de mensagens do plugin ---
+
+    onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === "field-definitions") {
+        renderFieldCheckboxes(msg.fields);
+      }
+
+      if (msg.type === "log") {
+        showLog(true);
+        addLog(msg.text);
+      }
+
+      if (msg.type === "error") {
+        setStatus("⚠️ " + msg.text);
+      }
+
+      if (msg.type === "analysis") {
+        groups = [...msg.data.sets, ...msg.data.loose];
+        btnAnalyze.disabled = false;
+
+        const noGroups = groups.length === 0;
+
+        byId("card-empty").style.display = noGroups ? "block" : "none";
+        byId("card-sets").style.display = msg.data.sets.length
+          ? "block"
+          : "none";
+        byId("card-loose").style.display = msg.data.loose.length
+          ? "block"
+          : "none";
+
+        byId("sets-count").textContent = msg.data.sets.length;
+        byId("loose-count").textContent = msg.data.loose.length;
+
+        renderGroups(byId("sets-list"), msg.data.sets);
+        renderGroups(byId("loose-list"), msg.data.loose);
+
+        btnSimulate.disabled = noGroups;
+        btnApply.disabled = noGroups;
+
+        setStatus(
+          noGroups
+            ? ""
+            : groups.length + " grupo(s) compatíveis encontrados. Revise o plano."
+        );
+      }
+
+      if (msg.type === "done") {
+        const simulation = msg.dryRun;
+
+        doneBanner.style.display = "block";
+        doneBanner.className =
+          "done-banner " + (msg.protected || msg.skipped ? "warn" : "ok");
+
+        doneBanner.innerHTML =
+          "<strong>" +
+          (simulation ? "Simulação concluída" : "Aplicação concluída") +
+          "</strong><br>" +
+          "🗑 " +
+          msg.removed +
+          (simulation ? " seriam removidos" : " removidos") +
+          "<br>" +
+          "🔁 " +
+          msg.redirected +
+          (simulation ? " seriam redirecionadas" : " redirecionadas") +
+          "<br>" +
+          (msg.protected
+            ? "🛡 " + msg.protected + " grupo(s) protegido(s)<br>"
+            : "") +
+          (msg.skipped
+            ? "⚠️ " + msg.skipped + " troca(s) não realizada(s)"
+            : "");
+
+        if (!simulation) {
+          btnSimulate.disabled = true;
+          setStatus(
+            "Revise o resultado e execute uma nova análise antes de outra aplicação."
+          );
+        } else {
+          btnApply.disabled = false;
+          setStatus("Simulação concluída. Você pode aplicar o mesmo plano.");
+        }
+      }
+    };
+  </script>
+</body>
+</html>

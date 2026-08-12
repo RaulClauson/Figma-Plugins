@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f8fafc;
+      color: #1e293b;
+      font: 13px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    h2 { margin: 0 0 5px; font-size: 17px; }
+    p { margin: 0; line-height: 1.45; color: #64748b; }
+    .notice, .card, .done { border-radius: 9px; margin-top: 12px; padding: 12px; }
+    .notice { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 12px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; }
+    .heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; font-weight: 700; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+    .field { display: flex; align-items: center; gap: 7px; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+    .field:hover { background: #f1f5f9; }
+    input { accent-color: #2563eb; }
+    button { border-radius: 6px; font: inherit; border: 0; padding: 9px 13px; cursor: pointer; font-weight: 650; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    .small { padding: 4px 7px; background: #f1f5f9; color: #334155; font-size: 11px; }
+    .primary { background: #2563eb; color: white; }
+    .secondary { background: #e2e8f0; color: #334155; }
+    .danger { background: #dc2626; color: white; }
+    .ghost { background: white; border: 1px solid #cbd5e1; color: #475569; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    
+    #families { max-height: 350px; overflow: auto; }
+    .family-row {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #ffffff;
+    }
+    .family-row.has-warning {
+      border-color: #fcd34d;
+      background: #ffffff;
+    }
+    .family-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; }
+    .family-name { flex: 1; overflow-wrap: anywhere; }
+    .badge { border-radius: 12px; background: #dbeafe; color: #1d4ed8; font-size: 10px; padding: 2px 7px; white-space: nowrap; }
+    .badge.badge-warn { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    
+    .family-variants { margin-left: 22px; border-left: 2px solid #f1f5f9; padding-left: 10px; margin-top: 6px; }
+    .variant-item { margin-bottom: 8px; font-size: 11px; }
+    .variant-item:last-child { margin-bottom: 0; }
+    .variant-title { color: #475569; margin-bottom: 2px; }
+    .variant-title code { background: #f1f5f9; padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 10px; color: #0f172a; }
+    .variant-source { color: #1e293b; font-size: 11px; }
+    .type-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 1px 4px; border-radius: 3px; background: #f3f4f6; color: #475569; }
+    .type-tag.tag-variant { background: #dbeafe; color: #1e40af; }
+    .type-tag.tag-loose { background: #fef08a; color: #854d0e; }
+    .type-tag.tag-common { background: #f3f4f6; color: #374151; }
+    
+    .copies-title { font-size: 10px; color: #64748b; margin-top: 4px; font-weight: 600; }
+    .copies-list { list-style: none; padding-left: 8px; margin: 2px 0 0 0; }
+    .copy-item { color: #64748b; font-size: 10px; margin-bottom: 2px; }
+    .copy-item.incompatible { color: #dc2626; }
+    .warn-text { color: #dc2626; font-weight: 600; }
+    
+    #status { min-height: 18px; margin-top: 9px; color: #64748b; }
+    #log { display: none; max-height: 145px; overflow: auto; margin-top: 12px; border-radius: 8px; padding: 10px; background: #0f172a; color: #cbd5e1; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+    .done { display: none; background: #dcfce7; border: 1px solid #bbf7d0; color: #166534; line-height: 1.5; }
+    .done.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+    /* Estilos do Preview Visual */
+    .variant-preview-wrapper {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .variant-preview {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f1f5f9;
+      flex-shrink: 0;
+      padding: 2px;
+    }
+
+    /* Sistema de Abas */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      margin-top: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #cbd5e1;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      color: #64748b;
+      transition: all 0.15s ease;
+    }
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    .tab.active {
+      background: #ffffff;
+      color: #1e293b;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h2>Consolidar Famílias de Componentes</h2>
+  <p>Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.</p>
+  <div class="notice">Componentes soltos e conjuntos antigos serão substituídos por novos mestres e deletados apenas se todas as instâncias forem migradas com sucesso.</div>
+
+  <!-- Barra de Abas -->
+  <div class="tabs">
+    <div class="tab active" id="tab-free" data-tab="free">Livre</div>
+    <div class="tab" id="tab-icons" data-tab="icons">Ícones</div>
+    <div class="tab" id="tab-ui" data-tab="ui">UI / Botões</div>
+    <div class="tab" id="tab-features" data-tab="features">Features</div>
+  </div>
+
+  <section class="card">
+    <div class="heading"><span>🎯 Escopo da Análise</span></div>
+    <div class="fields" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+      <label class="field"><input type="radio" name="scope" value="selection" id="scope-selection" />Seleção</label>
+      <label class="field"><input type="radio" name="scope" value="page" id="scope-page" checked />Página Atual</label>
+      <label class="field"><input type="radio" name="scope" value="document" id="scope-document" />Documento</label>
+    </div>
+  </section>
+
+  <!-- Filtros de Frames -->
+  <section class="card" id="card-frame-filters">
+    <div class="heading"><span>🛡 Filtros de Frames (Regras de Ignorar)</span></div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label class="field" style="justify-content:flex-start;">
+        <input type="checkbox" id="filter-min-children" checked />
+        <span>Ignorar Frames com menos de</span>
+        <input type="number" id="val-min-children" value="2" min="0" style="width:45px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>filhos (Min)</span>
+      </label>
+      <label class="field" style="justify-content:flex-start;">
+        <input type="checkbox" id="filter-max-children" checked />
+        <span>Ignorar Frames com mais de</span>
+        <input type="number" id="val-max-children" value="10" min="1" style="width:45px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>filhos (Max)</span>
+      </label>
+      <label class="field" style="justify-content:flex-start;">
+        <input type="checkbox" id="filter-max-dim" />
+        <span>Ignorar dimensão &gt;</span>
+        <input type="number" id="val-max-w" value="800" min="1" style="width:50px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>px (L) ×</span>
+        <input type="number" id="val-max-h" value="1200" min="1" style="width:50px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>px (A)</span>
+      </label>
+      <div style="margin-top:2px;">
+        <div style="font-size:11px; color:#475569; margin-bottom:3px;">Ignorar nomes contendo (separados por vírgula):</div>
+        <input type="text" id="filter-ignored-names" value="Page, Screen, Section, Grid, Container, Wrapper, Layout, Background, Modal" style="width:100%; padding:5px 8px; border:1px solid #cbd5e1; border-radius:5px; font-size:11px;" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros Avançados de Categoria (Wrapper e Limite de Componentes) -->
+  <section class="card" id="card-advanced-filters">
+    <div class="heading"><span>🛡 Filtros Avançados de Categoria</span></div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <!-- Supressão de Wrapper -->
+      <label class="field" style="justify-content:flex-start;">
+        <input type="checkbox" id="filter-wrapper-suppression" />
+        <span>Ativar Supressão de Wrapper (Favorece containers de ícones)</span>
+      </label>
+      
+      <!-- Limites de Componentes Aninhados (Instâncias) -->
+      <div style="display:flex; flex-direction:column; gap:4px; border-top:1px solid #f1f5f9; padding-top:6px;">
+        <label class="field" style="justify-content:flex-start; padding-bottom: 0;">
+          <input type="checkbox" id="filter-comp-limits" />
+          <span>Ativar Limites de Componentes Aninhados</span>
+        </label>
+        <div style="padding-left: 24px; display:flex; flex-direction:column; gap:4px;">
+          <label class="field" style="justify-content:flex-start; padding: 2px 0;">
+            <input type="checkbox" id="filter-min-components" />
+            <span>Mínimo de</span>
+            <input type="number" id="val-min-components" value="1" min="0" style="width:45px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+            <span>componentes aninhados</span>
+          </label>
+          <label class="field" style="justify-content:flex-start; padding: 2px 0;">
+            <input type="checkbox" id="filter-max-components" />
+            <span>Máximo de</span>
+            <input type="number" id="val-max-components" value="2" min="0" style="width:45px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+            <span>componentes aninhados</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="heading"><span>🔎 Validações da análise</span></div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label class="field">
+        <input type="checkbox" id="opt-validate-frames" />
+        Exigir que o elemento se repita em outros frames
+      </label>
+      <p style="font-size:11px;">Quando ativada, cópias encontradas somente dentro do mesmo frame não serão consideradas para criação de componentes.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="heading"><span>📦 Opções de Consolidação</span></div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label class="field">
+        <input type="checkbox" id="opt-create-set" checked />
+        Combinar variantes em Component Sets
+      </label>
+      <label class="field">
+        <input type="checkbox" id="opt-preserve-overrides" checked />
+        Preservar textos originais (overrides) ao substituir réplicas por instâncias
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="heading"><span>⚙️ Propriedades para comparação <span class="badge" id="field-count">0/0</span></span><span><button class="small" id="all">Todas</button> <button class="small" id="none">Limpar</button></span></div>
+    <div id="fields">
+      <div style="display: grid; grid-template-columns: 1fr 75px 65px; gap: 12px; font-weight: 700; font-size: 11px; color: #475569; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #cbd5e1; text-align: center;">
+        <span style="text-align: left;">Propriedade</span>
+        <span>Elemento</span>
+        <span>Filhos</span>
+      </div>
+      <div id="fields-list" style="display: flex; flex-direction: column; gap: 2px;"></div>
+    </div>
+  </section>
+
+  <!-- Tipos de Elemento e Configuração de Exclusão de Subárvore unificados -->
+  <section class="card" id="card-element-types">
+    <div class="heading"><span>📁 Tipos de Elementos e Subárvore</span></div>
+    
+    <div style="font-size:11px; font-weight:700; color:#475569; margin-bottom:6px;">Analisar estes elementos (Candidatos):</div>
+    <div class="fields" id="element-types" style="margin-bottom:12px;">
+      <label class="field"><input type="checkbox" checked id="type-TEXT" />Texto (TEXT)</label>
+      <label class="field"><input type="checkbox" checked id="type-FRAME" />Frames (FRAME)</label>
+      <label class="field"><input type="checkbox" checked id="type-GROUP" />Grupos (GROUP)</label>
+      <label class="field"><input type="checkbox" checked id="type-SHAPES" />Formas / Vetores</label>
+      <label class="field"><input type="checkbox" checked id="type-COMPONENT" />Componentes</label>
+    </div>
+
+    <!-- Nova seção de exclusão integrada diretamente neste card (Exclusão por checkboxes) -->
+    <div style="border-top:1px solid #f1f5f9; padding-top:8px;">
+      <label class="field" style="justify-content:flex-start; padding-bottom:4px; font-weight:700; color:#475569;">
+        <input type="checkbox" id="filter-subtree-exclusion" />
+        <span>Excluir se contiver na subárvore (Tipos Proibidos):</span>
+      </label>
+      <div class="fields" id="subtree-prohibited-types" style="padding-left:24px; margin-top:4px;">
+        <label class="field"><input type="checkbox" id="prohibit-TEXT" />Texto (TEXT)</label>
+        <label class="field"><input type="checkbox" id="prohibit-INSTANCE" />Instâncias (INSTANCE)</label>
+        <label class="field"><input type="checkbox" id="prohibit-COMPONENT" />Componentes (COMPONENT)</label>
+        <label class="field"><input type="checkbox" id="prohibit-FRAME" />Frames (FRAME)</label>
+        <label class="field"><input type="checkbox" id="prohibit-GROUP" />Grupos (GROUP)</label>
+        <label class="field"><input type="checkbox" id="prohibit-SHAPES" />Formas / Vetores</label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="families-card" style="display:none">
+    <div class="heading">📦 Famílias compatíveis para consolidação <span class="badge" id="family-count">0</span></div>
+    <div id="families"></div>
+  </section>
+  <section class="card" id="empty-card" style="display:none"><strong style="color:#16a34a">✓ Nenhuma família duplicada encontrada</strong><p style="margin-top:5px;font-size:12px">Altere os campos selecionados ou analise outra página/documento.</p></section>
+
+  <div id="status"></div>
+  <div class="actions">
+    <button class="primary" id="analyze">🔍 Analisar</button>
+    <button class="secondary" id="simulate" disabled>▶ Simular plano</button>
+    <button class="danger" id="apply" disabled>⚡ Aplicar plano</button>
+    <button class="ghost" id="close">Fechar</button>
+  </div>
+  <div id="log"></div>
+  <div class="done" id="done"></div>
+
+  <script>
+    const byId = (id) => document.getElementById(id);
+    const fieldsList = byId('fields-list'), familiesEl = byId('families'), status = byId('status');
+    const log = byId('log'), done = byId('done');
+    const analyze = byId('analyze'), simulate = byId('simulate'), apply = byId('apply');
+    let definitions = [], families = [];
+    
+    // Controle da fila progressiva de previews
+    let previewQueue = [];
+    let isProcessingPreviews = false;
+    let activeTab = 'free';
+
+    function post(type, extra) { parent.postMessage({ pluginMessage: Object.assign({ type }, extra || {}) }, '*'); }
+    
+    function selectedFields() { 
+      return Object.fromEntries(definitions.map((f) => [
+        f.key, 
+        {
+          element: byId('field-' + f.key + '-element').checked,
+          children: byId('field-' + f.key + '-children').checked
+        }
+      ])); 
+    }
+
+    function getSelectedTypes() {
+      return {
+        TEXT: byId("type-TEXT").checked,
+        FRAME: byId("type-FRAME").checked,
+        GROUP: byId("type-GROUP").checked,
+        SHAPES: byId("type-SHAPES").checked,
+        COMPONENT: byId("type-COMPONENT").checked,
+      };
+    }
+    function getSelectedScope() {
+      if (byId('scope-selection').checked) return 'selection';
+      if (byId('scope-document').checked) return 'document';
+      return 'page';
+    }
+    
+    function getFilterConfig() {
+      const namesStr = byId('filter-ignored-names').value || '';
+      const ignoredNames = namesStr.split(',').map(s => s.trim()).filter(Boolean);
+      
+      // Mapeamento de tipos proibidos baseado em checkboxes selecionadas
+      const prohibitedTypes = [];
+      if (byId('prohibit-TEXT').checked) prohibitedTypes.push('TEXT');
+      if (byId('prohibit-INSTANCE').checked) prohibitedTypes.push('INSTANCE');
+      if (byId('prohibit-COMPONENT').checked) prohibitedTypes.push('COMPONENT', 'COMPONENT_SET');
+      if (byId('prohibit-FRAME').checked) prohibitedTypes.push('FRAME');
+      if (byId('prohibit-GROUP').checked) prohibitedTypes.push('GROUP');
+      if (byId('prohibit-SHAPES').checked) {
+        // Formas vetoriais são mapeadas para os tipos nativos equivalentes do Figma
+        prohibitedTypes.push('RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE');
+      }
+
+      return {
+        enableMinChildren: byId('filter-min-children').checked,
+        minChildrenVal: parseInt(byId('val-min-children').value, 10) || 2,
+        enableMaxChildren: byId('filter-max-children').checked,
+        maxChildrenVal: parseInt(byId('val-max-children').value, 10) || 10,
+        enableMaxDimensions: byId('filter-max-dim').checked,
+        maxWidthVal: parseInt(byId('val-max-w').value, 10) || 800,
+        maxHeightVal: parseInt(byId('val-max-h').value, 10) || 1200,
+        ignoredNames: ignoredNames,
+        
+        // Propriedades ativáveis da categoria
+        enableWrapperSuppression: byId('filter-wrapper-suppression').checked,
+        
+        enableSubtreeExclusion: byId('filter-subtree-exclusion').checked,
+        prohibitedTypes: prohibitedTypes,
+        
+        enableComponentLimits: byId('filter-comp-limits').checked,
+        enableMinComponents: byId('filter-min-components').checked,
+        minComponentsVal: parseInt(byId('val-min-components').value, 10) || 0,
+        enableMaxComponents: byId('filter-max-components').checked,
+        maxComponentsVal: parseInt(byId('val-max-components').value, 10) || 0
+      };
+    }
+    
+    function getOptionsConfig() {
+      return {
+        validateRepeatsAcrossFrames: byId('opt-validate-frames').checked,
+        createSet: byId('opt-create-set').checked,
+        preserveOverrides: byId('opt-preserve-overrides').checked
+      };
+    }
+    
+    function updateFieldCount() { 
+      const checkedCount = document.querySelectorAll('#fields-list input[type="checkbox"]:checked').length;
+      const totalCount = definitions.length * 2;
+      byId('field-count').textContent = checkedCount + '/' + totalCount; 
+    }
+
+    function addLog(text) { log.style.display = 'block'; log.textContent += (log.textContent ? '\n' : '') + text; log.scrollTop = log.scrollHeight; }
+    function clearLog() { log.textContent = ''; log.style.display = 'none'; }
+
+    // Gerenciador do sistema de abas e aplicação de presets mutáveis
+    function applyTabPresets(tab) {
+      const advancedFiltersCard = byId('card-advanced-filters');
+      const elementTypesCard = byId('card-element-types');
+      const frameFiltersCard = byId('card-frame-filters');
+
+      if (tab === 'free') {
+        advancedFiltersCard.style.display = 'block';
+        elementTypesCard.style.display = 'block';
+        frameFiltersCard.style.display = 'block';
+      } else if (tab === 'icons') {
+        // Ícones não se preocupam com filtros de frames padrão ou tipos de textos
+        advancedFiltersCard.style.display = 'block';
+        elementTypesCard.style.display = 'block';
+        frameFiltersCard.style.display = 'none';
+
+        // Ativa configurações padrão inteligentes para Ícones (Ainda editáveis pelo usuário)
+        byId('filter-wrapper-suppression').checked = true;
+        byId('filter-subtree-exclusion').checked = true;
+        
+        // Define as checkboxes de tipos proibidos (Exclusão por subárvore)
+        byId('prohibit-TEXT').checked = true;
+        byId('prohibit-INSTANCE').checked = true;
+        byId('prohibit-COMPONENT').checked = true;
+        byId('prohibit-FRAME').checked = false;
+        byId('prohibit-GROUP').checked = false;
+        byId('prohibit-SHAPES').checked = false;
+        
+        byId('filter-comp-limits').checked = true;
+        byId('filter-min-components').checked = false;
+        byId('filter-max-components').checked = true;
+        byId('val-max-components').value = '0'; // Ícones não têm outros componentes aninhados
+
+        // Define os tipos internos candidatos recomendados no backend
+        byId('type-TEXT').checked = false;
+        byId('type-FRAME').checked = true;
+        byId('type-GROUP').checked = true;
+        byId('type-SHAPES').checked = true;
+        byId('type-COMPONENT').checked = false;
+
+        // Pré-seleciona apenas dimensões e visibilidade para comparação de ícones
+        setPropertiesPreset(['width', 'height', 'visible', 'clipsContent', 'opacity']);
+      } else if (tab === 'ui') {
+        advancedFiltersCard.style.display = 'block';
+        elementTypesCard.style.display = 'block';
+        frameFiltersCard.style.display = 'block';
+
+        // Ativa configurações recomendadas para UI (Ainda editáveis pelo usuário)
+        byId('filter-wrapper-suppression').checked = false;
+        byId('filter-subtree-exclusion').checked = true;
+        
+        // Define as checkboxes de tipos proibidos para UI
+        byId('prohibit-TEXT').checked = false;
+        byId('prohibit-INSTANCE').checked = false;
+        byId('prohibit-COMPONENT').checked = true; // Impede aninhar componentes inteiros em outros componentes atômicos
+        byId('prohibit-FRAME').checked = false;
+        byId('prohibit-GROUP').checked = false;
+        byId('prohibit-SHAPES').checked = false;
+        
+        byId('filter-comp-limits').checked = true;
+        byId('filter-min-components').checked = false;
+        byId('filter-max-components').checked = true;
+        byId('val-max-components').value = '2'; // Limita a no máximo 2 componentes aninhados (ícones/átomos)
+
+        byId('type-TEXT').checked = true;
+        byId('type-FRAME').checked = true;
+        byId('type-GROUP').checked = true;
+        byId('type-SHAPES').checked = false;
+        byId('type-COMPONENT').checked = true;
+
+        // Pré-seleciona propriedades de layout e texto comuns para botões/inputs
+        setPropertiesPreset(['name', 'width', 'height', 'visible', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'characters']);
+      } else if (tab === 'features') {
+        advancedFiltersCard.style.display = 'block';
+        elementTypesCard.style.display = 'block';
+        frameFiltersCard.style.display = 'block';
+
+        // Ativa configurações recomendadas para Features (Ainda editáveis pelo usuário)
+        byId('filter-wrapper-suppression').checked = false;
+        byId('filter-subtree-exclusion').checked = false;
+        
+        // Reseta as checkboxes de exclusão para features
+        byId('prohibit-TEXT').checked = false;
+        byId('prohibit-INSTANCE').checked = false;
+        byId('prohibit-COMPONENT').checked = false;
+        byId('prohibit-FRAME').checked = false;
+        byId('prohibit-GROUP').checked = false;
+        byId('prohibit-SHAPES').checked = false;
+        
+        byId('filter-comp-limits').checked = true;
+        byId('filter-min-components').checked = true;
+        byId('val-min-components').value = '1'; // Obriga a conter no mínimo 1 componente aninhado
+        byId('filter-max-components').checked = false;
+
+        byId('type-TEXT').checked = true;
+        byId('type-FRAME').checked = true;
+        byId('type-GROUP').checked = true;
+        byId('type-SHAPES').checked = false;
+        byId('type-COMPONENT').checked = true;
+
+        // Foca na comparação de estruturas de layout de organismos
+        setPropertiesPreset(['name', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']);
+      }
+
+      updateFieldCount();
+    }
+
+    // Auxiliar para marcar as propriedades de comparação ideais para cada modo
+    function setPropertiesPreset(keysToEnable) {
+      definitions.forEach((field) => {
+        const inputEl = byId('field-' + field.key + '-element');
+        const inputCh = byId('field-' + field.key + '-children');
+        if (inputEl && inputCh) {
+          const shouldEnable = keysToEnable.includes(field.key);
+          inputEl.checked = shouldEnable;
+          inputCh.checked = shouldEnable;
+        }
+      });
+    }
+
+    // Vincula os cliques nas abas
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        applyTabPresets(activeTab);
+      };
+    });
+
+    function renderFields(items) {
+      definitions = items; fieldsList.innerHTML = '';
+      items.forEach((field) => {
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 75px 65px';
+        row.style.gap = '12px';
+        row.style.alignItems = 'center';
+        row.style.padding = '4px 0';
+        row.style.borderBottom = '1px solid #f1f5f9';
+
+        const label = document.createElement('span');
+        label.style.fontSize = '12px';
+        label.style.color = '#334155';
+        label.textContent = field.label;
+
+        // Checkbox para o Elemento Principal (Raiz)
+        const cellElement = document.createElement('div');
+        cellElement.style.textAlign = 'center';
+        const inputElement = document.createElement('input');
+        inputElement.type = 'checkbox';
+        inputElement.checked = true;
+        inputElement.id = 'field-' + field.key + '-element';
+        inputElement.onchange = updateFieldCount;
+        cellElement.append(inputElement);
+
+        // Checkbox para os Descendentes (Filhos)
+        const cellChildren = document.createElement('div');
+        cellChildren.style.textAlign = 'center';
+        const inputChildren = document.createElement('input');
+        inputChildren.type = 'checkbox';
+        inputChildren.checked = true;
+        inputChildren.id = 'field-' + field.key + '-children';
+        inputChildren.onchange = updateFieldCount;
+        cellChildren.append(inputChildren);
+
+        row.append(label, cellElement, cellChildren);
+        fieldsList.append(row);
+      });
+      updateFieldCount();
+    }
+
+    function renderFamilies(data) {
+      families = data; familiesEl.innerHTML = '';
+      data.forEach((family) => {
+        const row = document.createElement('div');
+        row.className = 'family-row' + (family.hasIncompatibility ? ' has-warning' : '');
+        
+        const head = document.createElement('div');
+        head.className = 'family-head';
+        
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = !family.hasIncompatibility;
+        check.className = 'family-check';
+        check.dataset.familyName = family.name;
+        
+        const name = document.createElement('span');
+        name.className = 'family-name';
+        name.textContent = family.name;
+
+        // Botão para selecionar os nós no Canvas do Figma
+        const selectBtn = document.createElement('button');
+        selectBtn.className = 'small ghost';
+        selectBtn.style.padding = '3px 6px';
+        selectBtn.style.fontSize = '10px';
+        selectBtn.style.marginLeft = 'auto'; // Empurra o botão e o badge para a direita
+        selectBtn.style.cursor = 'pointer';
+        selectBtn.textContent = '🔍 Selecionar';
+        selectBtn.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          var ids = [];
+          family.variants.forEach(function (v) {
+            ids.push(v.sourceId);
+            if (v.copies) {
+              v.copies.forEach(function (c) {
+                ids.push(c.id);
+              });
+            }
+          });
+          post('select-nodes', { nodeIds: ids });
+        };
+        
+        const count = document.createElement('span');
+        count.className = 'badge';
+        count.textContent = family.totalCopies + (family.totalCopies === 1 ? ' cópia' : ' cópias');
+        
+        head.append(check, name);
+        if (family.hasIncompatibility) {
+          const warnBadge = document.createElement('span');
+          warnBadge.className = 'badge badge-warn';
+          warnBadge.textContent = '⚠️ Incompatível';
+          head.append(warnBadge);
+        }
+        head.append(selectBtn, count);
+        row.append(head);
+        
+        const variantsEl = document.createElement('div');
+        variantsEl.className = 'family-variants';
+        
+        family.variants.forEach((v) => {
+          const vEl = document.createElement('div');
+          vEl.className = 'variant-item';
+          
+          const vTitle = document.createElement('div');
+          vTitle.className = 'variant-title';
+          vTitle.innerHTML = '<strong>Variante:</strong> <code>' + v.variantStr + '</code>';
+          vEl.append(vTitle);
+
+          // Criando container com imagem de preview lateral e dados da fonte
+          const previewWrapper = document.createElement('div');
+          previewWrapper.className = 'variant-preview-wrapper';
+
+          const img = document.createElement('img');
+          img.className = 'variant-preview';
+          img.dataset.nodeId = v.sourceId;
+          // SVG inline temporário enquanto carrega
+          img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+
+          const sourceEl = document.createElement('div');
+          sourceEl.className = 'variant-source';
+          sourceEl.innerHTML = '🎯 <strong>Fonte:</strong> <span class="type-tag tag-' + v.sourceType + '">[' + v.sourceType + ']</span> ' + v.sourcePage + '<br><span style="color:#64748b; font-size:10px;">' + v.sourcePath + '</span>';
+
+          previewWrapper.append(img, sourceEl);
+          vEl.append(previewWrapper);
+          
+          if (v.copies && v.copies.length > 0) {
+            const copiesTitle = document.createElement('div');
+            copiesTitle.className = 'copies-title';
+            copiesTitle.textContent = 'Cópias a consolidar:';
+            vEl.append(copiesTitle);
+            
+            const copiesList = document.createElement('ul');
+            copiesList.className = 'copies-list';
+            
+            v.copies.forEach((copy) => {
+              const cEl = document.createElement('li');
+              cEl.className = 'copy-item' + (copy.isCompatible ? '' : ' incompatible');
+              cEl.innerHTML = '<span class="type-tag">[' + copy.type + ']</span> ' + copy.page + ' · ' + copy.path + 
+                (copy.isCompatible ? '' : ' <span class="warn-text">⚠️ (Incompatível!)</span>');
+              copiesList.append(cEl);
+            });
+            vEl.append(copiesList);
+          }
+          
+          variantsEl.append(vEl);
+        });
+        
+        row.append(variantsEl);
+        familiesEl.append(row);
+      });
+    }
+
+    // Gerenciador da fila progressiva de geração de previews
+    function triggerPreviewLoading() {
+      previewQueue = Array.from(document.querySelectorAll('.variant-preview[data-node-id]'));
+      if (!isProcessingPreviews) {
+        processNextPreview();
+      }
+    }
+
+    function processNextPreview() {
+      if (previewQueue.length === 0) {
+        isProcessingPreviews = false;
+        return;
+      }
+      isProcessingPreviews = true;
+      const nextImg = previewQueue.shift();
+      post('request-preview', { nodeId: nextImg.dataset.nodeId });
+    }
+
+    function plans() {
+      return families
+        .filter((fam) => {
+          const check = document.querySelector('.family-check[data-family-name="' + fam.name + '"]');
+          return check && check.checked;
+        })
+        .map((fam) => {
+          return {
+            name: fam.name,
+            variants: fam.variants,
+            maxDepth: fam.maxDepth
+          };
+        });
+    }
+
+    byId('all').onclick = () => { document.querySelectorAll('#fields input[type="checkbox"]').forEach((input) => input.checked = true); updateFieldCount(); };
+    byId('none').onclick = () => { document.querySelectorAll('#fields input[type="checkbox"]').forEach((input) => input.checked = false); updateFieldCount(); };
+    
+    analyze.onclick = () => {
+      analyze.disabled = true;
+      simulate.disabled = true;
+      apply.disabled = true;
+      done.style.display = 'none';
+      clearLog();
+      status.textContent = 'Analisando famílias...';
+      post('analyze', { 
+        scope: getSelectedScope(),
+        selectedFields: selectedFields(), 
+        selectedTypes: getSelectedTypes(),
+        filterConfig: getFilterConfig(),
+        optionsConfig: getOptionsConfig()
+      });
+    };
+    
+    simulate.onclick = () => {
+      const value = plans();
+      if (!value.length) return status.textContent = 'Selecione ao menos uma família.';
+      clearLog();
+      done.style.display = 'none';
+      post('simulate', { plans: value, selectedFields: selectedFields(), optionsConfig: getOptionsConfig() });
+    };
+    
+    apply.onclick = () => {
+      const value = plans();
+      if (!value.length) return status.textContent = 'Selecione ao menos uma família.';
+      if (!confirm('Aplicar este plano? A ação consolidará as famílias selecionadas gerando novos mestres.')) return;
+      clearLog();
+      done.style.display = 'none';
+      apply.disabled = true;
+      post('apply', { plans: value, selectedFields: selectedFields(), optionsConfig: getOptionsConfig() });
+    };
+    
+    byId('close').onclick = () => post('close');
+
+    onmessage = (event) => {
+      const msg = event.data.pluginMessage; if (!msg) return;
+      if (msg.type === 'field-definitions') {
+        renderFields(msg.fields);
+        applyTabPresets('free'); // Inicia com predefinição da aba Livre
+      }
+      if (msg.type === 'log') addLog(msg.text);
+      if (msg.type === 'error') { status.textContent = '⚠️ ' + msg.text; analyze.disabled = false; }
+      
+      if (msg.type === 'preview-response') {
+        const img = document.querySelector('.variant-preview[data-node-id="' + msg.nodeId + '"]');
+        if (img && msg.bytes) {
+          try {
+            const blob = new Blob([msg.bytes], { type: 'image/png' });
+            img.src = URL.createObjectURL(blob);
+          } catch (e) {
+            // Em caso de erro na geração da URL, mantém o ícone default
+          }
+        }
+        // Processa o próximo item da fila progressiva de forma assíncrona e isolada
+        processNextPreview();
+      }
+
+      if (msg.type === 'analysis') {
+        analyze.disabled = false; const data = msg.data.families; const empty = !data.length;
+        byId('families-card').style.display = empty ? 'none' : 'block'; byId('empty-card').style.display = empty ? 'block' : 'none';
+        byId('family-count').textContent = data.length; renderFamilies(data); simulate.disabled = empty; apply.disabled = empty;
+        status.textContent = empty ? '' : data.length + ' família(s) encontradas. Famílias internas serão processadas primeiro.';
+        
+        // Inicia o carregamento progressivo de imagens
+        triggerPreviewLoading();
+      }
+      if (msg.type === 'done') {
+        const total = msg.totals; done.style.display = 'block'; done.className = 'done' + (total.protected || total.skipped ? ' warn' : '');
+        done.innerHTML = '<strong>' + (msg.dryRun ? 'Simulação concluída' : 'Aplicação concluída') + '</strong><br>' +
+          '🧩 ' + total.componentsCreated + (msg.dryRun ? ' componente(s)/variante(s) seriam criados' : ' componente(s)/variante(s) criados') + '<br>' +
+          '🔁 ' + total.instancesInserted + (msg.dryRun ? ' nova(s) instância(s) seriam inseridas' : ' nova(s) instância(s) inseridas') + '<br>' +
+          '↪ ' + total.redirected + ' instância(s) de componentes redirecionadas<br>' +
+          (total.componentsRemoved ? '🗑 ' + total.componentsRemoved + ' componente(s)/set(s) antigos removidos<br>' : '') +
+          (total.protected ? '🛡 ' + total.protected + ' família(s)/item(ns) protegidos<br>' : '') +
+          (total.skipped ? '⚠️ ' + total.skipped + ' operação(ões) ignorada(s)' : '');
+        if (msg.dryRun) { apply.disabled = false; status.textContent = 'Simulação concluída. Você pode aplicar o plano.'; }
+        else { simulate.disabled = true; status.textContent = 'Revise o resultado e execute uma nova análise antes de aplicar novamente.'; }
+      }
+    };
+  </script>
+</body>
+</html>
