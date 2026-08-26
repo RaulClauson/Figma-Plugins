@@ -352,17 +352,24 @@
         prohibitedTypes.push('RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE');
       }
 
+      const parseNum = (id, fallback) => {
+        const el = byId(id);
+        if (!el) return fallback;
+        const v = parseFloat(el.value);
+        return isNaN(v) ? fallback : v;
+      };
+
       return {
         enableMinChildren: byId('filter-min-children').checked,
-        minChildrenVal: parseInt(byId('val-min-children').value, 10) || 2,
+        minChildrenVal: parseNum('val-min-children', 2),
         enableMaxChildren: byId('filter-max-children').checked,
-        maxChildrenVal: parseInt(byId('val-max-children').value, 10) || 10,
+        maxChildrenVal: parseNum('val-max-children', 10),
         enableMinDimensions: byId('filter-min-dim').checked,
-        minWidthVal: parseInt(byId('val-min-w').value, 10) || 16,
-        minHeightVal: parseInt(byId('val-min-h').value, 10) || 16,
+        minWidthVal: parseNum('val-min-w', 16),
+        minHeightVal: parseNum('val-min-h', 16),
         enableMaxDimensions: byId('filter-max-dim').checked,
-        maxWidthVal: parseInt(byId('val-max-w').value, 10) || 800,
-        maxHeightVal: parseInt(byId('val-max-h').value, 10) || 1200,
+        maxWidthVal: parseNum('val-max-w', 800),
+        maxHeightVal: parseNum('val-max-h', 1200),
         ignoredNames: ignoredNames,
         
         // Propriedades ativáveis da categoria

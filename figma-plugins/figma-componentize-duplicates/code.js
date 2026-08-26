@@ -384,21 +384,11 @@ function countNestedComponents(node) {
 function shouldIgnoreNode(node, filterConfig) {
   if (!filterConfig) return false;
 
-  // 1. Filtros de Frames Padrão
-  if (node.type === "FRAME") {
+  // 1. Filtros de Contêineres / Frames / Grupos (Contagem de filhos e nomes ignorados)
+  if (node.type === "FRAME" || node.type === "GROUP" || node.type === "COMPONENT" || node.type === "SECTION") {
     var count = node.children ? node.children.length : 0;
     if (filterConfig.enableMinChildren && count < filterConfig.minChildrenVal) return true;
     if (filterConfig.enableMaxChildren && count > filterConfig.maxChildrenVal) return true;
-    if (filterConfig.enableMinDimensions) {
-      var w = node.width || 0;
-      var h = node.height || 0;
-      if (w < filterConfig.minWidthVal || h < filterConfig.minHeightVal) return true;
-    }
-    if (filterConfig.enableMaxDimensions) {
-      var w = node.width || 0;
-      var h = node.height || 0;
-      if (w > filterConfig.maxWidthVal || h > filterConfig.maxHeightVal) return true;
-    }
     if (filterConfig.ignoredNames && filterConfig.ignoredNames.length > 0) {
       var nameLower = (node.name || "").toLowerCase().trim();
       for (var i = 0; i < filterConfig.ignoredNames.length; i++) {
@@ -408,21 +398,33 @@ function shouldIgnoreNode(node, filterConfig) {
     }
   }
 
-  // 2. Supressão de Wrapper (Ignorar filhos únicos em favor do container)
+  // 2. Filtro de Dimensões Mínimas e Máximas (aplica a qualquer elemento que possua largura e altura)
+  if (typeof node.width === "number" && typeof node.height === "number") {
+    var w = node.width;
+    var h = node.height;
+    if (filterConfig.enableMinDimensions) {
+      if (w < filterConfig.minWidthVal || h < filterConfig.minHeightVal) return true;
+    }
+    if (filterConfig.enableMaxDimensions) {
+      if (w > filterConfig.maxWidthVal || h > filterConfig.maxHeightVal) return true;
+    }
+  }
+
+  // 3. Supressão de Wrapper (Ignorar filhos únicos em favor do container)
   if (filterConfig.enableWrapperSuppression) {
     if (node.parent && node.parent.children && node.parent.children.length === 1 && !hasProtectedAncestor(node.parent)) {
       return true; // Pula este nó, pois o pai é o wrapper visual definitivo
     }
   }
 
-  // 3. Exclusão de Subárvore (Tipos proibidos)
+  // 4. Exclusão de Subárvore (Tipos proibidos)
   if (filterConfig.enableSubtreeExclusion && filterConfig.prohibitedTypes && filterConfig.prohibitedTypes.length > 0) {
     if (hasProhibitedDescendants(node, filterConfig.prohibitedTypes)) {
       return true;
     }
   }
 
-  // 4. Limites de Componentes Aninhados na Subárvore
+  // 5. Limites de Componentes Aninhados na Subárvore
   if (filterConfig.enableComponentLimits) {
     var compCount = countNestedComponents(node);
     if (filterConfig.enableMinComponents && compCount < filterConfig.minComponentsVal) return true;
@@ -450,7 +452,9 @@ function getCandidates(scope, selectedTypes, filterConfig) {
           for (var i = 0; i < node.children.length; i++) {
             if (node.children[i].type === "COMPONENT") {
               if (!selectedTypes || selectedTypes["COMPONENT"]) {
-                result.push(node.children[i]);
+                if (!shouldIgnoreNode(node.children[i], filterConfig)) {
+                  result.push(node.children[i]);
+                }
               }
             }
           }
@@ -460,7 +464,9 @@ function getCandidates(scope, selectedTypes, filterConfig) {
       
       if (node.type === "COMPONENT") {
         if (!selectedTypes || selectedTypes["COMPONENT"]) {
-          result.push(node);
+          if (!shouldIgnoreNode(node, filterConfig)) {
+            result.push(node);
+          }
         }
         return;
       }
