@@ -158,6 +158,14 @@
         <span>filhos (Max)</span>
       </label>
       <label class="field" style="justify-content:flex-start;">
+        <input type="checkbox" id="filter-min-dim" />
+        <span>Ignorar dimensão &lt;</span>
+        <input type="number" id="val-min-w" value="16" min="1" style="width:50px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>px (L) ×</span>
+        <input type="number" id="val-min-h" value="16" min="1" style="width:50px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+        <span>px (A)</span>
+      </label>
+      <label class="field" style="justify-content:flex-start;">
         <input type="checkbox" id="filter-max-dim" />
         <span>Ignorar dimensão &gt;</span>
         <input type="number" id="val-max-w" value="800" min="1" style="width:50px; margin:0 4px; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
@@ -349,6 +357,9 @@
         minChildrenVal: parseInt(byId('val-min-children').value, 10) || 2,
         enableMaxChildren: byId('filter-max-children').checked,
         maxChildrenVal: parseInt(byId('val-max-children').value, 10) || 10,
+        enableMinDimensions: byId('filter-min-dim').checked,
+        minWidthVal: parseInt(byId('val-min-w').value, 10) || 16,
+        minHeightVal: parseInt(byId('val-min-h').value, 10) || 16,
         enableMaxDimensions: byId('filter-max-dim').checked,
         maxWidthVal: parseInt(byId('val-max-w').value, 10) || 800,
         maxHeightVal: parseInt(byId('val-max-h').value, 10) || 1200,

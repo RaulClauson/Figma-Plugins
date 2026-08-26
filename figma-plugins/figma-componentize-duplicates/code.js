@@ -389,6 +389,11 @@ function shouldIgnoreNode(node, filterConfig) {
     var count = node.children ? node.children.length : 0;
     if (filterConfig.enableMinChildren && count < filterConfig.minChildrenVal) return true;
     if (filterConfig.enableMaxChildren && count > filterConfig.maxChildrenVal) return true;
+    if (filterConfig.enableMinDimensions) {
+      var w = node.width || 0;
+      var h = node.height || 0;
+      if (w < filterConfig.minWidthVal || h < filterConfig.minHeightVal) return true;
+    }
     if (filterConfig.enableMaxDimensions) {
       var w = node.width || 0;
       var h = node.height || 0;
