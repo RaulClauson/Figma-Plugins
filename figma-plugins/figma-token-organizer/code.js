@@ -486,6 +486,223 @@ function replaceVariableInNode(node, oldVarId, newVar) {
   return changed;
 }
 
+// --- SCANNING DETACHED / UNBOUND ELEMENTS ---
+
+function scanDetachedElements() {
+  const detached = [];
+  const pages = figma.root.children;
+
+  for (const page of pages) {
+    if (page.type !== 'PAGE') continue;
+
+    function walk(node) {
+      if (node.type === 'DOCUMENT' || node.type === 'PAGE') {
+        if ('children' in node && node.children) {
+          for (let i = 0; i < node.children.length; i++) {
+            walk(node.children[i]);
+          }
+        }
+        return;
+      }
+
+      // 1. Fills (Colors)
+      if ('fills' in node && Array.isArray(node.fills) && node.fills.length > 0) {
+        const hasStyle = node.fillStyleId && node.fillStyleId !== figma.mixed && node.fillStyleId !== '';
+        if (!hasStyle) {
+          node.fills.forEach((paint, pIdx) => {
+            if (paint.type === 'SOLID' && paint.visible !== false) {
+              const hasVar = (paint.boundVariables && paint.boundVariables.color) || 
+                             (node.boundVariables && node.boundVariables.fills && node.boundVariables.fills[pIdx]);
+              if (!hasVar) {
+                const r = paint.color.r;
+                const g = paint.color.g;
+                const b = paint.color.b;
+                const a = paint.opacity !== undefined ? paint.opacity : 1;
+                const hex = rgbToHex(r, g, b);
+                let formatted = hex;
+                if (a < 1) formatted += ` (${Math.round(a * 100)}%)`;
+
+                detached.push({
+                  nodeId: node.id,
+                  nodeName: node.name || 'Sem nome',
+                  nodeType: node.type,
+                  pageId: page.id,
+                  pageName: page.name,
+                  prop: 'fill',
+                  category: 'color',
+                  paintIndex: pIdx,
+                  rawValue: { r, g, b, a },
+                  formattedValue: formatted
+                });
+              }
+            }
+          });
+        }
+      }
+
+      // 2. Strokes (Colors)
+      if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
+        const hasStyle = node.strokeStyleId && node.strokeStyleId !== figma.mixed && node.strokeStyleId !== '';
+        if (!hasStyle) {
+          node.strokes.forEach((paint, pIdx) => {
+            if (paint.type === 'SOLID' && paint.visible !== false) {
+              const hasVar = (paint.boundVariables && paint.boundVariables.color) || 
+                             (node.boundVariables && node.boundVariables.strokes && node.boundVariables.strokes[pIdx]);
+              if (!hasVar) {
+                const r = paint.color.r;
+                const g = paint.color.g;
+                const b = paint.color.b;
+                const a = paint.opacity !== undefined ? paint.opacity : 1;
+                const hex = rgbToHex(r, g, b);
+                let formatted = hex;
+                if (a < 1) formatted += ` (${Math.round(a * 100)}%)`;
+
+                detached.push({
+                  nodeId: node.id,
+                  nodeName: node.name || 'Sem nome',
+                  nodeType: node.type,
+                  pageId: page.id,
+                  pageName: page.name,
+                  prop: 'stroke',
+                  category: 'color',
+                  paintIndex: pIdx,
+                  rawValue: { r, g, b, a },
+                  formattedValue: formatted
+                });
+              }
+            }
+          });
+        }
+      }
+
+      // 3. Text Styles
+      if (node.type === 'TEXT') {
+        const hasStyle = node.textStyleId && node.textStyleId !== figma.mixed && node.textStyleId !== '';
+        if (!hasStyle) {
+          if (node.fontName && node.fontName !== figma.mixed) {
+            const fontName = node.fontName;
+            const fontSize = node.fontSize !== figma.mixed ? node.fontSize : 16;
+            const lineHeight = node.lineHeight !== figma.mixed ? node.lineHeight : { unit: 'AUTO' };
+            const letterSpacing = node.letterSpacing !== figma.mixed ? node.letterSpacing : { unit: 'PERCENT', value: 0 };
+            
+            let lhText = "Auto";
+            if (lineHeight.unit === 'PIXELS') lhText = `${Math.round(lineHeight.value)}px`;
+            else if (lineHeight.unit === 'PERCENT') lhText = `${Math.round(lineHeight.value)}%`;
+
+            detached.push({
+              nodeId: node.id,
+              nodeName: node.name || 'Texto',
+              nodeType: node.type,
+              pageId: page.id,
+              pageName: page.name,
+              prop: 'text',
+              category: 'text',
+              rawValue: {
+                fontName: fontName,
+                fontSize: fontSize,
+                lineHeight: lineHeight,
+                letterSpacing: letterSpacing
+              },
+              formattedValue: `${fontName.family} ${fontName.style}, ${fontSize}px / ${lhText}`
+            });
+          }
+        }
+      }
+
+      // 4. Effect Styles
+      if ('effects' in node && Array.isArray(node.effects) && node.effects.length > 0) {
+        const hasStyle = node.effectStyleId && node.effectStyleId !== figma.mixed && node.effectStyleId !== '';
+        if (!hasStyle) {
+          const visibleEffects = node.effects.filter(e => e.visible !== false);
+          if (visibleEffects.length > 0) {
+            detached.push({
+              nodeId: node.id,
+              nodeName: node.name || 'Elemento',
+              nodeType: node.type,
+              pageId: page.id,
+              pageName: page.name,
+              prop: 'effect',
+              category: 'other',
+              rawValue: visibleEffects,
+              formattedValue: `${visibleEffects.length} efeito(s) (${visibleEffects.map(e => e.type.toLowerCase().replace('_', ' ')).join(', ')})`
+            });
+          }
+        }
+      }
+
+      if ('children' in node && node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+          walk(node.children[i]);
+        }
+      }
+    }
+
+    walk(page);
+  }
+
+  return detached;
+}
+
+// --- APPLY FIX HELPER ---
+
+async function applyFixToNode(node, fix) {
+  let changed = false;
+  const { prop, targetTokenId, source, paintIndex } = fix;
+
+  if (prop === 'fill') {
+    if (source === 'style') {
+      node.fillStyleId = targetTokenId;
+      changed = true;
+    } else {
+      const targetVar = await figma.variables.getVariableByIdAsync(targetTokenId);
+      if (targetVar && Array.isArray(node.fills)) {
+        const newFills = node.fills.map((paint, idx) => {
+          if (paint.type === 'SOLID') {
+            if (paintIndex === undefined || idx === paintIndex) {
+              return figma.variables.setBoundVariableForPaint(paint, 'color', targetVar);
+            }
+          }
+          return paint;
+        });
+        node.fills = newFills;
+        changed = true;
+      }
+    }
+  } else if (prop === 'stroke') {
+    if (source === 'style') {
+      node.strokeStyleId = targetTokenId;
+      changed = true;
+    } else {
+      const targetVar = await figma.variables.getVariableByIdAsync(targetTokenId);
+      if (targetVar && Array.isArray(node.strokes)) {
+        const newStrokes = node.strokes.map((paint, idx) => {
+          if (paint.type === 'SOLID') {
+            if (paintIndex === undefined || idx === paintIndex) {
+              return figma.variables.setBoundVariableForPaint(paint, 'color', targetVar);
+            }
+          }
+          return paint;
+        });
+        node.strokes = newStrokes;
+        changed = true;
+      }
+    }
+  } else if (prop === 'text') {
+    if (source === 'style' && node.type === 'TEXT') {
+      await prepareTextNodeForStyleChange(node, targetTokenId);
+      node.textStyleId = targetTokenId;
+      changed = true;
+    }
+  } else if (prop === 'effect') {
+    if (source === 'style') {
+      node.effectStyleId = targetTokenId;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 // --- ANALYSIS CONTROLLER ---
 
 function performAnalysis() {
@@ -493,11 +710,13 @@ function performAnalysis() {
   const counts = scanUsages();
   const tokens = getSerializedTokens(counts);
   const duplicates = findDuplicates(tokens);
+  const detached = scanDetachedElements();
 
   figma.ui.postMessage({
     type: "analysis-result",
     tokens: tokens,
-    duplicates: duplicates
+    duplicates: duplicates,
+    detached: detached
   });
 }
 
@@ -968,6 +1187,78 @@ figma.ui.onmessage = async (msg) => {
 
       figma.notify(`Consolidado! ${replacedCount} elementos atualizados. Tokens duplicados removidos.`);
       performAnalysis();
+    }
+
+    if (msg.type === "fix-detached") {
+      const { fixes } = msg;
+      let appliedCount = 0;
+      figma.ui.postMessage({ type: "status", text: "Aplicando tokens aos elementos..." });
+
+      for (const fix of fixes) {
+        try {
+          const node = figma.getNodeById ? figma.getNodeById(fix.nodeId) : null;
+          if (node) {
+            const changed = await applyFixToNode(node, fix);
+            if (changed) appliedCount++;
+          }
+        } catch (e) {
+          console.error("Erro ao aplicar correção no nó:", e);
+        }
+      }
+
+      figma.notify(`${appliedCount} elemento(s) corrigido(s) com sucesso.`);
+      performAnalysis();
+    }
+
+    if (msg.type === "auto-fix-all") {
+      const { fixes } = msg;
+      let appliedCount = 0;
+      figma.ui.postMessage({ type: "status", text: "Executando Auto Fix em lote..." });
+
+      for (const fix of fixes) {
+        try {
+          const node = figma.getNodeById ? figma.getNodeById(fix.nodeId) : null;
+          if (node) {
+            const changed = await applyFixToNode(node, fix);
+            if (changed) appliedCount++;
+          }
+        } catch (e) {
+          console.error("Erro no Auto Fix do nó:", e);
+        }
+      }
+
+      figma.notify(`Auto Fix concluído! ${appliedCount} elemento(s) vinculados a tokens.`);
+      performAnalysis();
+    }
+
+    if (msg.type === "select-detached-nodes") {
+      const { nodeIds } = msg;
+      const nodes = [];
+      for (const id of nodeIds) {
+        const n = figma.getNodeById ? figma.getNodeById(id) : null;
+        if (n && n.type !== 'DOCUMENT' && n.type !== 'PAGE') {
+          nodes.push(n);
+        }
+      }
+      if (nodes.length > 0) {
+        let parentPage = nodes[0];
+        while (parentPage && parentPage.type !== 'PAGE') {
+          parentPage = parentPage.parent;
+        }
+        if (parentPage) {
+          figma.currentPage = parentPage;
+        }
+        const pageNodes = nodes.filter(n => {
+          let p = n;
+          while (p && p.type !== 'PAGE') p = p.parent;
+          return p === figma.currentPage;
+        });
+        figma.currentPage.selection = pageNodes;
+        figma.viewport.scrollAndZoomIntoView(pageNodes);
+        figma.notify(`${pageNodes.length} elemento(s) selecionado(s) no Figma.`);
+      } else {
+        figma.notify("Nenhum elemento encontrado no documento.");
+      }
     }
 
     if (msg.type === "close") {

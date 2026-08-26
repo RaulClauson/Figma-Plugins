@@ -863,6 +863,195 @@
       align-items: center;
       margin-bottom: 12px;
     }
+
+    /* Badge & Fixes styling */
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      margin-left: 6px;
+    }
+
+    .fixes-summary-banner {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .stat-chip strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .badge-exact {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-fuzzy {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-none {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .prop-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .prop-tag.fill {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+    .prop-tag.stroke {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .prop-tag.text {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .prop-tag.effect, .prop-tag.other {
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.25);
+    }
+
+    .fix-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .fix-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .fix-card-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.25);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .fix-card-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .fix-comparison-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .fix-side-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .fix-arrow {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .fix-node-accordion {
+      margin-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 8px;
+    }
+
+    .fix-node-list {
+      max-height: 140px;
+      overflow-y: auto;
+      padding: 6px 8px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .fix-node-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .fix-node-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
   </style>
 </head>
 <body>
@@ -894,6 +1083,7 @@
   <div class="tabs-nav">
     <button id="tab-all-btn" class="tab-btn active" onclick="switchTab('all')">Todos os Tokens</button>
     <button id="tab-dup-btn" class="tab-btn" onclick="switchTab('duplicates')">Tokens Duplicados</button>
+    <button id="tab-fixes-btn" class="tab-btn" onclick="switchTab('fixes')">Correções <span id="fixes-badge-count" class="tab-badge hidden">0</span></button>
   </div>
 
   <!-- Search & Filters (Only visible in All Tokens Tab) -->
@@ -1001,13 +1191,64 @@
     </div>
 
     <div class="dup-counter-container">
-      <div id="dup-counter" class="token-counter-text">0 grupos de duplicados</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="master-dup-checkbox" checked onclick="toggleAllDupGroups(this)" style="accent-color: var(--accent); cursor: pointer;" title="Selecionar/Desmarcar todos os grupos">
+        <div id="dup-counter" class="token-counter-text">0 grupos de duplicados</div>
+      </div>
       <button id="consolidate-all-btn" class="btn-primary btn-small" onclick="handleConsolidateAll()" disabled>
         Consolidar todos os exibidos
       </button>
     </div>
 
     <div id="duplicates-container">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+
+  <!-- Tab Contents: Corrections / Detached Elements -->
+  <div id="tab-fixes-content" class="tab-content hidden">
+    <!-- Top summary & Auto Fix banner -->
+    <div class="fixes-summary-banner" id="fixes-summary-banner">
+      <div class="fixes-summary-info">
+        <h4 style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Elementos sem Token (Detached)
+        </h4>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px;">
+          <span class="stat-chip" id="fixes-stat-total">Total: <strong>0 elementos</strong></span>
+          <span class="stat-chip" id="fixes-stat-exact" style="color: #34d399;">Match Exato: <strong>0</strong></span>
+          <span class="stat-chip" id="fixes-stat-fuzzy" style="color: #fbbf24;">Sugestão: <strong>0</strong></span>
+        </div>
+      </div>
+      <button id="auto-fix-all-btn" class="btn-primary" onclick="handleAutoFixAll()" disabled style="white-space: nowrap; gap: 6px; padding: 8px 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Auto Fix (0 Exatos)
+      </button>
+    </div>
+
+    <!-- Search and Filters for Fixes -->
+    <div class="search-filter-section" style="padding: 0; background: transparent; border: none; margin-bottom: 12px;">
+      <div class="search-container" style="margin-bottom: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="fixes-search-input" placeholder="Buscar por valor (#hex, fonte) ou elemento..." oninput="handleFixesSearch(this.value)">
+      </div>
+      <div class="filters-row" style="margin-bottom: 6px;">
+        <button class="filter-pill active" onclick="setFixesFilter('all')">Todas as Propriedades</button>
+        <button class="filter-pill" onclick="setFixesFilter('fill')">Preenchimentos (Fills)</button>
+        <button class="filter-pill" onclick="setFixesFilter('stroke')">Contornos (Strokes)</button>
+        <button class="filter-pill" onclick="setFixesFilter('text')">Textos</button>
+        <button class="filter-pill" onclick="setFixesFilter('other')">Efeitos / Outros</button>
+      </div>
+      <div class="filters-row">
+        <button class="filter-pill active" onclick="setFixesStatusFilter('all')">Todos os Status</button>
+        <button class="filter-pill" onclick="setFixesStatusFilter('exact')">🟢 Match Exato</button>
+        <button class="filter-pill" onclick="setFixesStatusFilter('fuzzy')">🟡 Sugestão Próxima</button>
+        <button class="filter-pill" onclick="setFixesStatusFilter('none')">⚪ Sem Correspondência</button>
+      </div>
+    </div>
+
+    <!-- Fixes container -->
+    <div id="fixes-container">
       <!-- Generated dynamically -->
     </div>
   </div>
@@ -1064,6 +1305,8 @@
   <script>
     let tokens = [];
     let duplicates = [];
+    let detachedElements = [];
+    let groupedDetached = [];
     let activeTab = 'all';
     let activeFilter = 'all';
     let searchQuery = '';
@@ -1074,6 +1317,10 @@
     let bulkConsolidationInProgress = false;
     let isSmartMode = false;
     let selectedTokenIds = new Set();
+    let fixesFilter = 'all';
+    let fixesStatusFilter = 'all';
+    let fixesSearchQuery = '';
+    let expandedFixKeys = new Set();
 
     // Start loading on load
     window.onload = () => {
@@ -1100,6 +1347,7 @@
       if (msg.type === 'analysis-result') {
         tokens = msg.tokens || [];
         duplicates = msg.duplicates || [];
+        detachedElements = msg.detached || [];
         computedDuplicates = duplicates;
         
         // Clean up selectedTokenIds to only contain IDs that still exist
@@ -1112,6 +1360,7 @@
         } else {
           redetectDuplicates();
         }
+        processDetachedElements();
         render();
         processNextBulkConsolidation();
         updateSelectedCount();
@@ -1240,8 +1489,10 @@
     function render() {
       if (activeTab === 'all') {
         renderTokensList();
-      } else {
+      } else if (activeTab === 'duplicates') {
         renderDuplicatesList();
+      } else if (activeTab === 'fixes') {
+        renderFixesList();
       }
     }
 
@@ -1250,23 +1501,23 @@
       
       const tabAllBtn = document.getElementById('tab-all-btn');
       const tabDupBtn = document.getElementById('tab-dup-btn');
+      const tabFixesBtn = document.getElementById('tab-fixes-btn');
+
       const tabAllContent = document.getElementById('tab-all-content');
       const tabDupContent = document.getElementById('tab-duplicates-content');
+      const tabFixesContent = document.getElementById('tab-fixes-content');
       const searchFilter = document.getElementById('search-filter-container');
 
-      if (tab === 'all') {
-        tabAllBtn.classList.add('active');
-        tabDupBtn.classList.remove('active');
-        tabAllContent.classList.remove('hidden');
-        tabDupContent.classList.add('hidden');
-        searchFilter.classList.remove('hidden');
-      } else {
-        tabAllBtn.classList.remove('active');
-        tabDupBtn.classList.add('active');
-        tabAllContent.classList.add('hidden');
-        tabDupContent.classList.remove('hidden');
-        searchFilter.classList.add('hidden');
-      }
+      tabAllBtn.classList.toggle('active', tab === 'all');
+      tabDupBtn.classList.toggle('active', tab === 'duplicates');
+      tabFixesBtn.classList.toggle('active', tab === 'fixes');
+
+      tabAllContent.classList.toggle('hidden', tab !== 'all');
+      tabDupContent.classList.toggle('hidden', tab !== 'duplicates');
+      tabFixesContent.classList.toggle('hidden', tab !== 'fixes');
+
+      searchFilter.classList.toggle('hidden', tab !== 'all');
+
       render();
     }
 
@@ -2138,6 +2389,39 @@
       }
     }
 
+    // Dynamic update of consolidate all button based on group checkboxes
+    function updateConsolidateAllButton() {
+      const checkboxes = document.querySelectorAll('.dup-group-include-checkbox');
+      let checkedCount = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) checkedCount++;
+      });
+
+      const masterCheckbox = document.getElementById('master-dup-checkbox');
+      if (masterCheckbox) {
+        masterCheckbox.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+        masterCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+      }
+
+      const consolidateAllBtn = document.getElementById('consolidate-all-btn');
+      if (consolidateAllBtn) {
+        consolidateAllBtn.disabled = checkedCount === 0 || bulkConsolidationInProgress;
+        if (checkedCount === checkboxes.length) {
+          consolidateAllBtn.textContent = `Consolidar todos os exibidos (${checkedCount})`;
+        } else {
+          consolidateAllBtn.textContent = `Consolidar selecionados (${checkedCount})`;
+        }
+      }
+    }
+
+    function toggleAllDupGroups(master) {
+      const checkboxes = document.querySelectorAll('.dup-group-include-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+      });
+      updateConsolidateAllButton();
+    }
+
     // Render list of duplicates
     function renderDuplicatesList() {
       const container = document.getElementById('duplicates-container');
@@ -2156,10 +2440,6 @@
         const totalTokens = filtered.reduce((acc, g) => acc + g.tokens.length, 0);
         counterEl.textContent = `${total} grupo${total === 1 ? '' : 's'} de duplicados (${totalTokens} tokens)`;
       }
-      const consolidateAllBtn = document.getElementById('consolidate-all-btn');
-      if (consolidateAllBtn) {
-        consolidateAllBtn.disabled = filtered.length === 0 || bulkConsolidationInProgress;
-      }
 
       if (filtered.length === 0) {
         const tolerance = parseInt(document.getElementById('color-tolerance').value) || 0;
@@ -2172,6 +2452,7 @@
             <h3>Tudo limpo!</h3>
             <p>${hint}</p>
           </div>`;
+        updateConsolidateAllButton();
         return;
       }
 
@@ -2205,7 +2486,8 @@
 
         groupEl.innerHTML = `
           <div class="duplicate-group-header">
-            <div class="dup-header-info" style="display:flex; align-items:center; gap:6px;">
+            <div class="dup-header-info" style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" class="dup-group-include-checkbox" id="dup-group-include-${gIdx}" data-group-idx="${gIdx}" checked onchange="updateConsolidateAllButton()" title="Incluir este grupo na consolidação geral" style="accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px;">
               ${headerPreview}
               <strong style="font-size: 13px;">${groupTitle}</strong>
               <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-transform: uppercase;">
@@ -2274,10 +2556,11 @@
 
         container.appendChild(groupEl);
       });
+
+      updateConsolidateAllButton();
     }
 
     function handleConsolidateSubmit(groupIndex) {
-      // Filter to get the same list as rendered
       let filtered = computedDuplicates;
       if (dupFilter !== 'all') {
         filtered = computedDuplicates.filter(g => g.type === dupFilter);
@@ -2296,7 +2579,6 @@
         }
       }
 
-      // Read only checked checkboxes for the consolidation process
       const checkboxes = document.getElementsByName(`dup-group-${groupIndex}-consolidate`);
       const duplicateIds = [];
       for (let i = 0; i < checkboxes.length; i++) {
@@ -2323,6 +2605,11 @@
 
       const groups = [];
       filtered.forEach((group, gIdx) => {
+        const groupCheckbox = document.getElementById(`dup-group-include-${gIdx}`);
+        if (groupCheckbox && !groupCheckbox.checked) {
+          return;
+        }
+
         const radios = document.getElementsByName(`dup-group-${gIdx}-canonical`);
         let canonicalId = '';
         for (let i = 0; i < radios.length; i++) {
@@ -2350,12 +2637,12 @@
       });
 
       if (groups.length === 0) {
-        showToast("Nenhum token elegível para consolidação.");
+        showToast("Nenhum grupo de tokens selecionado para consolidação.");
         return;
       }
 
       const totalDuplicates = groups.reduce((total, group) => total + group.duplicateIds.length, 0);
-      if (!confirm(`Isso irá consolidar todos os ${groups.length} grupos exibidos e remover ${totalDuplicates} tokens duplicados selecionados. Deseja continuar?`)) {
+      if (!confirm(`Isso irá consolidar os ${groups.length} grupos selecionados e remover ${totalDuplicates} tokens duplicados. Deseja continuar?`)) {
         return;
       }
 
@@ -2377,6 +2664,510 @@
 
       const nextGroup = bulkConsolidationQueue.shift();
       consolidateDuplicates(nextGroup.canonicalId, nextGroup.duplicateIds, nextGroup.source);
+    }
+
+    // --- CORRECTIONS / DETACHED TOKENS LOGIC ---
+
+    function processDetachedElements() {
+      const groupsMap = new Map();
+
+      detachedElements.forEach(item => {
+        let key = '';
+        if (item.category === 'color') {
+          const r = Math.round(item.rawValue.r * 255);
+          const g = Math.round(item.rawValue.g * 255);
+          const b = Math.round(item.rawValue.b * 255);
+          const a = Math.round((item.rawValue.a !== undefined ? item.rawValue.a : 1) * 100);
+          key = `${item.prop}-color-${r}-${g}-${b}-${a}`;
+        } else if (item.category === 'text') {
+          const font = item.rawValue.fontName || {};
+          const fam = font.family || 'Inter';
+          const sty = font.style || 'Regular';
+          const size = item.rawValue.fontSize || 16;
+          const lhUnit = item.rawValue.lineHeight ? item.rawValue.lineHeight.unit : 'AUTO';
+          const lhVal = item.rawValue.lineHeight ? item.rawValue.lineHeight.value || 0 : 0;
+          key = `text-${fam}-${sty}-${size}-${lhUnit}-${lhVal}`;
+        } else {
+          key = `${item.prop}-${item.formattedValue}`;
+        }
+
+        if (!groupsMap.has(key)) {
+          groupsMap.set(key, {
+            key: key,
+            prop: item.prop,
+            category: item.category,
+            rawValue: item.rawValue,
+            formattedValue: item.formattedValue,
+            nodes: []
+          });
+        }
+
+        groupsMap.get(key).nodes.push({
+          nodeId: item.nodeId,
+          nodeName: item.nodeName,
+          nodeType: item.nodeType,
+          pageId: item.pageId,
+          pageName: item.pageName,
+          paintIndex: item.paintIndex
+        });
+      });
+
+      const colorTokens = tokens.filter(t => t.category === 'color');
+      const textTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
+      const effectTokens = tokens.filter(t => t.subType === 'effect');
+
+      const processed = [];
+
+      groupsMap.forEach(group => {
+        let matchType = 'none';
+        let matchedToken = null;
+        let confidence = 0;
+        let deltaE = null;
+
+        if (group.category === 'color') {
+          const raw = group.rawValue;
+          const r = Math.round(raw.r * 255);
+          const g = Math.round(raw.g * 255);
+          const b = Math.round(raw.b * 255);
+          const a = Math.round((raw.a !== undefined ? raw.a : 1) * 100);
+
+          // 1. Exact Match
+          for (const t of colorTokens) {
+            if (t.rawValue && t.rawValue.r !== undefined) {
+              const tr = Math.round(t.rawValue.r * 255);
+              const tg = Math.round(t.rawValue.g * 255);
+              const tb = Math.round(t.rawValue.b * 255);
+              const ta = Math.round((t.rawValue.a !== undefined ? t.rawValue.a : 1) * 100);
+              if (r === tr && g === tg && b === tb && a === ta) {
+                matchType = 'exact';
+                matchedToken = t;
+                confidence = 100;
+                break;
+              }
+            }
+          }
+
+          // 2. Fuzzy Match via Delta-E
+          if (!matchedToken && colorTokens.length > 0) {
+            let minDistance = Infinity;
+            let bestCandidate = null;
+
+            for (const t of colorTokens) {
+              if (t.rawValue && t.rawValue.r !== undefined) {
+                const dist = colorDeltaE(raw, t.rawValue);
+                if (dist < minDistance) {
+                  minDistance = dist;
+                  bestCandidate = t;
+                }
+              }
+            }
+
+            if (bestCandidate && minDistance <= 25) {
+              matchType = 'fuzzy';
+              matchedToken = bestCandidate;
+              deltaE = Math.round(minDistance * 10) / 10;
+              confidence = Math.max(40, Math.round(100 - minDistance * 2.8));
+            }
+          }
+        } else if (group.category === 'text') {
+          const raw = group.rawValue;
+          const font = raw.fontName || {};
+          const fam = (font.family || '').toLowerCase();
+          const sty = (font.style || '').toLowerCase();
+          const size = raw.fontSize || 16;
+
+          // 1. Exact Match
+          for (const t of textTokens) {
+            const tf = t.rawValue?.fontName || {};
+            if (
+              (tf.family || '').toLowerCase() === fam &&
+              (tf.style || '').toLowerCase() === sty &&
+              Math.abs((t.rawValue?.fontSize || 0) - size) < 0.1
+            ) {
+              matchType = 'exact';
+              matchedToken = t;
+              confidence = 100;
+              break;
+            }
+          }
+
+          // 2. Fuzzy Match: same family, closest size
+          if (!matchedToken && textTokens.length > 0) {
+            let bestCandidate = null;
+            let minSizeDiff = Infinity;
+
+            for (const t of textTokens) {
+              const tf = t.rawValue?.fontName || {};
+              if ((tf.family || '').toLowerCase() === fam) {
+                const diff = Math.abs((t.rawValue?.fontSize || 0) - size);
+                if (diff < minSizeDiff) {
+                  minSizeDiff = diff;
+                  bestCandidate = t;
+                }
+              }
+            }
+
+            if (bestCandidate && minSizeDiff <= 10) {
+              matchType = 'fuzzy';
+              matchedToken = bestCandidate;
+              confidence = Math.max(50, Math.round(100 - minSizeDiff * 5));
+            }
+          }
+        } else {
+          // Effects
+          if (effectTokens.length > 0) {
+            const rawEffects = group.rawValue;
+            for (const t of effectTokens) {
+              if (Array.isArray(t.rawValue) && t.rawValue.length === rawEffects.length) {
+                matchType = 'exact';
+                matchedToken = t;
+                confidence = 100;
+                break;
+              }
+            }
+          }
+        }
+
+        processed.push({
+          ...group,
+          matchType: matchType,
+          matchedToken: matchedToken,
+          confidence: confidence,
+          deltaE: deltaE,
+          selectedTokenId: matchedToken ? matchedToken.id : ''
+        });
+      });
+
+      processed.sort((a, b) => {
+        const score = item => item.matchType === 'exact' ? 1000 : (item.matchType === 'fuzzy' ? item.confidence : 0);
+        return score(b) - score(a);
+      });
+
+      groupedDetached = processed;
+      updateFixesSummary();
+    }
+
+    function updateFixesSummary() {
+      const totalNodes = groupedDetached.reduce((acc, g) => acc + g.nodes.length, 0);
+      const exactGroups = groupedDetached.filter(g => g.matchType === 'exact');
+      const exactNodes = exactGroups.reduce((acc, g) => acc + g.nodes.length, 0);
+      const fuzzyGroups = groupedDetached.filter(g => g.matchType === 'fuzzy');
+      const fuzzyNodes = fuzzyGroups.reduce((acc, g) => acc + g.nodes.length, 0);
+
+      const totalEl = document.getElementById('fixes-stat-total');
+      const exactEl = document.getElementById('fixes-stat-exact');
+      const fuzzyEl = document.getElementById('fixes-stat-fuzzy');
+      const autoFixBtn = document.getElementById('auto-fix-all-btn');
+      const badgeCount = document.getElementById('fixes-badge-count');
+
+      if (totalEl) totalEl.innerHTML = `Total: <strong>${totalNodes} elementos</strong>`;
+      if (exactEl) exactEl.innerHTML = `Match Exato: <strong>${exactNodes}</strong>`;
+      if (fuzzyEl) fuzzyEl.innerHTML = `Sugestão: <strong>${fuzzyNodes}</strong>`;
+
+      if (autoFixBtn) {
+        autoFixBtn.disabled = exactNodes === 0;
+        autoFixBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Auto Fix (${exactNodes} Exatos)
+        `;
+      }
+
+      if (badgeCount) {
+        if (totalNodes > 0) {
+          badgeCount.textContent = totalNodes;
+          badgeCount.classList.remove('hidden');
+        } else {
+          badgeCount.classList.add('hidden');
+        }
+      }
+    }
+
+    function renderFixesList() {
+      const container = document.getElementById('fixes-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let filtered = groupedDetached;
+
+      if (fixesFilter !== 'all') {
+        filtered = filtered.filter(g => g.prop === fixesFilter || (fixesFilter === 'other' && (g.prop === 'effect' || g.category === 'other')));
+      }
+
+      if (fixesStatusFilter !== 'all') {
+        filtered = filtered.filter(g => g.matchType === fixesStatusFilter);
+      }
+
+      if (fixesSearchQuery) {
+        filtered = filtered.filter(g => {
+          const matchVal = g.formattedValue.toLowerCase().includes(fixesSearchQuery);
+          const matchToken = g.matchedToken && g.matchedToken.name.toLowerCase().includes(fixesSearchQuery);
+          const matchNode = g.nodes.some(n => n.nodeName.toLowerCase().includes(fixesSearchQuery));
+          return matchVal || matchToken || matchNode;
+        });
+      }
+
+      if (filtered.length === 0) {
+        if (groupedDetached.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <h3>Design 100% Tokenizado!</h3>
+              <p>Não encontramos nenhum elemento com estilos ou cores soltas (detached) no documento.</p>
+            </div>`;
+        } else {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <h3>Nenhum item corresponde aos filtros</h3>
+              <p>Tente alterar o filtro de propriedade, status ou limpar o termo de busca.</p>
+            </div>`;
+        }
+        return;
+      }
+
+      filtered.forEach((group, idx) => {
+        const card = document.createElement('div');
+        card.className = 'fix-card';
+
+        const isExpanded = expandedFixKeys.has(group.key);
+
+        let rawPreview = '';
+        if (group.category === 'color') {
+          const raw = group.rawValue;
+          const r = Math.round(raw.r * 255);
+          const g = Math.round(raw.g * 255);
+          const b = Math.round(raw.b * 255);
+          const a = raw.a !== undefined ? raw.a : 1;
+          rawPreview = `<div class="preview-color" style="background: rgba(${r}, ${g}, ${b}, ${a}); width: 22px; height: 22px; border-radius: 6px;"></div>`;
+        } else if (group.category === 'text') {
+          const fontStyles = getCssStylesForFont(group.rawValue.fontName);
+          rawPreview = `<div class="preview-text" style="${fontStyles}; font-size: 12px; font-weight:700; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">Aa</div>`;
+        } else {
+          rawPreview = `<svg class="preview-other" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
+        }
+
+        const propLabels = { fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito' };
+        const propLabel = propLabels[group.prop] || group.prop;
+
+        let statusBadge = '';
+        if (group.matchType === 'exact') {
+          statusBadge = `<span class="badge-exact">Match Exato</span>`;
+        } else if (group.matchType === 'fuzzy') {
+          const diffText = group.deltaE !== null ? `ΔE ${group.deltaE} • ` : '';
+          statusBadge = `<span class="badge-fuzzy">Sugestão (${diffText}${group.confidence}%)</span>`;
+        } else {
+          statusBadge = `<span class="badge-none">Sem Match</span>`;
+        }
+
+        let relevantTokens = [];
+        if (group.category === 'color') {
+          relevantTokens = tokens.filter(t => t.category === 'color');
+        } else if (group.category === 'text') {
+          relevantTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
+        } else {
+          relevantTokens = tokens.filter(t => t.subType === 'effect');
+        }
+
+        const selectOptions = relevantTokens.map(t => {
+          const isSelected = group.matchedToken && group.matchedToken.id === t.id ? 'selected' : '';
+          return `<option value="${t.id}" ${isSelected}>${t.name} (${t.collectionOrFolder}) - ${t.propertiesText}</option>`;
+        }).join('');
+
+        let suggestedBox = '';
+        if (group.matchedToken) {
+          const t = group.matchedToken;
+          const miniPreview = getMiniPreview(t);
+          suggestedBox = `
+            <div class="fix-comparison-box">
+              <div class="fix-side-item">
+                ${rawPreview}
+                <div>
+                  <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Atual (Sem Token)</div>
+                  <div style="font-size: 12px; font-weight: 500; color: var(--text-main);">${group.formattedValue}</div>
+                </div>
+              </div>
+              <div class="fix-arrow">➔</div>
+              <div class="fix-side-item">
+                <div class="preview-box-mini">${miniPreview}</div>
+                <div>
+                  <div style="font-size: 10px; color: #34d399; text-transform: uppercase; font-weight: 600;">
+                    ${group.matchType === 'exact' ? 'Token Correspondente' : 'Token Mais Próximo'}
+                  </div>
+                  <div style="font-size: 12px; font-weight: 500; color: var(--text-main);">${t.name} <span style="color:var(--text-muted); font-size: 10px;">(${t.collectionOrFolder})</span></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        const nodeItemsHtml = group.nodes.map(n => `
+          <div class="fix-node-item" onclick="selectSpecificNode('${n.nodeId}')" title="Clique para focar no Figma">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              <strong>${n.nodeName}</strong>
+              <span style="opacity: 0.6;">(${n.nodeType})</span>
+            </span>
+            <span style="opacity: 0.5;">pág: ${n.pageName}</span>
+          </div>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="fix-card-header" onclick="toggleFixDetails('${group.key}')">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+              ${rawPreview}
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="prop-tag ${group.prop}">${propLabel}</span>
+                  <strong style="font-size: 13px; color: var(--text-main);">${group.formattedValue}</strong>
+                </div>
+                <span style="font-size: 11px; color: var(--text-muted);">${group.nodes.length} elemento(s) afetado(s)</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${statusBadge}
+              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${group.key}')" title="Selecionar no Figma">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+              </button>
+              <svg class="arrow-icon" style="transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="fix-card-body ${isExpanded ? '' : 'hidden'}" id="fix-body-${idx}">
+            ${suggestedBox}
+            <div class="form-group" style="margin-top: 4px;">
+              <label style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Escolher Token para Aplicar:</label>
+              <div style="display: flex; gap: 8px;">
+                <select id="fix-select-${idx}" style="flex: 1;">
+                  ${selectOptions || '<option value="">Nenhum token disponível</option>'}
+                </select>
+                <button class="btn-primary btn-small" onclick="applyFixFromDropdown('${group.key}', ${idx})" ${relevantTokens.length === 0 ? 'disabled' : ''}>
+                  Aplicar Token
+                </button>
+              </div>
+            </div>
+            <div class="fix-node-accordion">
+              <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                <span>Camadas no Figma (${group.nodes.length}):</span>
+                <span style="font-weight: 400; opacity: 0.7;">Clique em uma para focar</span>
+              </div>
+              <div class="fix-node-list">
+                ${nodeItemsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function handleAutoFixAll() {
+      const exactGroups = groupedDetached.filter(g => g.matchType === 'exact' && g.matchedToken);
+      if (exactGroups.length === 0) {
+        showToast("Nenhum elemento com match exato disponível para Auto Fix.");
+        return;
+      }
+
+      const totalNodes = exactGroups.reduce((acc, g) => acc + g.nodes.length, 0);
+      if (!confirm(`O Auto Fix irá vincular ${totalNodes} elementos aos seus respectivos tokens correspondentes exatos. Deseja continuar?`)) {
+        return;
+      }
+
+      const fixes = [];
+      exactGroups.forEach(g => {
+        g.nodes.forEach(n => {
+          fixes.push({
+            nodeId: n.nodeId,
+            prop: g.prop,
+            targetTokenId: g.matchedToken.id,
+            source: g.matchedToken.source,
+            paintIndex: n.paintIndex
+          });
+        });
+      });
+
+      showLoader(true, "Executando Auto Fix...");
+      parent.postMessage({ pluginMessage: { type: "auto-fix-all", fixes } }, '*');
+    }
+
+    function applyFixFromDropdown(groupKey, selectIdx) {
+      const group = groupedDetached.find(g => g.key === groupKey);
+      if (!group) return;
+
+      const select = document.getElementById(`fix-select-${selectIdx}`);
+      if (!select || !select.value) {
+        showToast("Selecione um token válido.");
+        return;
+      }
+
+      const targetToken = tokens.find(t => t.id === select.value);
+      if (!targetToken) {
+        showToast("Token selecionado não encontrado.");
+        return;
+      }
+
+      const fixes = group.nodes.map(n => ({
+        nodeId: n.nodeId,
+        prop: group.prop,
+        targetTokenId: targetToken.id,
+        source: targetToken.source,
+        paintIndex: n.paintIndex
+      }));
+
+      showLoader(true, "Aplicando token aos elementos...");
+      parent.postMessage({ pluginMessage: { type: "fix-detached", fixes } }, '*');
+    }
+
+    function selectGroupNodes(groupKey) {
+      const group = groupedDetached.find(g => g.key === groupKey);
+      if (!group || group.nodes.length === 0) return;
+
+      const nodeIds = group.nodes.map(n => n.nodeId);
+      parent.postMessage({ pluginMessage: { type: "select-detached-nodes", nodeIds } }, '*');
+    }
+
+    function selectSpecificNode(nodeId) {
+      parent.postMessage({ pluginMessage: { type: "select-detached-nodes", nodeIds: [nodeId] } }, '*');
+    }
+
+    function toggleFixDetails(groupKey) {
+      if (expandedFixKeys.has(groupKey)) {
+        expandedFixKeys.delete(groupKey);
+      } else {
+        expandedFixKeys.add(groupKey);
+      }
+      renderFixesList();
+    }
+
+    function setFixesFilter(filter) {
+      fixesFilter = filter;
+      const pills = document.querySelectorAll('#tab-fixes-content .filters-row:first-of-type .filter-pill');
+      pills.forEach(pill => {
+        pill.classList.toggle('active', pill.textContent.toLowerCase().includes(
+          filter === 'all' ? 'todas' :
+          filter === 'fill' ? 'preenchimento' :
+          filter === 'stroke' ? 'contorno' :
+          filter === 'text' ? 'texto' : 'efeito'
+        ));
+      });
+      renderFixesList();
+    }
+
+    function setFixesStatusFilter(status) {
+      fixesStatusFilter = status;
+      const pills = document.querySelectorAll('#tab-fixes-content .filters-row:last-of-type .filter-pill');
+      pills.forEach(pill => {
+        pill.classList.toggle('active', pill.textContent.toLowerCase().includes(
+          status === 'all' ? 'todos os status' :
+          status === 'exact' ? 'match exato' :
+          status === 'fuzzy' ? 'sugestão' : 'sem correspondência'
+        ));
+      });
+      renderFixesList();
+    }
+
+    function handleFixesSearch(val) {
+      fixesSearchQuery = val.toLowerCase().trim();
+      renderFixesList();
     }
 
     // --- MODAL & LOADER HELPERS ---

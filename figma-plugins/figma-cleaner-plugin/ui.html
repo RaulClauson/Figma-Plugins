@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1e293b;
+      font-size: 12px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* --- Header & Scope --- */
+    .header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-title h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .scope-selector {
+      display: flex;
+      background: #f1f5f9;
+      padding: 2px;
+      border-radius: 6px;
+      gap: 2px;
+    }
+
+    .scope-btn {
+      background: transparent;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .scope-btn.active {
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* --- Navigation Tabs --- */
+    .tabs-nav {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      padding: 0 16px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 10px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: #0f172a;
+    }
+
+    .tab-btn.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+    }
+
+    .tab-badge {
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .tab-btn.active .tab-badge {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    /* --- Main Content Area --- */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* --- Cards & Controls --- */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .pill-btn {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .pill-btn.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .pill-count {
+      font-size: 10px;
+      font-weight: 700;
+      opacity: 0.85;
+    }
+
+    /* --- Checkboxes Grid for Rules --- */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 12px;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rule-item input[type="checkbox"] {
+      accent-color: #2563eb;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .rule-item label {
+      font-size: 11px;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    /* --- List Controls --- */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 2px;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .select-all-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    /* --- Items List --- */
+    .items-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 290px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .item-row {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .item-row:hover {
+      border-color: #cbd5e1;
+      background: #fafafa;
+    }
+
+    .item-row.incompatible {
+      background: #fffafa;
+      border-color: #fee2e2;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .item-title {
+      font-weight: 600;
+      font-size: 12px;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .item-sub {
+      font-size: 10px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .tag-secured {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .tag-low-risk {
+      background: #fef9c3;
+      color: #a16207;
+    }
+
+    .tag-high-risk {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+
+    .tag-incompatible {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .tag-protected {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      color: #475569;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-icon:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    .btn-small-action {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      color: #334155;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-small-action:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-small-action:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 12px;
+      color: #94a3b8;
+      font-size: 11px;
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+    }
+
+    /* --- Logs Drawer --- */
+    .logs-card {
+      background: #0f172a;
+      border-radius: 8px;
+      color: #f8fafc;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .logs-body {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      line-height: 1.4;
+      color: #cbd5e1;
+      max-height: 110px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .btn-clear-logs {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .btn-clear-logs:hover {
+      color: #cbd5e1;
+    }
+
+    /* --- Action Footer --- */
+    .footer {
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn-test {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+
+    .btn-test:hover {
+      background: #c7d2fe;
+      color: #312e81;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <h1>🧹 Cleaner</h1>
+    </div>
+    <div class="scope-selector">
+      <button class="scope-btn" id="scope-selection" onclick="setScope('selection')">Seleção</button>
+      <button class="scope-btn active" id="scope-page" onclick="setScope('page')">Página Toda</button>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" id="tab-btn-redundant" onclick="switchTab('redundant')">
+      🔄 Redundantes <span class="tab-badge" id="badge-redundant">0</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-empty" onclick="switchTab('empty')">
+      🗑️ Vazios <span class="tab-badge" id="badge-empty">0</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-groups" onclick="switchTab('groups')">
+      📦 Grupos <span class="tab-badge" id="badge-groups">0</span>
+    </button>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content-area">
+
+    <!-- Tab 1: Redundant Frames -->
+    <div class="tab-content active" id="tab-content-redundant">
+      <!-- Filter Pills -->
+      <div class="filter-pills">
+        <button class="pill-btn active" id="pill-red-all" onclick="filterRedundant('all')">
+          Todos <span class="pill-count" id="count-red-all">0</span>
+        </button>
+        <button class="pill-btn" id="pill-red-secured" onclick="filterRedundant('secured')">
+          🟢 Seguros <span class="pill-count" id="count-red-secured">0</span>
+        </button>
+        <button class="pill-btn" id="pill-red-low-risk" onclick="filterRedundant('low-risk')">
+          🟡 Baixo Risco <span class="pill-count" id="count-red-low-risk">0</span>
+        </button>
+        <button class="pill-btn" id="pill-red-high-risk" onclick="filterRedundant('high-risk')">
+          🟠 Alto Risco <span class="pill-count" id="count-red-high-risk">0</span>
+        </button>
+        <button class="pill-btn" id="pill-red-incompatible" onclick="filterRedundant('incompatible')">
+          🔴 Incompatíveis <span class="pill-count" id="count-red-incompatible">0</span>
+        </button>
+      </div>
+
+      <div class="list-header">
+        <label class="select-all-label">
+          <input type="checkbox" id="check-all-redundant" onchange="toggleSelectAllRedundant(this.checked)" checked />
+          Selecionar todos visíveis
+        </label>
+        <span id="redundant-selected-count">0 selecionados</span>
+      </div>
+
+      <div class="items-container" id="list-redundant">
+        <div class="empty-state">Clique em "🔍 Analisar" para escanear a tela.</div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Empty Frames -->
+    <div class="tab-content" id="tab-content-empty">
+      <!-- Rules Card -->
+      <div class="card">
+        <div class="card-title">Regras de Preservação (Não Excluir)</div>
+        <div class="rules-grid">
+          <label class="rule-item">
+            <input type="checkbox" id="rule-spacers" onchange="runAnalysis()" checked />
+            <span>Espaçadores Auto Layout</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-reactions" onchange="runAnalysis()" checked />
+            <span>Áreas de Protótipo</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-components" onchange="runAnalysis()" checked />
+            <span>Componentes / Variantes</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-export" onchange="runAnalysis()" checked />
+            <span>Config. de Exportação</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-fills" onchange="runAnalysis()" checked />
+            <span>Com Preenchimento (Fill)</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-images" onchange="runAnalysis()" checked />
+            <span>Com Imagem</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-strokes" onchange="runAnalysis()" checked />
+            <span>Com Borda (Stroke)</span>
+          </label>
+          <label class="rule-item">
+            <input type="checkbox" id="rule-effects" onchange="runAnalysis()" checked />
+            <span>Com Efeitos (Sombra/Blur)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Filter Pills for Empty -->
+      <div class="filter-pills">
+        <button class="pill-btn active" id="pill-empty-all" onclick="filterEmpty('all')">
+          Todos <span class="pill-count" id="count-empty-all">0</span>
+        </button>
+        <button class="pill-btn" id="pill-empty-deletable" onclick="filterEmpty('deletable')">
+          🗑️ Excluíveis <span class="pill-count" id="count-empty-deletable">0</span>
+        </button>
+        <button class="pill-btn" id="pill-empty-protected" onclick="filterEmpty('protected')">
+          🛡️ Protegidos <span class="pill-count" id="count-empty-protected">0</span>
+        </button>
+      </div>
+
+      <div class="list-header">
+        <label class="select-all-label">
+          <input type="checkbox" id="check-all-empty" onchange="toggleSelectAllEmpty(this.checked)" checked />
+          Selecionar excluíveis visíveis
+        </label>
+        <span id="empty-selected-count">0 selecionados</span>
+      </div>
+
+      <div class="items-container" id="list-empty">
+        <div class="empty-state">Clique em "🔍 Analisar" para escanear a tela.</div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Group to Frame -->
+    <div class="tab-content" id="tab-content-groups">
+      <div class="list-header">
+        <label class="select-all-label">
+          <input type="checkbox" id="check-all-groups" onchange="toggleSelectAllGroups(this.checked)" checked />
+          Selecionar todos os grupos
+        </label>
+        <span id="groups-selected-count">0 selecionados</span>
+      </div>
+
+      <div class="items-container" id="list-groups">
+        <div class="empty-state">Clique em "🔍 Analisar" para encontrar grupos.</div>
+      </div>
+    </div>
+
+    <!-- Logs Box -->
+    <div class="logs-card">
+      <div class="logs-header">
+        <span>Console de Execução</span>
+        <button class="btn-clear-logs" onclick="clearLogs()">Limpar</button>
+      </div>
+      <div class="logs-body" id="logs-output">Aguardando análise...</div>
+    </div>
+
+  </div>
+
+  <!-- Footer Actions -->
+  <div class="footer">
+    <button class="btn btn-secondary" onclick="runAnalysis()">
+      🔍 Analisar
+    </button>
+    <button class="btn btn-test" onclick="runExecution(true)">
+      🧪 Simular
+    </button>
+    <button class="btn btn-primary" onclick="runExecution(false)">
+      ⚡ Aplicar
+    </button>
+  </div>
+
+  <script>
+    // --- State ---
+    let currentScope = 'page';
+    let activeTab = 'redundant';
+    let redundantFilter = 'all';
+    let emptyFilter = 'all';
+
+    let redundantItems = [];
+    let emptyItems = [];
+    let groupItems = [];
+
+    // --- UI Controls ---
+
+    function setScope(scope) {
+      currentScope = scope;
+      document.getElementById('scope-selection').classList.toggle('active', scope === 'selection');
+      document.getElementById('scope-page').classList.toggle('active', scope === 'page');
+      runAnalysis();
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.getElementById(`tab-btn-${tab}`).classList.add('active');
+      document.getElementById(`tab-content-${tab}`).classList.add('active');
+    }
+
+    function filterRedundant(filter) {
+      redundantFilter = filter;
+      document.querySelectorAll('#tab-content-redundant .pill-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`pill-red-${filter}`).classList.add('active');
+      renderRedundantList();
+    }
+
+    function filterEmpty(filter) {
+      emptyFilter = filter;
+      document.querySelectorAll('#tab-content-empty .pill-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`pill-empty-${filter}`).classList.add('active');
+      renderEmptyList();
+    }
+
+    function addLog(text) {
+      const output = document.getElementById('logs-output');
+      const time = new Date().toLocaleTimeString();
+      output.textContent += `\n[${time}] ${text}`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('logs-output').textContent = 'Logs limpos.';
+    }
+
+    // --- Message Passing ---
+
+    function getEmptyRules() {
+      return {
+        preserveSpacers: document.getElementById('rule-spacers').checked,
+        preserveReactions: document.getElementById('rule-reactions').checked,
+        preserveComponents: document.getElementById('rule-components').checked,
+        preserveExport: document.getElementById('rule-export').checked,
+        preserveFills: document.getElementById('rule-fills').checked,
+        preserveImageFills: document.getElementById('rule-images').checked,
+        preserveStrokes: document.getElementById('rule-strokes').checked,
+        preserveEffects: document.getElementById('rule-effects').checked,
+      };
+    }
+
+    function runAnalysis() {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'analyze',
+          scope: currentScope,
+          emptyRules: getEmptyRules()
+        }
+      }, '*');
+    }
+
+    function runExecution(dryRun) {
+      let selectedRedundant = [];
+      let selectedEmpty = [];
+      let selectedGroups = [];
+
+      if (activeTab === 'redundant') {
+        selectedRedundant = redundantItems
+          .filter(item => item.selected && item.classification !== 'incompatible')
+          .map(item => item.id);
+        if (selectedRedundant.length === 0) {
+          addLog('Nenhum frame redundante selecionado para execução.');
+          return;
+        }
+      } else if (activeTab === 'empty') {
+        selectedEmpty = emptyItems
+          .filter(item => item.selected && !item.isProtected)
+          .map(item => item.id);
+        if (selectedEmpty.length === 0) {
+          addLog('Nenhum frame vazio selecionado para execução.');
+          return;
+        }
+      } else if (activeTab === 'groups') {
+        selectedGroups = groupItems
+          .filter(item => item.selected && !item.isLocked)
+          .map(item => item.id);
+        if (selectedGroups.length === 0) {
+          addLog('Nenhum grupo selecionado para execução.');
+          return;
+        }
+      }
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'execute',
+          dryRun: dryRun,
+          redundantIds: selectedRedundant,
+          emptyIds: selectedEmpty,
+          groupIds: selectedGroups,
+        }
+      }, '*');
+    }
+
+    function selectInFigma(id) {
+      parent.postMessage({ pluginMessage: { type: 'select-node', id: id } }, '*');
+    }
+
+    function cleanSingle(id, action) {
+      parent.postMessage({ pluginMessage: { type: 'execute-single', id: id, action: action } }, '*');
+    }
+
+    // --- Rendering ---
+
+    function renderRedundantList() {
+      const container = document.getElementById('list-redundant');
+      const filtered = redundantItems.filter(item => {
+        if (redundantFilter === 'all') return true;
+        return item.classification === redundantFilter;
+      });
+
+      // Update counters
+      document.getElementById('count-red-all').textContent = redundantItems.length;
+      document.getElementById('count-red-secured').textContent = redundantItems.filter(i => i.classification === 'secured').length;
+      document.getElementById('count-red-low-risk').textContent = redundantItems.filter(i => i.classification === 'low-risk').length;
+      document.getElementById('count-red-high-risk').textContent = redundantItems.filter(i => i.classification === 'high-risk').length;
+      document.getElementById('count-red-incompatible').textContent = redundantItems.filter(i => i.classification === 'incompatible').length;
+      document.getElementById('badge-redundant').textContent = redundantItems.length;
+
+      const selCount = filtered.filter(i => i.selected && i.classification !== 'incompatible').length;
+      const totalEligible = filtered.filter(i => i.classification !== 'incompatible').length;
+      document.getElementById('redundant-selected-count').textContent = `${selCount} de ${totalEligible} selecionados`;
+      
+      const checkAllRed = document.getElementById('check-all-redundant');
+      if (checkAllRed) checkAllRed.checked = totalEligible > 0 && selCount === totalEligible;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum frame redundante encontrado nesta categoria.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const tagClass = `tag-${item.classification}`;
+        let tagLabel = '🔴 Incompatível';
+        if (item.classification === 'secured') tagLabel = '🟢 Seguro';
+        else if (item.classification === 'low-risk') tagLabel = '🟡 Baixo Risco';
+        else if (item.classification === 'high-risk') tagLabel = '🟠 Alto Risco';
+        const reasonText = item.reasons.join(' • ');
+
+        return `
+          <div class="item-row ${item.classification}">
+            <div class="item-left">
+              <input type="checkbox" ${item.selected ? 'checked' : ''} ${item.classification === 'incompatible' ? 'disabled' : ''} onchange="toggleItemSelect('redundant', '${item.id}', this.checked)" />
+              <div class="item-info">
+                <div class="item-title">
+                  <span>${item.name} ➔ ${item.childName}</span>
+                  <span class="tag ${tagClass}">${tagLabel}</span>
+                </div>
+                <div class="item-sub">${reasonText} | ${item.path}</div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" title="Ver no Figma" onclick="selectInFigma('${item.id}')">🔍</button>
+              <button class="btn-small-action" ${item.classification === 'incompatible' ? 'disabled' : ''} onclick="cleanSingle('${item.id}', 'redundant')">Mesclar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderEmptyList() {
+      const container = document.getElementById('list-empty');
+      const filtered = emptyItems.filter(item => {
+        if (emptyFilter === 'all') return true;
+        if (emptyFilter === 'deletable') return !item.isProtected;
+        if (emptyFilter === 'protected') return item.isProtected;
+        return true;
+      });
+
+      document.getElementById('count-empty-all').textContent = emptyItems.length;
+      document.getElementById('count-empty-deletable').textContent = emptyItems.filter(i => !i.isProtected).length;
+      document.getElementById('count-empty-protected').textContent = emptyItems.filter(i => i.isProtected).length;
+      document.getElementById('badge-empty').textContent = emptyItems.length;
+
+      const selCount = filtered.filter(i => i.selected && !i.isProtected).length;
+      const totalEligible = filtered.filter(i => !i.isProtected).length;
+      document.getElementById('empty-selected-count').textContent = `${selCount} de ${totalEligible} selecionados`;
+
+      const checkAllEmp = document.getElementById('check-all-empty');
+      if (checkAllEmp) checkAllEmp.checked = totalEligible > 0 && selCount === totalEligible;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum frame vazio encontrado nesta categoria.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const tagLabel = item.isProtected ? '🛡️ Protegido' : '🗑️ Excluível';
+        const tagClass = item.isProtected ? 'tag-protected' : 'tag-secured';
+        const reasonText = item.reasons.length > 0 ? item.reasons.join(' • ') : 'Frame sem conteúdo';
+
+        return `
+          <div class="item-row">
+            <div class="item-left">
+              <input type="checkbox" ${item.selected ? 'checked' : ''} ${item.isProtected ? 'disabled' : ''} onchange="toggleItemSelect('empty', '${item.id}', this.checked)" />
+              <div class="item-info">
+                <div class="item-title">
+                  <span>${item.name}</span>
+                  <span class="tag ${tagClass}">${tagLabel}</span>
+                </div>
+                <div class="item-sub">${reasonText} | ${item.path}</div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" title="Ver no Figma" onclick="selectInFigma('${item.id}')">🔍</button>
+              <button class="btn-small-action" ${item.isProtected ? 'disabled' : ''} onclick="cleanSingle('${item.id}', 'empty')">Excluir</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderGroupsList() {
+      const container = document.getElementById('list-groups');
+      document.getElementById('badge-groups').textContent = groupItems.length;
+
+      const selCount = groupItems.filter(i => i.selected && !i.isLocked).length;
+      const totalEligible = groupItems.filter(i => !i.isLocked).length;
+      document.getElementById('groups-selected-count').textContent = `${selCount} selecionados`;
+
+      const checkAllGrp = document.getElementById('check-all-groups');
+      if (checkAllGrp) checkAllGrp.checked = totalEligible > 0 && selCount === totalEligible;
+
+      if (groupItems.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum grupo encontrado no escopo atual.</div>`;
+        return;
+      }
+
+      container.innerHTML = groupItems.map(item => {
+        return `
+          <div class="item-row">
+            <div class="item-left">
+              <input type="checkbox" ${item.selected ? 'checked' : ''} ${item.isLocked ? 'disabled' : ''} onchange="toggleItemSelect('group', '${item.id}', this.checked)" />
+              <div class="item-info">
+                <div class="item-title">
+                  <span>${item.name}</span>
+                  <span class="tag tag-secured">${item.childCount} camadas</span>
+                </div>
+                <div class="item-sub">${item.isLocked ? 'Bloqueado • ' : ''}${item.path}</div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" title="Ver no Figma" onclick="selectInFigma('${item.id}')">🔍</button>
+              <button class="btn-small-action" ${item.isLocked ? 'disabled' : ''} onclick="cleanSingle('${item.id}', 'group')">Converter</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleItemSelect(type, id, checked) {
+      if (type === 'redundant') {
+        const item = redundantItems.find(i => i.id === id);
+        if (item) item.selected = checked;
+        renderRedundantList();
+      } else if (type === 'empty') {
+        const item = emptyItems.find(i => i.id === id);
+        if (item) item.selected = checked;
+        renderEmptyList();
+      } else if (type === 'group') {
+        const item = groupItems.find(i => i.id === id);
+        if (item) item.selected = checked;
+        renderGroupsList();
+      }
+    }
+
+    function toggleSelectAllRedundant(checked) {
+      redundantItems.forEach(item => {
+        if (item.classification === 'incompatible') return;
+        // Só altera itens visíveis no filtro atual
+        if (redundantFilter === 'all' || item.classification === redundantFilter) {
+          item.selected = checked;
+        }
+      });
+      renderRedundantList();
+    }
+
+    function toggleSelectAllEmpty(checked) {
+      emptyItems.forEach(item => {
+        if (item.isProtected) return;
+        // Só altera itens visíveis no filtro atual
+        if (emptyFilter === 'all' ||
+            (emptyFilter === 'deletable' && !item.isProtected) ||
+            (emptyFilter === 'protected' && item.isProtected)) {
+          item.selected = checked;
+        }
+      });
+      renderEmptyList();
+    }
+
+    function toggleSelectAllGroups(checked) {
+      groupItems.forEach(item => {
+        if (!item.isLocked) item.selected = checked;
+      });
+      renderGroupsList();
+    }
+
+    // --- Message Listener ---
+
+    window.onmessage = function (event) {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'log') {
+        addLog(msg.text);
+      } else if (msg.type === 'analysis-result') {
+        redundantItems = msg.redundant || [];
+        emptyItems = msg.empty || [];
+        groupItems = msg.groups || [];
+
+        renderRedundantList();
+        renderEmptyList();
+        renderGroupsList();
+      } else if (msg.type === 'execution-complete' || msg.type === 'single-complete') {
+        // Re-analyze after modifications
+        runAnalysis();
+      }
+    };
+
+    // Auto-run analysis when UI opens
+    window.onload = function() {
+      runAnalysis();
+    };
+  </script>
+</body>
+</html>
