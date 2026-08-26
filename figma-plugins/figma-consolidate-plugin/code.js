@@ -11,6 +11,7 @@ var ALL_FIELDS = [
   { key: "visible",                 label: "Visibilidade (visible)" },
   { key: "width",                   label: "Largura (width)" },
   { key: "height",                  label: "Altura (height)" },
+  { key: "vectorGeometry",          label: "Forma do vetor" },
   { key: "rotation",                label: "Rotação (rotation)" },
   { key: "layoutMode",              label: "Layout Mode" },
   { key: "layoutWrap",              label: "Layout Wrap" },
@@ -24,6 +25,9 @@ var ALL_FIELDS = [
   { key: "paddingLeft",             label: "Padding Left" },
   { key: "clipsContent",            label: "Clips Content" },
   { key: "opacity",                 label: "Opacidade (opacity)" },
+  { key: "fills",                   label: "Fill (fills)" },
+  { key: "strokes",                 label: "Stroke (strokes + configurações)" },
+  { key: "effects",                 label: "Effects (effects)" },
   { key: "characters",              label: "Texto (characters)" },
   { key: "componentPropertyDefinitions", label: "Propriedades do componente" },
 ];
@@ -97,6 +101,81 @@ function val(v) {
   return v === undefined || v === null ? "" : String(v);
 }
 
+// Serializa objetos da API do Figma de forma determinística. Isso evita que
+// a ordem das chaves altere a comparação de paints, effects ou geometria.
+function stableValue(value, stack) {
+  if (value === undefined) return "__undefined__";
+  if (value === null) return null;
+
+  var valueType = typeof value;
+  if (valueType !== "object") {
+    if (valueType === "number" && !isFinite(value)) return String(value);
+    if (valueType === "symbol") return String(value);
+    return value;
+  }
+
+  stack = stack || [];
+  if (stack.indexOf(value) !== -1) return "__circular__";
+  stack.push(value);
+
+  var result;
+  if (Array.isArray(value)) {
+    result = [];
+    for (var i = 0; i < value.length; i++) {
+      result.push(stableValue(value[i], stack));
+    }
+  } else {
+    result = {};
+    var keys = Object.keys(value).sort();
+    for (var k = 0; k < keys.length; k++) {
+      result[keys[k]] = stableValue(value[keys[k]], stack);
+    }
+  }
+
+  stack.pop();
+  return result;
+}
+
+function objectSignature(value) {
+  try {
+    return JSON.stringify(stableValue(value));
+  } catch (e) {
+    return val(value);
+  }
+}
+
+function addOptionalProperty(parts, node, field, signatureField) {
+  try {
+    var value = node[field];
+    if (value !== undefined) {
+      parts.push((signatureField || field) + "=" + objectSignature(value));
+    }
+  } catch (e) {
+    // Alguns tipos de nó não expõem todas as propriedades visuais.
+  }
+}
+
+function vectorGeometrySignature(node) {
+  var geometry = {};
+  var hasGeometry = false;
+
+  try {
+    if (node.vectorNetwork !== undefined) {
+      geometry.vectorNetwork = stableValue(node.vectorNetwork);
+      hasGeometry = true;
+    }
+  } catch (e) {}
+
+  try {
+    if (node.fillGeometry !== undefined) {
+      geometry.fillGeometry = stableValue(node.fillGeometry);
+      hasGeometry = true;
+    }
+  } catch (e) {}
+
+  return hasGeometry ? JSON.stringify(geometry) : "";
+}
+
 function propertiesSignature(node, sel) {
   // "type" é sempre incluído.
   var parts = ["type=" + val(node.type)];
@@ -118,6 +197,28 @@ function propertiesSignature(node, sel) {
     } catch (e) {
       parts.push(simpleFields[i] + "=");
     }
+  }
+
+  if (sel.vectorGeometry) {
+    parts.push("vectorGeometry=" + vectorGeometrySignature(node));
+  }
+
+  if (sel.fills) {
+    addOptionalProperty(parts, node, "fills");
+  }
+
+  if (sel.strokes) {
+    addOptionalProperty(parts, node, "strokes");
+    addOptionalProperty(parts, node, "strokeWeight");
+    addOptionalProperty(parts, node, "strokeAlign");
+    addOptionalProperty(parts, node, "strokeCap");
+    addOptionalProperty(parts, node, "strokeJoin");
+    addOptionalProperty(parts, node, "strokeMiterLimit");
+    addOptionalProperty(parts, node, "dashPattern");
+  }
+
+  if (sel.effects) {
+    addOptionalProperty(parts, node, "effects");
   }
 
   // Campo especial: characters (só para nós TEXT).
@@ -168,15 +269,15 @@ function setKey(componentSet, sel) {
   var variants = [];
 
   for (var i = 0; i < componentSet.children.length; i++) {
+    var variant = componentSet.children[i];
     variants.push(
-      componentSet.children[i].name +
-        "::" +
-        structuralSignature(componentSet.children[i], sel)
+      (sel.name ? variant.name + "::" : "") +
+        structuralSignature(variant, sel)
     );
   }
 
   variants.sort();
-  return componentSet.name + "||" + variants.join("|");
+  return (sel.name ? componentSet.name : "") + "||" + variants.join("|");
 }
 
 // --- Helpers de navegação ---
@@ -249,8 +350,7 @@ function analyzeDocument(sel) {
       component.parent &&
       component.parent.type !== "COMPONENT_SET"
     ) {
-      var identity =
-        component.name + "||" + structuralSignature(component, sel);
+      var identity = structuralSignature(component, sel);
 
       if (!looseByKey[identity]) {
         looseByKey[identity] = [];
@@ -329,9 +429,15 @@ function sameLoose(source, canonical, sel) {
     canonical.type === "COMPONENT" &&
     source.parent.type !== "COMPONENT_SET" &&
     canonical.parent.type !== "COMPONENT_SET" &&
-    source.name === canonical.name &&
+    (!sel.name || source.name === canonical.name) &&
     structuralSignature(source, sel) === structuralSignature(canonical, sel)
   );
+}
+
+// Quando o nome não é um critério, variantes de um Component Set precisam
+// ser pareadas pela estrutura, e não pelo nome, durante o redirecionamento.
+function variantMatchKey(variant, sel) {
+  return sel.name ? "name=" + variant.name : structuralSignature(variant, sel);
 }
 
 // --- Redirecionamento de instâncias ---
@@ -442,7 +548,14 @@ function consolidate(dryRun, plans, rawSelectedFields) {
       var targets = {};
 
       for (var c = 0; c < canonical.children.length; c++) {
-        targets[canonical.children[c].name] = canonical.children[c];
+        var targetVariant = canonical.children[c];
+        var targetKey = variantMatchKey(targetVariant, sel);
+
+        if (!targets[targetKey]) {
+          targets[targetKey] = [];
+        }
+
+        targets[targetKey].push(targetVariant);
       }
 
       log('SET "' + canonical.name + '": mantendo a cópia escolhida.');
@@ -451,9 +564,19 @@ function consolidate(dryRun, plans, rawSelectedFields) {
         var duplicateSet = nodeById[duplicates[d]];
         var canRemove = true;
 
+        // Cada cópia precisa de um mapa novo, pois a fila de variantes é
+        // consumida durante o pareamento desta cópia.
+        var availableTargets = {};
+        var targetKeys = Object.keys(targets);
+        for (var tk = 0; tk < targetKeys.length; tk++) {
+          availableTargets[targetKeys[tk]] = targets[targetKeys[tk]].slice();
+        }
+
         for (var sv = 0; sv < duplicateSet.children.length; sv++) {
           var sourceVariant = duplicateSet.children[sv];
-          var target = targets[sourceVariant.name];
+          var sourceKey = variantMatchKey(sourceVariant, sel);
+          var matchingTargets = availableTargets[sourceKey] || [];
+          var target = matchingTargets.shift();
 
           if (!target) {
             canRemove = false;

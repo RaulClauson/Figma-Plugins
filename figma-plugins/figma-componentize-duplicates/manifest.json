@@ -1,5 +1,5 @@
 {
-  "name": "Transformar Duplicados em Componentes",
+  "name": "Organizar Componentes — Duplicatas e Similares",
   "id": "componentize-duplicates-axyma",
   "api": "1.0.0",
   "main": "code.js",

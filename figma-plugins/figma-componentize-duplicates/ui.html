@@ -44,6 +44,7 @@
     }
     .family-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; }
     .family-name { flex: 1; overflow-wrap: anywhere; }
+    .family-actions { display: flex; align-items: center; gap: 5px; margin-left: auto; }
     .badge { border-radius: 12px; background: #dbeafe; color: #1d4ed8; font-size: 10px; padding: 2px 7px; white-space: nowrap; }
     .badge.badge-warn { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
     
@@ -60,7 +61,10 @@
     
     .copies-title { font-size: 10px; color: #64748b; margin-top: 4px; font-weight: 600; }
     .copies-list { list-style: none; padding-left: 8px; margin: 2px 0 0 0; }
-    .copy-item { color: #64748b; font-size: 10px; margin-bottom: 2px; }
+    .copy-item { display: flex; align-items: center; gap: 5px; color: #64748b; font-size: 10px; margin-bottom: 3px; }
+    .copy-item > span.copy-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .copy-check { flex-shrink: 0; }
+    .copy-select { flex-shrink: 0; padding: 2px 5px; font-size: 10px; }
     .copy-item.incompatible { color: #dc2626; }
     .warn-text { color: #dc2626; font-weight: 600; }
     
@@ -117,12 +121,128 @@
       color: #1e293b;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
+    .preset-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+    .preset-name { width: 100%; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 5px; font: inherit; font-size: 12px; }
+    .preset-select { width: 100%; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; color: #1e293b; font: inherit; font-size: 12px; }
+    .preset-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .preset-actions button { padding: 6px 8px; font-size: 11px; }
+    #preset-status { min-height: 15px; margin-top: 7px; font-size: 11px; color: #64748b; }
+
+    /* Modos principais do plugin */
+    .workspace-tabs {
+      display: flex;
+      gap: 5px;
+      margin-top: 14px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .workspace-tab {
+      flex: 1;
+      border-radius: 7px 7px 0 0;
+      padding: 9px 8px;
+      background: transparent;
+      color: #64748b;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .workspace-tab.active {
+      background: #fff;
+      color: #1d4ed8;
+      border: 1px solid #cbd5e1;
+      border-bottom-color: #fff;
+      margin-bottom: -1px;
+    }
+    .explore-intro { margin-bottom: 10px; }
+    .explore-selection {
+      min-height: 34px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .selection-chip {
+      border-radius: 12px;
+      padding: 4px 8px;
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 11px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .explore-results, .component-inventory { max-height: 390px; overflow: auto; }
+    .similar-row, .inventory-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .similar-row:last-child, .inventory-row:last-child { border-bottom: 0; }
+    .explore-preview {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      flex-shrink: 0;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      padding: 2px;
+    }
+    .explore-row-main { min-width: 0; flex: 1; }
+    .explore-row-title { font-weight: 700; overflow-wrap: anywhere; }
+    .explore-row-meta { color: #64748b; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+    .score-high { background: #dcfce7; color: #166534; }
+    .score-medium { background: #fef3c7; color: #92400e; }
+    .score-low { background: #f1f5f9; color: #475569; }
+    .explore-empty { color: #64748b; font-size: 12px; padding: 8px 0; }
+    .explore-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .explore-actions button { padding: 7px 9px; font-size: 11px; }
+    .explore-filter { width: 100%; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 5px; font: inherit; font-size: 12px; }
   </style>
 </head>
 <body>
-  <h2>Consolidar Famílias de Componentes</h2>
-  <p>Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.</p>
-  <div class="notice">Componentes soltos e conjuntos antigos serão substituídos por novos mestres e deletados apenas se todas as instâncias forem migradas com sucesso.</div>
+  <h2 id="workspace-title">Consolidar Famílias de Componentes</h2>
+  <p id="workspace-description">Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.</p>
+  <div class="notice" id="consolidate-notice">Componentes soltos e conjuntos antigos serão substituídos por novos mestres e deletados apenas se todas as instâncias forem migradas com sucesso.</div>
+
+  <div class="workspace-tabs">
+    <button class="workspace-tab active" data-workspace="consolidate">🧩 Consolidar</button>
+    <button class="workspace-tab" data-workspace="explore">🧭 Explorar</button>
+  </div>
+
+  <div id="explore-view" style="display:none">
+    <p class="explore-intro">Veja os componentes usados no arquivo e encontre elementos parecidos com a seleção atual na página.</p>
+
+    <section class="card">
+      <div class="heading"><span>🎯 Seleção atual</span><span class="badge" id="explore-selection-count">0</span></div>
+      <div class="explore-selection" id="explore-selection"><span class="explore-empty">Selecione um ou mais elementos no canvas.</span></div>
+      <div class="explore-actions">
+        <button class="primary" id="find-similar">🔎 Encontrar similares</button>
+        <button class="secondary" id="refresh-explore">↻ Atualizar inventário</button>
+      </div>
+      <div id="explore-status" style="min-height:16px; margin-top:8px; color:#64748b; font-size:11px;"></div>
+    </section>
+
+    <section class="card" id="similar-card" style="display:none">
+      <div class="heading"><span>✨ Elementos similares na página</span><span class="badge" id="similar-count">0</span></div>
+      <p style="font-size:11px; margin-bottom:7px;">A pontuação considera tipo, estrutura, layout, aparência e proporções. Os resultados são candidatos para revisão.</p>
+      <div class="explore-results" id="similar-results"></div>
+    </section>
+
+    <section class="card">
+      <div class="heading"><span>📚 Componentes identificados</span><span class="badge" id="inventory-count">0</span></div>
+      <input class="explore-filter" id="inventory-filter" placeholder="Filtrar por nome, página ou tipo" />
+      <div class="component-inventory" id="component-inventory" style="margin-top:8px;"></div>
+    </section>
+
+    <div class="actions">
+      <button class="ghost" id="explore-close">Fechar</button>
+    </div>
+  </div>
+
+  <div id="consolidate-view">
 
   <!-- Barra de Abas -->
   <div class="tabs">
@@ -131,6 +251,23 @@
     <div class="tab" id="tab-ui" data-tab="ui">UI / Botões</div>
     <div class="tab" id="tab-features" data-tab="features">Features</div>
   </div>
+
+  <section class="card" id="preset-card">
+    <div class="heading"><span>💾 Presets do arquivo</span><span class="badge" id="preset-count">0</span></div>
+    <div class="preset-controls">
+      <select class="preset-select" id="preset-select">
+        <option value="">Nenhum preset selecionado</option>
+      </select>
+      <button class="small ghost" id="preset-load" disabled>Carregar</button>
+    </div>
+    <input class="preset-name" id="preset-name" type="text" maxlength="80" placeholder="Nome do preset" />
+    <div class="preset-actions">
+      <button class="primary" id="preset-save-new">Salvar novo</button>
+      <button class="secondary" id="preset-update" disabled>Atualizar</button>
+      <button class="danger" id="preset-delete" disabled>Excluir</button>
+    </div>
+    <div id="preset-status">Os presets acompanham este arquivo Figma.</div>
+  </section>
 
   <section class="card">
     <div class="heading"><span>🎯 Escopo da Análise</span></div>
@@ -232,10 +369,12 @@
         <input type="checkbox" id="opt-create-set" checked />
         Combinar variantes em Component Sets
       </label>
+      <p style="font-size:11px;">Cada variante compatível vira um master dentro do mesmo Component Set; as cópias viram instâncias da variante correspondente. Isso não cria variáveis ou propriedades automaticamente.</p>
       <label class="field">
         <input type="checkbox" id="opt-preserve-overrides" checked />
-        Preservar textos originais (overrides) ao substituir réplicas por instâncias
+        Preservar diferenças originais (overrides) ao substituir réplicas por instâncias
       </label>
+      <p style="font-size:11px;">Tenta preservar textos, fills, traços, efeitos, visibilidade, geometria editável e propriedades de componentes nas subcamadas.</p>
     </div>
   </section>
 
@@ -262,6 +401,7 @@
       <label class="field"><input type="checkbox" checked id="type-GROUP" />Grupos (GROUP)</label>
       <label class="field"><input type="checkbox" checked id="type-SHAPES" />Formas / Vetores</label>
       <label class="field"><input type="checkbox" checked id="type-COMPONENT" />Componentes</label>
+      <label class="field"><input type="checkbox" checked id="type-INSTANCE" />Instâncias / Variantes (INSTANCE)</label>
     </div>
 
     <!-- Nova seção de exclusão integrada diretamente neste card (Exclusão por checkboxes) -->
@@ -297,19 +437,340 @@
   <div id="log"></div>
   <div class="done" id="done"></div>
 
+  </div>
+
   <script>
     const byId = (id) => document.getElementById(id);
     const fieldsList = byId('fields-list'), familiesEl = byId('families'), status = byId('status');
     const log = byId('log'), done = byId('done');
     const analyze = byId('analyze'), simulate = byId('simulate'), apply = byId('apply');
     let definitions = [], families = [];
+    let inventory = [], selectionNodeIds = [];
+    const exploreView = byId('explore-view'), consolidateView = byId('consolidate-view');
     
     // Controle da fila progressiva de previews
     let previewQueue = [];
     let isProcessingPreviews = false;
     let activeTab = 'free';
+    let presets = [];
+    let selectedPresetId = '';
+    let pendingPreset = null;
+    let pendingSingleFamilyIndex = null;
 
     function post(type, extra) { parent.postMessage({ pluginMessage: Object.assign({ type }, extra || {}) }, '*'); }
+
+    function placeholderPreview() {
+      return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+    }
+
+    function switchWorkspace(workspace) {
+      const isExplore = workspace === 'explore';
+      document.querySelectorAll('.workspace-tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.workspace === workspace);
+      });
+      exploreView.style.display = isExplore ? 'block' : 'none';
+      consolidateView.style.display = isExplore ? 'none' : 'block';
+      byId('workspace-title').textContent = isExplore ? 'Explorar Componentes' : 'Consolidar Famílias de Componentes';
+      byId('workspace-description').textContent = isExplore
+        ? 'Inspecione componentes existentes e encontre elementos parecidos com a seleção atual na página.'
+        : 'Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.';
+      byId('consolidate-notice').style.display = isExplore ? 'none' : 'block';
+      if (isExplore) {
+        post('request-selection');
+        post('request-inventory');
+      }
+    }
+
+    document.querySelectorAll('.workspace-tab').forEach((tab) => {
+      tab.onclick = () => switchWorkspace(tab.dataset.workspace);
+    });
+
+    function renderSelection(selection) {
+      const items = Array.isArray(selection) ? selection : [];
+      selectionNodeIds = items.map((item) => item.id);
+      byId('explore-selection-count').textContent = items.length;
+      const container = byId('explore-selection');
+      container.innerHTML = '';
+      if (!items.length) {
+        const empty = document.createElement('span');
+        empty.className = 'explore-empty';
+        empty.textContent = 'Selecione um ou mais elementos no canvas.';
+        container.append(empty);
+        byId('find-similar').disabled = true;
+        return;
+      }
+      items.forEach((item) => {
+        const chip = document.createElement('span');
+        chip.className = 'selection-chip';
+        chip.textContent = '[' + item.type + '] ' + item.name;
+        chip.title = item.path || item.name;
+        container.append(chip);
+      });
+      byId('find-similar').disabled = false;
+    }
+
+    function inventoryItemsFiltered() {
+      const query = (byId('inventory-filter').value || '').trim().toLowerCase();
+      if (!query) return inventory;
+      return inventory.filter((item) => {
+        return [item.name, item.page, item.path, item.type, item.family].join(' ').toLowerCase().includes(query);
+      });
+    }
+
+    function renderInventory(items) {
+      inventory = Array.isArray(items) ? items : [];
+      byId('inventory-count').textContent = inventory.length;
+      const container = byId('component-inventory');
+      container.innerHTML = '';
+      const visibleItems = inventoryItemsFiltered();
+      if (!visibleItems.length) {
+        const empty = document.createElement('div');
+        empty.className = 'explore-empty';
+        empty.textContent = inventory.length ? 'Nenhum componente corresponde ao filtro.' : 'Nenhum componente encontrado neste arquivo.';
+        container.append(empty);
+        return;
+      }
+      visibleItems.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'inventory-row';
+        const img = document.createElement('img');
+        img.className = 'explore-preview';
+        img.dataset.nodeId = item.id;
+        img.src = placeholderPreview();
+        const main = document.createElement('div');
+        main.className = 'explore-row-main';
+        const title = document.createElement('div');
+        title.className = 'explore-row-title';
+        title.textContent = item.name;
+        const meta = document.createElement('div');
+        meta.className = 'explore-row-meta';
+        meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.instances + (item.instances === 1 ? ' instância' : ' instâncias') + (item.family ? ' · ' + item.family : '');
+        const path = document.createElement('div');
+        path.className = 'explore-row-meta';
+        path.textContent = item.path;
+        main.append(title, meta, path);
+        const actions = document.createElement('div');
+        actions.className = 'family-actions';
+        const select = document.createElement('button');
+        select.className = 'small ghost';
+        select.textContent = '🎯';
+        select.title = 'Selecionar componente principal';
+        select.onclick = () => post('select-nodes', { nodeIds: [item.id] });
+        const instances = document.createElement('button');
+        instances.className = 'small ghost';
+        instances.textContent = '↗ ' + item.instances;
+        instances.title = 'Selecionar instâncias nesta página';
+        instances.disabled = item.instancesOnCurrentPage === 0;
+        instances.onclick = () => post('select-component-instances', { componentId: item.id });
+        const similar = document.createElement('button');
+        similar.className = 'small primary';
+        similar.textContent = 'Similares';
+        similar.onclick = () => {
+          byId('explore-status').textContent = 'Procurando elementos parecidos com "' + item.name + '"...';
+          post('find-similar', { nodeIds: [item.id], switchToReferencePage: true });
+        };
+        actions.append(select, instances, similar);
+        row.append(img, main, actions);
+        container.append(row);
+      });
+      triggerPreviewLoading();
+    }
+
+    function scoreClass(score) {
+      return score >= 90 ? 'score-high' : (score >= 70 ? 'score-medium' : 'score-low');
+    }
+
+    function renderSimilarResults(items) {
+      const results = Array.isArray(items) ? items : [];
+      const card = byId('similar-card');
+      const container = byId('similar-results');
+      container.innerHTML = '';
+      byId('similar-count').textContent = results.length;
+      card.style.display = 'block';
+      if (!results.length) {
+        const empty = document.createElement('div');
+        empty.className = 'explore-empty';
+        empty.textContent = 'Nenhum candidato semelhante encontrado na página atual.';
+        container.append(empty);
+        return;
+      }
+      results.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'similar-row';
+        const img = document.createElement('img');
+        img.className = 'explore-preview';
+        img.dataset.nodeId = item.id;
+        img.src = placeholderPreview();
+        const main = document.createElement('div');
+        main.className = 'explore-row-main';
+        const title = document.createElement('div');
+        title.className = 'explore-row-title';
+        title.textContent = item.name;
+        const meta = document.createElement('div');
+        meta.className = 'explore-row-meta';
+        meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.path;
+        const reasons = document.createElement('div');
+        reasons.className = 'explore-row-meta';
+        reasons.textContent = (item.reasons || []).join(' · ');
+        main.append(title, meta, reasons);
+        const actions = document.createElement('div');
+        actions.className = 'family-actions';
+        const score = document.createElement('span');
+        score.className = 'badge ' + scoreClass(item.score);
+        score.textContent = item.score + '%';
+        score.title = item.confidence || '';
+        const select = document.createElement('button');
+        select.className = 'small ghost';
+        select.textContent = '🎯';
+        select.title = 'Selecionar candidato';
+        select.onclick = () => post('select-nodes', { nodeIds: [item.id] });
+        actions.append(score, select);
+        row.append(img, main, actions);
+        container.append(row);
+      });
+      triggerPreviewLoading();
+    }
+
+    byId('inventory-filter').oninput = () => renderInventory(inventory);
+    byId('refresh-explore').onclick = () => {
+      byId('explore-status').textContent = 'Atualizando componentes...';
+      post('request-selection');
+      post('request-inventory');
+    };
+    byId('find-similar').onclick = () => {
+      if (!selectionNodeIds.length) return;
+      byId('explore-status').textContent = 'Procurando similares na página atual...';
+      post('find-similar', { nodeIds: selectionNodeIds });
+    };
+    byId('explore-close').onclick = () => post('close');
+
+    function setPresetStatus(text, isError) {
+      const el = byId('preset-status');
+      el.textContent = text || '';
+      el.style.color = isError ? '#dc2626' : '#64748b';
+    }
+
+    function captureFormState() {
+      const controls = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach((el) => {
+        if (el.type === 'checkbox' || el.type === 'radio') controls[el.id] = el.checked;
+        else controls[el.id] = el.value;
+      });
+      return { controls };
+    }
+
+    function restoreFormState(state) {
+      if (!state || !state.controls) return;
+      Object.keys(state.controls).forEach((id) => {
+        const el = byId(id);
+        if (!el) return;
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!state.controls[id];
+        else el.value = state.controls[id] == null ? '' : state.controls[id];
+      });
+      updateFieldCount();
+    }
+
+    function presetById(id) {
+      return presets.find((preset) => preset.id === id);
+    }
+
+    function presetTabLabel(tab) {
+      return ({ free: 'Livre', icons: 'Ícones', ui: 'UI / Botões', features: 'Features' })[tab] || tab;
+    }
+
+    function refreshPresetButtons() {
+      const hasSelection = !!presetById(selectedPresetId);
+      byId('preset-load').disabled = !hasSelection;
+      byId('preset-update').disabled = !hasSelection;
+      byId('preset-delete').disabled = !hasSelection;
+    }
+
+    function renderPresets(items, preferredId) {
+      presets = Array.isArray(items) ? items : [];
+      const preferred = preferredId || selectedPresetId;
+      selectedPresetId = presetById(preferred) ? preferred : '';
+
+      const select = byId('preset-select');
+      select.innerHTML = '<option value="">Nenhum preset selecionado</option>';
+      presets.forEach((preset) => {
+        const option = document.createElement('option');
+        option.value = preset.id;
+        option.textContent = preset.name + (preset.tab ? ' · ' + presetTabLabel(preset.tab) : '');
+        select.append(option);
+      });
+      select.value = selectedPresetId;
+
+      const selected = presetById(selectedPresetId);
+      byId('preset-name').value = selected ? selected.name : '';
+      byId('preset-count').textContent = presets.length;
+      refreshPresetButtons();
+    }
+
+    function selectActiveTab(tab) {
+      activeTab = tab || 'free';
+      document.querySelectorAll('.tab').forEach((el) => {
+        el.classList.toggle('active', el.dataset.tab === activeTab);
+      });
+    }
+
+    function loadPreset(preset) {
+      if (!preset) return;
+      selectedPresetId = preset.id;
+      byId('preset-select').value = preset.id;
+      byId('preset-name').value = preset.name || '';
+
+      if (!definitions.length) {
+        pendingPreset = preset;
+        return;
+      }
+
+      selectActiveTab(preset.tab);
+      applyTabPresets(activeTab);
+      restoreFormState(preset.state);
+      refreshPresetButtons();
+      setPresetStatus('Preset "' + preset.name + '" carregado.');
+    }
+
+    function currentPresetPayload(id) {
+      return {
+        id: id || null,
+        name: byId('preset-name').value.trim(),
+        tab: activeTab,
+        state: captureFormState()
+      };
+    }
+
+    byId('preset-select').onchange = () => {
+      selectedPresetId = byId('preset-select').value;
+      const selected = presetById(selectedPresetId);
+      byId('preset-name').value = selected ? selected.name : '';
+      refreshPresetButtons();
+    };
+
+    byId('preset-load').onclick = () => loadPreset(presetById(selectedPresetId));
+
+    byId('preset-save-new').onclick = () => {
+      const name = byId('preset-name').value.trim();
+      if (!name) return setPresetStatus('Informe um nome para salvar o preset.', true);
+      setPresetStatus('Salvando preset...');
+      post('preset-save', { preset: currentPresetPayload(null), update: false });
+    };
+
+    byId('preset-update').onclick = () => {
+      const name = byId('preset-name').value.trim();
+      if (!selectedPresetId) return setPresetStatus('Selecione um preset para atualizar.', true);
+      if (!name) return setPresetStatus('Informe um nome para o preset.', true);
+      setPresetStatus('Atualizando preset...');
+      post('preset-save', { preset: currentPresetPayload(selectedPresetId), update: true });
+    };
+
+    byId('preset-delete').onclick = () => {
+      const selected = presetById(selectedPresetId);
+      if (!selected) return setPresetStatus('Selecione um preset para excluir.', true);
+      if (!confirm('Excluir o preset "' + selected.name + '" deste arquivo?')) return;
+      setPresetStatus('Excluindo preset...');
+      post('preset-delete', { id: selected.id });
+    };
     
     function selectedFields() { 
       return Object.fromEntries(definitions.map((f) => [
@@ -328,6 +789,7 @@
         GROUP: byId("type-GROUP").checked,
         SHAPES: byId("type-SHAPES").checked,
         COMPONENT: byId("type-COMPONENT").checked,
+        INSTANCE: byId("type-INSTANCE").checked,
       };
     }
     function getSelectedScope() {
@@ -442,9 +904,10 @@
         byId('type-GROUP').checked = true;
         byId('type-SHAPES').checked = true;
         byId('type-COMPONENT').checked = false;
+        byId('type-INSTANCE').checked = true;
 
         // Pré-seleciona apenas dimensões e visibilidade para comparação de ícones
-        setPropertiesPreset(['width', 'height', 'visible', 'clipsContent', 'opacity']);
+        setPropertiesPreset(['width', 'height', 'visible', 'clipsContent', 'opacity', 'vectorNetwork', 'fills', 'strokes', 'effects']);
       } else if (tab === 'ui') {
         advancedFiltersCard.style.display = 'block';
         elementTypesCard.style.display = 'block';
@@ -472,9 +935,10 @@
         byId('type-GROUP').checked = true;
         byId('type-SHAPES').checked = false;
         byId('type-COMPONENT').checked = true;
+        byId('type-INSTANCE').checked = true;
 
         // Pré-seleciona propriedades de layout e texto comuns para botões/inputs
-        setPropertiesPreset(['name', 'width', 'height', 'visible', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'characters']);
+        setPropertiesPreset(['name', 'width', 'height', 'visible', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'fills', 'strokes', 'effects', 'characters']);
       } else if (tab === 'features') {
         advancedFiltersCard.style.display = 'block';
         elementTypesCard.style.display = 'block';
@@ -502,9 +966,10 @@
         byId('type-GROUP').checked = true;
         byId('type-SHAPES').checked = false;
         byId('type-COMPONENT').checked = true;
+        byId('type-INSTANCE').checked = true;
 
         // Foca na comparação de estruturas de layout de organismos
-        setPropertiesPreset(['name', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']);
+        setPropertiesPreset(['name', 'layoutMode', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'fills', 'strokes', 'effects']);
       }
 
       updateFieldCount();
@@ -577,9 +1042,10 @@
 
     function renderFamilies(data) {
       families = data; familiesEl.innerHTML = '';
-      data.forEach((family) => {
+      data.forEach((family, familyIndex) => {
         const row = document.createElement('div');
         row.className = 'family-row' + (family.hasIncompatibility ? ' has-warning' : '');
+        row.dataset.familyIndex = String(familyIndex);
         
         const head = document.createElement('div');
         head.className = 'family-head';
@@ -588,7 +1054,18 @@
         check.type = 'checkbox';
         check.checked = !family.hasIncompatibility;
         check.className = 'family-check';
-        check.dataset.familyName = family.name;
+        // O nome não é um identificador confiável: pode se repetir e pode
+        // conter caracteres que quebram um seletor CSS. O índice corresponde
+        // à posição da família no array enviado ao painel.
+        check.dataset.familyIndex = String(familyIndex);
+        check.onchange = function () {
+          family.variants.forEach(function (variant) {
+            (variant.copies || []).forEach(function (copy) {
+              copy.selected = check.checked && copy.isCompatible !== false;
+            });
+          });
+          renderFamilySelectionState(family, familyIndex);
+        };
         
         const name = document.createElement('span');
         name.className = 'family-name';
@@ -617,10 +1094,20 @@
           });
           post('select-nodes', { nodeIds: ids });
         };
+
+        const componentizeBtn = document.createElement('button');
+        componentizeBtn.className = 'small primary family-componentize';
+        componentizeBtn.style.padding = '3px 6px';
+        componentizeBtn.style.fontSize = '10px';
+        componentizeBtn.textContent = '⚡ Componentizar';
+        componentizeBtn.onclick = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          applySingleFamily(family, familyIndex);
+        };
         
         const count = document.createElement('span');
-        count.className = 'badge';
-        count.textContent = family.totalCopies + (family.totalCopies === 1 ? ' cópia' : ' cópias');
+        count.className = 'badge family-copy-count';
         
         head.append(check, name);
         if (family.hasIncompatibility) {
@@ -629,7 +1116,10 @@
           warnBadge.textContent = '⚠️ Incompatível';
           head.append(warnBadge);
         }
-        head.append(selectBtn, count);
+        const familyActions = document.createElement('div');
+        familyActions.className = 'family-actions';
+        familyActions.append(selectBtn, componentizeBtn, count);
+        head.append(familyActions);
         row.append(head);
         
         const variantsEl = document.createElement('div');
@@ -671,10 +1161,35 @@
             copiesList.className = 'copies-list';
             
             v.copies.forEach((copy) => {
+              copy.selected = !family.hasIncompatibility && copy.isCompatible !== false;
               const cEl = document.createElement('li');
               cEl.className = 'copy-item' + (copy.isCompatible ? '' : ' incompatible');
-              cEl.innerHTML = '<span class="type-tag">[' + copy.type + ']</span> ' + copy.page + ' · ' + copy.path + 
+              const copyCheck = document.createElement('input');
+              copyCheck.type = 'checkbox';
+              copyCheck.className = 'copy-check';
+              copyCheck.checked = copy.selected;
+              copyCheck.title = 'Incluir esta cópia na componentização';
+              copyCheck.onchange = function () {
+                copy.selected = copyCheck.checked;
+                renderFamilySelectionState(family, familyIndex);
+              };
+
+              const copyLabel = document.createElement('span');
+              copyLabel.className = 'copy-label';
+              copyLabel.innerHTML = '<span class="type-tag">[' + copy.type + ']</span> ' + copy.page + ' · ' + copy.path +
                 (copy.isCompatible ? '' : ' <span class="warn-text">⚠️ (Incompatível!)</span>');
+
+              const copySelect = document.createElement('button');
+              copySelect.className = 'small ghost copy-select';
+              copySelect.textContent = '🎯';
+              copySelect.title = 'Selecionar esta cópia no canvas';
+              copySelect.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                post('select-nodes', { nodeIds: [copy.id] });
+              };
+
+              cEl.append(copyCheck, copyLabel, copySelect);
               copiesList.append(cEl);
             });
             vEl.append(copiesList);
@@ -685,12 +1200,13 @@
         
         row.append(variantsEl);
         familiesEl.append(row);
+        renderFamilySelectionState(family, familyIndex);
       });
     }
 
     // Gerenciador da fila progressiva de geração de previews
     function triggerPreviewLoading() {
-      previewQueue = Array.from(document.querySelectorAll('.variant-preview[data-node-id]'));
+      previewQueue = Array.from(document.querySelectorAll('.variant-preview[data-node-id], .explore-preview[data-node-id]')).slice(0, 60);
       if (!isProcessingPreviews) {
         processNextPreview();
       }
@@ -706,19 +1222,75 @@
       post('request-preview', { nodeId: nextImg.dataset.nodeId });
     }
 
+    function selectedPlanForFamily(family, familyIndex) {
+      const selectedVariants = (family.variants || []).map((variant) => {
+        const selectedCopies = (variant.copies || []).filter((copy) => copy.selected !== false);
+        if (!selectedCopies.length) return null;
+        return Object.assign({}, variant, { copies: selectedCopies });
+      }).filter(Boolean);
+
+      if (!selectedVariants.length) return null;
+      return {
+        name: family.name,
+        variants: selectedVariants,
+        maxDepth: family.maxDepth
+      };
+    }
+
+    function renderFamilySelectionState(family, familyIndex) {
+      const row = document.querySelector('.family-row[data-family-index="' + familyIndex + '"]');
+      if (!row) return;
+
+      const allCopies = (family.variants || []).reduce((result, variant) => {
+        return result.concat(variant.copies || []);
+      }, []);
+      const selectedCount = allCopies.filter((copy) => copy.selected !== false).length;
+      const familyCheck = row.querySelector('.family-check');
+      const count = row.querySelector('.family-copy-count');
+      const action = row.querySelector('.family-componentize');
+
+      if (familyCheck) {
+        familyCheck.checked = allCopies.length > 0 && selectedCount === allCopies.length;
+        familyCheck.indeterminate = selectedCount > 0 && selectedCount < allCopies.length;
+      }
+      if (count) count.textContent = selectedCount + '/' + allCopies.length + (allCopies.length === 1 ? ' cópia' : ' cópias');
+      if (action) action.disabled = selectedCount === 0;
+    }
+
     function plans() {
       return families
-        .filter((fam) => {
-          const check = document.querySelector('.family-check[data-family-name="' + fam.name + '"]');
-          return check && check.checked;
+        .filter((fam, familyIndex) => {
+          const check = document.querySelector('.family-check[data-family-index="' + familyIndex + '"]');
+          return check && (check.checked || check.indeterminate);
         })
-        .map((fam) => {
-          return {
-            name: fam.name,
-            variants: fam.variants,
-            maxDepth: fam.maxDepth
-          };
-        });
+        .map((fam, familyIndex) => selectedPlanForFamily(fam, familyIndex))
+        .filter(Boolean);
+    }
+
+    function applySingleFamily(family, familyIndex) {
+      if (pendingSingleFamilyIndex !== null) {
+        status.textContent = 'Aguarde a finalização da componentização em andamento.';
+        return;
+      }
+      const plan = selectedPlanForFamily(family, familyIndex);
+      if (!plan) {
+        status.textContent = 'Marque ao menos uma cópia para componentizar esta família.';
+        return;
+      }
+      const selectedCopies = plan.variants.reduce((total, variant) => total + variant.copies.length, 0);
+      if (!confirm('Componentizar esta família usando ' + selectedCopies + (selectedCopies === 1 ? ' cópia' : ' cópias') + '?')) return;
+
+      clearLog();
+      done.style.display = 'none';
+      analyze.disabled = true;
+      simulate.disabled = true;
+      apply.disabled = true;
+      pendingSingleFamilyIndex = familyIndex;
+      const familyRow = document.querySelector('.family-row[data-family-index="' + familyIndex + '"]');
+      const familyButton = familyRow && familyRow.querySelector('.family-componentize');
+      if (familyButton) familyButton.disabled = true;
+      status.textContent = 'Componentizando a família selecionada...';
+      post('apply', { plans: [plan], selectedFields: selectedFields(), optionsConfig: getOptionsConfig() });
     }
 
     byId('all').onclick = () => { document.querySelectorAll('#fields input[type="checkbox"]').forEach((input) => input.checked = true); updateFieldCount(); };
@@ -762,15 +1334,50 @@
 
     onmessage = (event) => {
       const msg = event.data.pluginMessage; if (!msg) return;
+      if (msg.type === 'selection-state') {
+        renderSelection(msg.selection);
+        return;
+      }
+      if (msg.type === 'inventory') {
+        renderInventory(msg.items);
+        byId('explore-status').textContent = (msg.items || []).length + ' componente(s) identificados.';
+        return;
+      }
+      if (msg.type === 'similar-results') {
+        renderSimilarResults(msg.items);
+        byId('explore-status').textContent = (msg.items || []).length + ' candidato(s) encontrado(s).';
+        return;
+      }
+      if (msg.type === 'presets') {
+        renderPresets(msg.presets, msg.selectedId);
+        if (msg.selectedId) {
+          const selected = presetById(msg.selectedId);
+          if (selected) loadPreset(selected);
+        }
+        return;
+      }
+      if (msg.type === 'preset-error') {
+        setPresetStatus(msg.text || 'Não foi possível salvar o preset.', true);
+        return;
+      }
       if (msg.type === 'field-definitions') {
         renderFields(msg.fields);
         applyTabPresets('free'); // Inicia com predefinição da aba Livre
+        if (pendingPreset) {
+          const preset = pendingPreset;
+          pendingPreset = null;
+          loadPreset(preset);
+        }
       }
       if (msg.type === 'log') addLog(msg.text);
-      if (msg.type === 'error') { status.textContent = '⚠️ ' + msg.text; analyze.disabled = false; }
+      if (msg.type === 'error') {
+        if (exploreView.style.display !== 'none') byId('explore-status').textContent = '⚠️ ' + msg.text;
+        else status.textContent = '⚠️ ' + msg.text;
+        analyze.disabled = false;
+      }
       
       if (msg.type === 'preview-response') {
-        const img = document.querySelector('.variant-preview[data-node-id="' + msg.nodeId + '"]');
+        const img = document.querySelector('.variant-preview[data-node-id="' + msg.nodeId + '"], .explore-preview[data-node-id="' + msg.nodeId + '"]');
         if (img && msg.bytes) {
           try {
             const blob = new Blob([msg.bytes], { type: 'image/png' });
@@ -802,9 +1409,26 @@
           (total.protected ? '🛡 ' + total.protected + ' família(s)/item(ns) protegidos<br>' : '') +
           (total.skipped ? '⚠️ ' + total.skipped + ' operação(ões) ignorada(s)' : '');
         if (msg.dryRun) { apply.disabled = false; status.textContent = 'Simulação concluída. Você pode aplicar o plano.'; }
-        else { simulate.disabled = true; status.textContent = 'Revise o resultado e execute uma nova análise antes de aplicar novamente.'; }
+        else {
+          simulate.disabled = true;
+          analyze.disabled = false;
+          if (pendingSingleFamilyIndex !== null) {
+            // Só o agrupamento já aplicado fica indisponível, pois seus IDs
+            // ficaram desatualizados. Os demais podem ser aplicados sem nova análise.
+            const appliedRow = document.querySelector('.family-row[data-family-index="' + pendingSingleFamilyIndex + '"]');
+            const appliedButton = appliedRow && appliedRow.querySelector('.family-componentize');
+            if (appliedButton) appliedButton.disabled = true;
+            pendingSingleFamilyIndex = null;
+            status.textContent = 'Aplicação concluída. Os demais agrupamentos continuam disponíveis.';
+          } else {
+            document.querySelectorAll('.family-componentize').forEach((button) => button.disabled = true);
+            status.textContent = 'Revise o resultado e execute uma nova análise antes de aplicar novamente.';
+          }
+        }
       }
     };
+
+    post('presets-load');
   </script>
 </body>
 </html>
