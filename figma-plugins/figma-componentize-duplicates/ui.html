@@ -180,6 +180,50 @@
       border-bottom: 1px solid #f1f5f9;
     }
     .similar-row:last-child, .inventory-row:last-child { border-bottom: 0; }
+    .inventory-group {
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .inventory-group.collapsed .inventory-variants-label,
+    .inventory-group.collapsed .inventory-group-variants { display: none; }
+    .inventory-group-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .inventory-accordion-toggle {
+      width: 22px;
+      min-width: 22px;
+      padding: 2px 0;
+      font-size: 13px;
+      line-height: 1;
+    }
+    .inventory-group-head .explore-row-main { min-width: 0; }
+    .inventory-group-variants {
+      margin-left: 20px;
+      border-left: 2px solid #e2e8f0;
+    }
+    .inventory-variants-label {
+      padding: 5px 8px 2px;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .inventory-variant-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .inventory-variant-row:last-child { border-bottom: 0; }
+    .inventory-variant-row .explore-row-title { font-size: 11px; font-weight: 600; }
     .explore-preview {
       width: 42px;
       height: 42px;
@@ -193,6 +237,64 @@
     .explore-row-main { min-width: 0; flex: 1; }
     .explore-row-title { font-weight: 700; overflow-wrap: anywhere; }
     .explore-row-meta { color: #64748b; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+    .compatibility-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 5px;
+      border: 1px solid #fecaca;
+      border-radius: 4px;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 9px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+    .compatibility-reason {
+      color: #b91c1c;
+      font-size: 10px;
+      line-height: 1.4;
+      margin-top: 2px;
+      overflow-wrap: anywhere;
+    }
+    .duplicate-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 5px;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 9px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+    .similar-duplicate-group {
+      margin: 6px 0;
+      border: 1px solid #dbeafe;
+      border-radius: 6px;
+      background: #f8fbff;
+    }
+    .similar-duplicate-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-bottom: 1px solid #dbeafe;
+    }
+    .duplicate-group-toggle { margin-left: auto; flex-shrink: 0; }
+    .similar-duplicate-list {
+      margin-left: 20px;
+      border-left: 2px solid #dbeafe;
+    }
+    .similar-duplicate-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid #eff6ff;
+    }
+    .similar-duplicate-row:last-child { border-bottom: 0; }
+    .similar-duplicate-row .explore-row-title { font-size: 11px; font-weight: 600; }
     .score-high { background: #dcfce7; color: #166534; }
     .score-medium { background: #fef3c7; color: #92400e; }
     .score-low { background: #f1f5f9; color: #475569; }
@@ -204,6 +306,17 @@
     .similar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
     .similar-toolbar label { display: flex; align-items: center; gap: 6px; color: #475569; font-size: 11px; }
     .similar-toolbar button { padding: 5px 7px; font-size: 11px; }
+    .similar-compatibility {
+      margin: 8px 0;
+      padding: 7px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    .similar-compatibility-title { display: block; margin-bottom: 5px; font-size: 11px; font-weight: 700; color: #334155; }
+    .similar-compatibility-options { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+    .similar-compatibility-options label { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #475569; cursor: pointer; }
+    .similar-grouping-option { display: flex; align-items: center; gap: 4px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #475569; cursor: pointer; }
     .similar-mode { flex-shrink: 0; max-width: 112px; padding: 3px 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #334155; font: inherit; font-size: 10px; }
   </style>
 </head>
@@ -223,6 +336,22 @@
     <section class="card">
       <div class="heading"><span>🎯 Seleção atual</span><span class="badge" id="explore-selection-count">0</span></div>
       <div class="explore-selection" id="explore-selection"><span class="explore-empty">Selecione um ou mais elementos no canvas.</span></div>
+      <div class="similar-compatibility">
+        <span class="similar-compatibility-title">Considerar incompatível quando houver diferença em:</span>
+        <div class="similar-compatibility-options">
+          <label><input type="checkbox" id="similar-compat-structure" checked /> Estrutura / filhos</label>
+          <label><input type="checkbox" id="similar-compat-dimensions" /> Dimensões</label>
+          <label><input type="checkbox" id="similar-compat-layout" checked /> Layout</label>
+          <label><input type="checkbox" id="similar-compat-fills" /> Preenchimento / cor</label>
+          <label><input type="checkbox" id="similar-compat-strokes" /> Traçado</label>
+          <label><input type="checkbox" id="similar-compat-effects" /> Efeitos</label>
+          <label><input type="checkbox" id="similar-compat-vector" /> Vetor</label>
+          <label><input type="checkbox" id="similar-compat-text" /> Texto</label>
+          <label><input type="checkbox" id="similar-compat-visibility" /> Visibilidade</label>
+          <label><input type="checkbox" id="similar-compat-rotation" /> Rotação</label>
+        </div>
+        <label class="similar-grouping-option"><input type="checkbox" id="similar-group-inner-variants" /> Agrupar itens mesmo com variantes/configurações internas diferentes</label>
+      </div>
       <div class="explore-actions">
         <button class="primary" id="find-similar">🔎 Encontrar similares</button>
         <button class="secondary" id="refresh-explore">↻ Atualizar inventário</button>
@@ -242,7 +371,7 @@
         <input type="checkbox" id="explore-preserve-overrides" checked />
         Preservar diferenças originais como overrides
       </label>
-      <p style="font-size:10px; margin-top:2px;">Mantém textos, aparência, visibilidade e outras diferenças editáveis ao trocar o elemento por uma instância.</p>
+      <p style="font-size:10px; margin-top:2px;">Mantém textos, aparência, geometria vetorial, variantes/configurações internas e outras diferenças editáveis ao trocar o elemento por uma instância.</p>
     </section>
 
     <section class="card">
@@ -459,7 +588,7 @@
     const log = byId('log'), done = byId('done');
     const analyze = byId('analyze'), simulate = byId('simulate'), apply = byId('apply');
     let definitions = [], families = [];
-    let inventory = [], selectionNodeIds = [], similarItems = [];
+    let inventory = [], selectionNodeIds = [], similarItems = [], similarSearchPending = false;
     const exploreView = byId('explore-view'), consolidateView = byId('consolidate-view');
     
     // Controle da fila progressiva de previews
@@ -531,6 +660,99 @@
       });
     }
 
+    function similarCompatibilityConfig() {
+      return {
+        structure: byId('similar-compat-structure').checked,
+        dimensions: byId('similar-compat-dimensions').checked,
+        layout: byId('similar-compat-layout').checked,
+        fills: byId('similar-compat-fills').checked,
+        strokes: byId('similar-compat-strokes').checked,
+        effects: byId('similar-compat-effects').checked,
+        vector: byId('similar-compat-vector').checked,
+        text: byId('similar-compat-text').checked,
+        visibility: byId('similar-compat-visibility').checked,
+        rotation: byId('similar-compat-rotation').checked,
+        groupNestedVariants: byId('similar-group-inner-variants').checked
+      };
+    }
+
+    function inventoryGroups(items) {
+      const groups = [];
+      const byKey = {};
+      (items || []).forEach((item) => {
+        const familyKey = item.familyId || (item.family ? item.family + '|' + item.page : '');
+        const key = familyKey ? 'family:' + familyKey : 'component:' + item.id;
+        if (!byKey[key]) {
+          byKey[key] = { family: familyKey ? item.family : '', items: [] };
+          groups.push(byKey[key]);
+        }
+        byKey[key].items.push(item);
+      });
+      return groups;
+    }
+
+    function renderInventoryItem(item, compact) {
+      const row = document.createElement('div');
+      row.className = compact ? 'inventory-variant-row' : 'inventory-row';
+
+      if (!compact) {
+        const img = document.createElement('img');
+        img.className = 'explore-preview';
+        img.dataset.nodeId = item.id;
+        img.src = placeholderPreview();
+        row.append(img);
+      }
+
+      const main = document.createElement('div');
+      main.className = 'explore-row-main';
+      const title = document.createElement('div');
+      title.className = 'explore-row-title';
+      title.textContent = item.name;
+      const meta = document.createElement('div');
+      meta.className = 'explore-row-meta';
+      meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.instances +
+        (item.instances === 1 ? ' instância' : ' instâncias');
+      main.append(title, meta);
+
+      if (!compact) {
+        const path = document.createElement('div');
+        path.className = 'explore-row-meta';
+        path.textContent = item.path;
+        main.append(path);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'family-actions';
+      const select = document.createElement('button');
+      select.className = 'small ghost';
+      select.textContent = '🎯';
+      select.title = 'Selecionar variante no canvas';
+      select.onclick = () => post('select-nodes', { nodeIds: [item.id] });
+
+      const instances = document.createElement('button');
+      instances.className = 'small ghost';
+      instances.textContent = '↗ ' + item.instances;
+      instances.title = 'Selecionar instâncias nesta página';
+      instances.disabled = item.instancesOnCurrentPage === 0;
+      instances.onclick = () => post('select-component-instances', { componentId: item.id });
+
+      const similar = document.createElement('button');
+      similar.className = 'small primary';
+      similar.textContent = compact ? 'Similares' : 'Similares';
+      similar.onclick = () => {
+        byId('explore-status').textContent = 'Procurando elementos parecidos com "' + item.name + '"...';
+        post('find-similar', {
+          nodeIds: [item.id],
+          switchToReferencePage: true,
+          preserveDifferences: byId('explore-preserve-overrides').checked,
+          compatibilityConfig: similarCompatibilityConfig()
+        });
+      };
+      actions.append(select, instances, similar);
+      row.append(main, actions);
+      return row;
+    }
+
     function renderInventory(items) {
       inventory = Array.isArray(items) ? items : [];
       byId('inventory-count').textContent = inventory.length;
@@ -544,48 +766,79 @@
         container.append(empty);
         return;
       }
-      visibleItems.forEach((item) => {
-        const row = document.createElement('div');
-        row.className = 'inventory-row';
+      inventoryGroups(visibleItems).forEach((group) => {
+        if (!group.family) {
+          container.append(renderInventoryItem(group.items[0], false));
+          return;
+        }
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'inventory-group collapsed';
+        const head = document.createElement('div');
+        head.className = 'inventory-group-head';
+
+        const toggle = document.createElement('button');
+        toggle.className = 'small ghost inventory-accordion-toggle';
+        toggle.textContent = '▸';
+        toggle.title = 'Mostrar variantes';
+        toggle.setAttribute('aria-expanded', 'false');
+        const setExpanded = (expanded) => {
+          groupEl.classList.toggle('collapsed', !expanded);
+          toggle.textContent = expanded ? '▾' : '▸';
+          toggle.title = expanded ? 'Ocultar variantes' : 'Mostrar variantes';
+          toggle.setAttribute('aria-expanded', String(expanded));
+        };
+        toggle.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setExpanded(groupEl.classList.contains('collapsed'));
+        };
+        head.onclick = (event) => {
+          if (event.target.closest('button')) return;
+          setExpanded(groupEl.classList.contains('collapsed'));
+        };
+
         const img = document.createElement('img');
         img.className = 'explore-preview';
-        img.dataset.nodeId = item.id;
+        img.dataset.nodeId = group.items[0].id;
         img.src = placeholderPreview();
+
         const main = document.createElement('div');
         main.className = 'explore-row-main';
         const title = document.createElement('div');
         title.className = 'explore-row-title';
-        title.textContent = item.name;
+        title.textContent = group.family;
+        const totalInstances = group.items.reduce((total, item) => total + item.instances, 0);
         const meta = document.createElement('div');
         meta.className = 'explore-row-meta';
-        meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.instances + (item.instances === 1 ? ' instância' : ' instâncias') + (item.family ? ' · ' + item.family : '');
-        const path = document.createElement('div');
-        path.className = 'explore-row-meta';
-        path.textContent = item.path;
-        main.append(title, meta, path);
+        meta.textContent = '[COMPONENT_SET] ' + group.items[0].page + ' · ' + group.items.length +
+          (group.items.length === 1 ? ' variante' : ' variantes') + ' · ' + totalInstances +
+          (totalInstances === 1 ? ' instância' : ' instâncias');
+        main.append(title, meta);
+
         const actions = document.createElement('div');
         actions.className = 'family-actions';
-        const select = document.createElement('button');
-        select.className = 'small ghost';
-        select.textContent = '🎯';
-        select.title = 'Selecionar componente principal';
-        select.onclick = () => post('select-nodes', { nodeIds: [item.id] });
-        const instances = document.createElement('button');
-        instances.className = 'small ghost';
-        instances.textContent = '↗ ' + item.instances;
-        instances.title = 'Selecionar instâncias nesta página';
-        instances.disabled = item.instancesOnCurrentPage === 0;
-        instances.onclick = () => post('select-component-instances', { componentId: item.id });
-        const similar = document.createElement('button');
-        similar.className = 'small primary';
-        similar.textContent = 'Similares';
-        similar.onclick = () => {
-          byId('explore-status').textContent = 'Procurando elementos parecidos com "' + item.name + '"...';
-          post('find-similar', { nodeIds: [item.id], switchToReferencePage: true });
-        };
-        actions.append(select, instances, similar);
-        row.append(img, main, actions);
-        container.append(row);
+        const selectAll = document.createElement('button');
+        selectAll.className = 'small ghost';
+        selectAll.textContent = '🔍 Todas';
+        selectAll.title = 'Selecionar todas as variantes no canvas';
+        selectAll.onclick = () => post('select-nodes', { nodeIds: group.items.map((item) => item.id) });
+        const count = document.createElement('span');
+        count.className = 'badge';
+        count.textContent = group.items.length;
+        actions.append(selectAll, count);
+        head.append(toggle, img, main, actions);
+        groupEl.append(head);
+
+        const label = document.createElement('div');
+        label.className = 'inventory-variants-label';
+        label.textContent = 'Variantes';
+        groupEl.append(label);
+        const variants = document.createElement('div');
+        variants.className = 'inventory-group-variants';
+        group.items.forEach((item) => variants.append(renderInventoryItem(item, true)));
+        groupEl.append(variants);
+        container.append(groupEl);
       });
       triggerPreviewLoading();
     }
@@ -599,21 +852,33 @@
       const selectAll = byId('similar-select-all');
       selectAll.checked = similarItems.length > 0 && selectedCount === similarItems.length;
       selectAll.indeterminate = selectedCount > 0 && selectedCount < similarItems.length;
-      byId('consolidate-similar').disabled = selectedCount === 0;
+      selectAll.disabled = similarSearchPending;
+      byId('consolidate-similar').disabled = selectedCount === 0 || similarSearchPending;
       byId('consolidate-similar').textContent = selectedCount
         ? '⚡ Consolidar selecionados (' + selectedCount + ')'
         : '⚡ Consolidar selecionados';
     }
 
-    function renderSimilarResults(items) {
+    function markSimilarSearchPending(message) {
+      similarSearchPending = true;
+      byId('explore-status').textContent = message;
+      updateSimilarControls();
+    }
+
+    function renderSimilarResults(items, preserveSelection) {
+      similarSearchPending = false;
       const results = Array.isArray(items) ? items : [];
       const previousSelection = {};
-      similarItems.forEach((item) => {
-        previousSelection[item.id] = { selected: item.selected, asVariant: item.asVariant };
-      });
+      if (preserveSelection) {
+        similarItems.forEach((item) => {
+          previousSelection[item.id] = { selected: item.selected, asVariant: item.asVariant };
+        });
+      }
       similarItems = results.map((item) => Object.assign({}, item, {
         selected: previousSelection[item.id] === undefined ? item.score === 100 : previousSelection[item.id].selected,
-        asVariant: previousSelection[item.id] === undefined ? false : !!previousSelection[item.id].asVariant
+        asVariant: item.isCompatible === false
+          ? true
+          : (previousSelection[item.id] === undefined ? false : !!previousSelection[item.id].asVariant)
       }));
       const card = byId('similar-card');
       const container = byId('similar-results');
@@ -628,9 +893,9 @@
         updateSimilarControls();
         return;
       }
-      similarItems.forEach((item, index) => {
+      function renderSimilarItem(item, index, compact) {
         const row = document.createElement('div');
-        row.className = 'similar-row';
+        row.className = compact ? 'similar-duplicate-row' : 'similar-row';
         const check = document.createElement('input');
         check.type = 'checkbox';
         check.className = 'similar-select';
@@ -640,28 +905,65 @@
           similarItems[index].selected = check.checked;
           updateSimilarControls();
         };
-        const img = document.createElement('img');
-        img.className = 'explore-preview';
-        img.dataset.nodeId = item.id;
-        img.src = placeholderPreview();
+
+        let img = null;
+        if (!compact) {
+          img = document.createElement('img');
+          img.className = 'explore-preview';
+          img.dataset.nodeId = item.id;
+          img.src = placeholderPreview();
+        }
+
         const main = document.createElement('div');
         main.className = 'explore-row-main';
         const title = document.createElement('div');
         title.className = 'explore-row-title';
         title.textContent = item.name;
-        const meta = document.createElement('div');
-        meta.className = 'explore-row-meta';
-        meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.path;
-        const reasons = document.createElement('div');
-        reasons.className = 'explore-row-meta';
-        reasons.textContent = (item.reasons || []).join(' · ');
-        main.append(title, meta, reasons);
+        if (!compact && item.isCompatible === false) {
+          const compatibilityTag = document.createElement('span');
+          compatibilityTag.className = 'compatibility-tag';
+          compatibilityTag.textContent = 'Incompatível';
+          compatibilityTag.title = 'Será tratado como variante para preservar a diferença estrutural.';
+          title.append(compatibilityTag);
+        }
+        if (!compact && item.duplicateGroupSize > 1) {
+          const duplicateTag = document.createElement('span');
+          duplicateTag.className = 'duplicate-tag';
+          const groupedInnerVariants = byId('similar-group-inner-variants').checked;
+          duplicateTag.textContent = item.duplicateGroupSize + (groupedInnerVariants ? ' itens agrupados' : ' cópias idênticas');
+          duplicateTag.title = groupedInnerVariants
+            ? 'Itens com variantes/configurações internas agrupadas; cada um mantém seu próprio controle.'
+            : 'Cópias individuais: cada uma mantém seu próprio controle de seleção.';
+          title.append(duplicateTag);
+        }
+
+        if (compact) {
+          main.append(title);
+        } else {
+          const meta = document.createElement('div');
+          meta.className = 'explore-row-meta';
+          meta.textContent = '[' + item.type + '] ' + item.page + ' · ' + item.path;
+          const reasons = document.createElement('div');
+          reasons.className = 'explore-row-meta';
+          reasons.textContent = (item.reasons || []).join(' · ');
+          main.append(title, meta, reasons);
+          if (item.isCompatible === false) {
+            const compatibilityReason = document.createElement('div');
+            compatibilityReason.className = 'compatibility-reason';
+            compatibilityReason.textContent = 'Motivo: ' + ((item.compatibilityDifferences || []).join(' · ') || 'estrutura incompatível');
+            main.append(compatibilityReason);
+          }
+        }
+
         const actions = document.createElement('div');
         actions.className = 'family-actions';
-        const score = document.createElement('span');
-        score.className = 'badge ' + scoreClass(item.score);
-        score.textContent = item.score + '%';
-        score.title = item.confidence || '';
+        if (!compact) {
+          const score = document.createElement('span');
+          score.className = 'badge ' + scoreClass(item.score);
+          score.textContent = item.score + '%';
+          score.title = item.confidence || '';
+          actions.append(score);
+        }
         const select = document.createElement('button');
         select.className = 'small ghost';
         select.textContent = '🎯';
@@ -673,9 +975,101 @@
         mode.innerHTML = '<option value="copy">Cópia do master</option><option value="variant">Criar variante</option>';
         mode.value = item.asVariant ? 'variant' : 'copy';
         mode.onchange = () => { similarItems[index].asVariant = mode.value === 'variant'; };
-        actions.append(score, mode, select);
-        row.append(check, img, main, actions);
-        container.append(row);
+        actions.append(mode, select);
+        row.append(check);
+        if (img) row.append(img);
+        row.append(main, actions);
+        return row;
+      }
+
+      const renderedGroups = {};
+      const groupOrder = [];
+      similarItems.forEach((item, index) => {
+        const key = item.duplicateGroupSize > 1 && item.duplicateKey
+          ? item.duplicateKey
+          : 'single:' + item.id;
+        if (!renderedGroups[key]) {
+          renderedGroups[key] = { items: [] };
+          groupOrder.push(key);
+        }
+        renderedGroups[key].items.push({ item, index });
+      });
+
+      groupOrder.forEach((key) => {
+        const group = renderedGroups[key];
+        if (group.items.length === 1) {
+          const entry = group.items[0];
+          container.append(renderSimilarItem(entry.item, entry.index, false));
+          return;
+        }
+
+        const duplicateGroup = document.createElement('div');
+        duplicateGroup.className = 'similar-duplicate-group';
+        const summary = document.createElement('div');
+        summary.className = 'similar-duplicate-summary';
+        const summaryItem = group.items[0].item;
+        const summaryImage = document.createElement('img');
+        summaryImage.className = 'explore-preview';
+        summaryImage.dataset.nodeId = summaryItem.id;
+        summaryImage.src = placeholderPreview();
+        const summaryMain = document.createElement('div');
+        summaryMain.className = 'explore-row-main';
+        const summaryTitle = document.createElement('div');
+        summaryTitle.className = 'explore-row-title';
+        summaryTitle.textContent = summaryItem.name;
+        if (summaryItem.isCompatible === false) {
+          const compatibilityTag = document.createElement('span');
+          compatibilityTag.className = 'compatibility-tag';
+          compatibilityTag.textContent = 'Incompatível';
+          compatibilityTag.title = 'Será tratado como variante para preservar a diferença estrutural.';
+          summaryTitle.append(compatibilityTag);
+        }
+        const duplicateTag = document.createElement('span');
+        duplicateTag.className = 'duplicate-tag';
+        const groupedInnerVariants = byId('similar-group-inner-variants').checked;
+        duplicateTag.textContent = group.items.length + (groupedInnerVariants ? ' itens agrupados' : ' cópias idênticas');
+        duplicateTag.title = groupedInnerVariants
+          ? 'Itens com variantes/configurações internas agrupadas; cada um mantém seu próprio controle.'
+          : 'Cópias individuais: cada uma mantém seu próprio controle de seleção.';
+        summaryTitle.append(duplicateTag);
+        const summaryMeta = document.createElement('div');
+        summaryMeta.className = 'explore-row-meta';
+        summaryMeta.textContent = '[' + summaryItem.type + '] ' + summaryItem.page + ' · ' + summaryItem.path;
+        const summaryReasons = document.createElement('div');
+        summaryReasons.className = 'explore-row-meta';
+        summaryReasons.textContent = (summaryItem.reasons || []).join(' · ');
+        summaryMain.append(summaryTitle, summaryMeta, summaryReasons);
+        if (summaryItem.isCompatible === false) {
+          const summaryCompatibility = document.createElement('div');
+          summaryCompatibility.className = 'compatibility-reason';
+          summaryCompatibility.textContent = 'Motivo: ' + ((summaryItem.compatibilityDifferences || []).join(' · ') || 'estrutura incompatível');
+          summaryMain.append(summaryCompatibility);
+        }
+        const groupToggle = document.createElement('button');
+        groupToggle.className = 'small ghost duplicate-group-toggle';
+        const updateGroupToggle = () => {
+          const allSelected = group.items.every((entry) => similarItems[entry.index].selected);
+          groupToggle.textContent = allSelected ? 'Desmarcar todas' : 'Selecionar todas';
+          groupToggle.title = allSelected
+            ? 'Desmarcar todas as cópias deste item'
+            : 'Selecionar todas as cópias deste item';
+        };
+        groupToggle.onclick = () => {
+          const selectAll = !group.items.every((entry) => similarItems[entry.index].selected);
+          group.items.forEach((entry) => { similarItems[entry.index].selected = selectAll; });
+          renderSimilarResults(similarItems, true);
+        };
+        updateGroupToggle();
+        summary.append(summaryImage, summaryMain, groupToggle);
+        duplicateGroup.append(summary);
+
+        const duplicateList = document.createElement('div');
+        duplicateList.className = 'similar-duplicate-list';
+        group.items.forEach((entry) => {
+          duplicateList.append(renderSimilarItem(entry.item, entry.index, true));
+        });
+        duplicateGroup.append(duplicateList);
+        container.append(duplicateGroup);
       });
       updateSimilarControls();
       triggerPreviewLoading();
@@ -690,11 +1084,27 @@
     byId('find-similar').onclick = () => {
       if (!selectionNodeIds.length) return;
       byId('explore-status').textContent = 'Procurando similares na página atual...';
-      post('find-similar', { nodeIds: selectionNodeIds });
+      post('find-similar', {
+        nodeIds: selectionNodeIds,
+        preserveDifferences: byId('explore-preserve-overrides').checked,
+        compatibilityConfig: similarCompatibilityConfig()
+      });
+    };
+    byId('explore-preserve-overrides').onchange = () => {
+      markSimilarSearchPending('Critérios alterados. Clique em “Encontrar similares” para atualizar a lista.');
+    };
+    ['structure', 'dimensions', 'layout', 'fills', 'strokes', 'effects', 'vector', 'text', 'visibility', 'rotation']
+      .forEach((key) => {
+        byId('similar-compat-' + key).onchange = () => {
+          markSimilarSearchPending('Critérios alterados. Clique em “Encontrar similares” para atualizar a lista.');
+        };
+      });
+    byId('similar-group-inner-variants').onchange = () => {
+      markSimilarSearchPending('Critérios de agrupamento alterados. Clique em “Encontrar similares” para atualizar a lista.');
     };
     byId('similar-select-all').onchange = () => {
       similarItems.forEach((item) => { item.selected = byId('similar-select-all').checked; });
-      renderSimilarResults(similarItems);
+      renderSimilarResults(similarItems, true);
     };
     byId('consolidate-similar').onclick = () => {
       const selected = similarItems.filter((item) => item.selected);
@@ -704,7 +1114,8 @@
       byId('explore-status').textContent = 'Consolidando candidatos selecionados...';
       post('consolidate-similar', {
         items: selected,
-        preserveOverrides: byId('explore-preserve-overrides').checked
+        preserveOverrides: byId('explore-preserve-overrides').checked,
+        compatibilityConfig: similarCompatibilityConfig()
       });
     };
     byId('explore-close').onclick = () => post('close');
@@ -1409,7 +1820,7 @@
         return;
       }
       if (msg.type === 'similar-results') {
-        renderSimilarResults(msg.items);
+        renderSimilarResults(msg.items, false);
         byId('explore-status').textContent = (msg.items || []).length + ' candidato(s) encontrado(s).';
         return;
       }
@@ -1472,13 +1883,27 @@
       }
       if (msg.type === 'done') {
         const total = msg.totals; done.style.display = 'block'; done.className = 'done' + (total.protected || total.skipped ? ' warn' : '');
-        done.innerHTML = '<strong>' + (msg.dryRun ? 'Simulação concluída' : 'Aplicação concluída') + '</strong><br>' +
+        done.innerHTML = '<strong>' + (msg.aborted ? 'Operação protegida' : (msg.dryRun ? 'Simulação concluída' : 'Aplicação concluída')) + '</strong><br>' +
           '🧩 ' + total.componentsCreated + (msg.dryRun ? ' componente(s)/variante(s) seriam criados' : ' componente(s)/variante(s) criados') + '<br>' +
           '🔁 ' + total.instancesInserted + (msg.dryRun ? ' nova(s) instância(s) seriam inseridas' : ' nova(s) instância(s) inseridas') + '<br>' +
           '↪ ' + total.redirected + ' instância(s) de componentes redirecionadas<br>' +
           (total.componentsRemoved ? '🗑 ' + total.componentsRemoved + ' componente(s)/set(s) antigos removidos<br>' : '') +
           (total.protected ? '🛡 ' + total.protected + ' família(s)/item(ns) protegidos<br>' : '') +
           (total.skipped ? '⚠️ ' + total.skipped + ' operação(ões) ignorada(s)' : '');
+        if (msg.aborted) {
+          analyze.disabled = false;
+          if (exploreView.style.display !== 'none') {
+            simulate.disabled = false;
+            apply.disabled = false;
+            byId('explore-status').textContent = 'Operação protegida. Remova os candidatos incompatíveis e tente novamente.';
+            updateSimilarControls();
+          } else {
+            simulate.disabled = true;
+            apply.disabled = true;
+            status.textContent = 'Operação protegida. Analise novamente após corrigir a incompatibilidade.';
+          }
+          return;
+        }
         if (msg.dryRun) { apply.disabled = false; status.textContent = 'Simulação concluída. Você pode aplicar o plano.'; }
         else {
           simulate.disabled = true;

@@ -293,6 +293,22 @@ function comparableDisplay(value) {
   return text.length > 140 ? text.substring(0, 140) + "…" : text;
 }
 
+// Instâncias aninhadas são fronteiras de componentes. A estrutura interna
+// delas pertence ao componente referenciado e pode mudar quando uma variante
+// diferente é preservada; ela não deve alterar a compatibilidade do contêiner.
+function nestedComponentIdentity(node) {
+  if (!node || node.type !== "INSTANCE") return "";
+  try {
+    var mainComponent = node.mainComponent;
+    if (!mainComponent) return "";
+    var parent = mainComponent.parent;
+    if (parent && parent.type === "COMPONENT_SET") return "set:" + parent.id;
+    return "component:" + mainComponent.id;
+  } catch (error) {
+    return "";
+  }
+}
+
 function propertiesSignature(node, selected, rootTypeIgnored, isRoot) {
   if (isRoot === undefined) isRoot = true;
   var parts = ["type=" + (rootTypeIgnored ? "<component-compatível>" : val(node.type))];
@@ -376,29 +392,41 @@ function compactSignature(properties, children) {
   return hashText(text, 2166136261) + ":" + hashText(text, 2654435761);
 }
 
-function createSignatureCalculator(selected) {
+function createSignatureCalculator(selected, signatureOptions) {
   var cache = {};
+  var compareChildren = !signatureOptions || signatureOptions.compareChildren !== false;
+  var groupNestedVariants = !!(signatureOptions && signatureOptions.groupNestedVariants);
 
   function signatureFor(node, isRoot) {
     if (isRoot === undefined) isRoot = true;
     var cacheKey = node.id + ":" + (isRoot ? "root" : "child");
     if (cache[cacheKey]) return cache[cacheKey];
 
-    var children = [];
+    var exactChildren = [];
+    var compatibleChildren = [];
     try {
-      if (node.children) {
+      if (compareChildren && node.children) {
         for (var i = 0; i < node.children.length; i++) {
           // Os elementos internos recursivos são sempre descendentes (isRoot = false)
-          children.push(signatureFor(node.children[i], false).exact);
+          var child = node.children[i];
+          var exactChildSignature = signatureFor(child, false).exact;
+          var nestedIdentity = nestedComponentIdentity(child);
+          exactChildren.push(groupNestedVariants && nestedIdentity
+            ? "nested-instance=" + nestedIdentity
+            : exactChildSignature);
+          compatibleChildren.push(nestedIdentity
+            ? "nested-instance=" + nestedIdentity
+            : exactChildSignature);
         }
       }
     } catch (error) {
-      children.push("inacessível");
+      exactChildren.push("inacessível");
+      compatibleChildren.push("inacessível");
     }
 
     var result = {
-      exact: compactSignature(propertiesSignature(node, selected, false, isRoot), children),
-      compatible: compactSignature(propertiesSignature(node, selected, true, isRoot), children),
+      exact: compactSignature(propertiesSignature(node, selected, false, isRoot), exactChildren),
+      compatible: compactSignature(propertiesSignature(node, selected, true, isRoot), compatibleChildren),
     };
     cache[cacheKey] = result;
     return result;
@@ -408,11 +436,21 @@ function createSignatureCalculator(selected) {
 }
 
 // --- Debug: comparação legível entre dois nós ---
-function diffNodes(nodeA, nodeB, selected, path, maxDiffs, isRoot) {
+function diffNodes(nodeA, nodeB, selected, path, maxDiffs, isRoot, compareChildren) {
   if (isRoot === undefined) isRoot = true;
   if (!maxDiffs) maxDiffs = 10;
+  if (compareChildren === undefined) compareChildren = true;
   var diffs = [];
   var currentPath = path || nodeA.name || "(raiz)";
+
+  // O componente interno pode ter outra variante e, portanto, outra árvore
+  // de filhos. Essa diferença será preservada no override da instância; não
+  // é uma incompatibilidade do elemento externo.
+  if (!isRoot) {
+    var identityA = nestedComponentIdentity(nodeA);
+    var identityB = nestedComponentIdentity(nodeB);
+    if (identityA && identityA === identityB) return diffs;
+  }
 
   // Comparar tipo (sempre comparado, mas na raiz usa compatible)
   if (nodeA.type !== nodeB.type) {
@@ -471,6 +509,8 @@ function diffNodes(nodeA, nodeB, selected, path, maxDiffs, isRoot) {
     } catch (e) {}
   }
 
+  if (!compareChildren) return diffs;
+
   // Comparar quantidade de filhos
   var childrenA = [];
   var childrenB = [];
@@ -484,7 +524,7 @@ function diffNodes(nodeA, nodeB, selected, path, maxDiffs, isRoot) {
     for (var c = 0; c < childrenA.length; c++) {
       if (diffs.length >= maxDiffs) break;
       var childPath = currentPath + " > " + (childrenA[c].name || "[" + c + "]");
-      var childDiffs = diffNodes(childrenA[c], childrenB[c], selected, childPath, maxDiffs - diffs.length, false);
+      var childDiffs = diffNodes(childrenA[c], childrenB[c], selected, childPath, maxDiffs - diffs.length, false, compareChildren);
       for (var d = 0; d < childDiffs.length; d++) {
         diffs.push(childDiffs[d]);
       }
@@ -1013,11 +1053,15 @@ function componentInventory() {
         instancesOnCurrentPage++;
       }
     }
+    var componentSet = component.parent && component.parent.type === "COMPONENT_SET"
+      ? component.parent
+      : null;
     result.push({
       id: component.id,
       name: component.name || "(sem nome)",
       type: component.type,
-      family: component.parent && component.parent.type === "COMPONENT_SET" ? component.parent.name : "",
+      family: componentSet ? componentSet.name : "",
+      familyId: componentSet ? componentSet.id : "",
       page: pageName(component),
       path: nodePath(component),
       instances: instances.length,
@@ -1174,7 +1218,7 @@ function isInsideNode(node, ancestor) {
   return false;
 }
 
-function findSimilarNodes(referenceIds) {
+function findSimilarNodes(referenceIds, preserveDifferences, compatibilityConfig) {
   var references = [];
   for (var i = 0; i < (referenceIds || []).length; i++) {
     var reference = figma.getNodeById(referenceIds[i]);
@@ -1186,6 +1230,12 @@ function findSimilarNodes(referenceIds) {
 
   var candidates = getCandidates("page", null, null);
   var results = [];
+  var compatibilityFields = exploreSelectedFields(preserveDifferences, compatibilityConfig);
+  var compatibilityOptions = exploreCompatibilityOptions(compatibilityConfig);
+  var compatibilitySignature = createSignatureCalculator(compatibilityFields, compatibilityOptions);
+  var identitySignature = createSignatureCalculator(exploreIdentityFields(), {
+    groupNestedVariants: compatibilityOptions.groupNestedVariants
+  });
   for (var c = 0; c < candidates.length; c++) {
     var candidate = candidates[c];
     var skip = false;
@@ -1207,6 +1257,9 @@ function findSimilarNodes(referenceIds) {
       }
     }
     if (best && best.score >= 45) {
+      var candidateCompatibility = compatibilitySignature(candidate).compatible;
+      var referenceCompatibility = compatibilitySignature(bestReference).compatible;
+      var isCompatible = candidateCompatibility === referenceCompatibility;
       results.push({
         id: candidate.id,
         name: candidate.name || "(sem nome)",
@@ -1217,18 +1270,56 @@ function findSimilarNodes(referenceIds) {
         confidence: best.score >= 90 ? "Muito semelhante" : (best.score >= 70 ? "Semelhante" : "Possível candidato"),
         reasons: best.reasons,
         referenceId: bestReference.id,
-        referenceName: bestReference.name || "(sem nome)"
+        referenceName: bestReference.name || "(sem nome)",
+        isCompatible: isCompatible,
+        compatibilityDifferences: isCompatible
+          ? []
+          : diffNodes(bestReference, candidate, compatibilityFields, candidate.name, 4, undefined, compatibilityOptions.compareChildren),
+        duplicateKey: bestReference.id + "|" + identitySignature(candidate).exact
       });
     }
   }
   results.sort(function (a, b) { return b.score - a.score; });
-  return results.slice(0, 100);
+  var visibleResults = results.slice(0, 100);
+  var duplicateGroups = {};
+  for (var d = 0; d < visibleResults.length; d++) {
+    var duplicateKey = visibleResults[d].duplicateKey;
+    if (!duplicateGroups[duplicateKey]) duplicateGroups[duplicateKey] = [];
+    duplicateGroups[duplicateKey].push(visibleResults[d]);
+  }
+  Object.keys(duplicateGroups).forEach(function (duplicateKey) {
+    var duplicateGroup = duplicateGroups[duplicateKey];
+    for (var g = 0; g < duplicateGroup.length; g++) {
+      duplicateGroup[g].duplicateGroupSize = duplicateGroup.length;
+    }
+  });
+  return visibleResults;
 }
 
 // A aba Explorar não passa por uma análise de famílias completa. Ainda assim,
 // usamos o mesmo motor de consolidação para manter as validações, a migração
 // segura de instâncias e a preservação de overrides consistentes entre as abas.
-function exploreSelectedFields() {
+function exploreCompatibilityOptions(compatibilityConfig) {
+  return {
+    compareChildren: !compatibilityConfig || compatibilityConfig.structure !== false,
+    groupNestedVariants: !!(compatibilityConfig && compatibilityConfig.groupNestedVariants)
+  };
+}
+
+function compatibilityOptionEnabled(compatibilityConfig, key, fallback) {
+  if (!compatibilityConfig || compatibilityConfig[key] === undefined) return fallback;
+  return !!compatibilityConfig[key];
+}
+
+function exploreIdentityFields() {
+  var selected = {};
+  for (var i = 0; i < ALL_FIELD_KEYS.length; i++) {
+    selected[ALL_FIELD_KEYS[i]] = { element: true, children: true };
+  }
+  return selected;
+}
+
+function exploreSelectedFields(preserveDifferences, compatibilityConfig) {
   var selected = {};
   for (var i = 0; i < ALL_FIELD_KEYS.length; i++) {
     var key = ALL_FIELD_KEYS[i];
@@ -1238,11 +1329,20 @@ function exploreSelectedFields() {
   // Nome, dimensões, aparência, visibilidade e conteúdo de texto são
   // diferenças comuns em candidatos semelhantes e devem poder ser
   // preservados como override da instância.
-  var structuralFields = [
-    // O tipo e a árvore de filhos já são comparados pelo signature calculator.
-    // Layout, padding e aparência podem variar e serão copiados como overrides.
-    "layoutMode", "layoutWrap", "vectorNetwork"
-  ];
+  var structuralFields = [];
+  if (compatibilityOptionEnabled(compatibilityConfig, "dimensions", false)) {
+    structuralFields.push("width", "height");
+  }
+  if (compatibilityOptionEnabled(compatibilityConfig, "layout", true)) {
+    structuralFields.push("layoutMode", "layoutWrap");
+  }
+  if (compatibilityOptionEnabled(compatibilityConfig, "fills", false)) structuralFields.push("fills");
+  if (compatibilityOptionEnabled(compatibilityConfig, "strokes", false)) structuralFields.push("strokes");
+  if (compatibilityOptionEnabled(compatibilityConfig, "effects", false)) structuralFields.push("effects");
+  if (compatibilityOptionEnabled(compatibilityConfig, "vector", !preserveDifferences)) structuralFields.push("vectorNetwork");
+  if (compatibilityOptionEnabled(compatibilityConfig, "text", false)) structuralFields.push("characters");
+  if (compatibilityOptionEnabled(compatibilityConfig, "visibility", false)) structuralFields.push("visible");
+  if (compatibilityOptionEnabled(compatibilityConfig, "rotation", false)) structuralFields.push("rotation");
   for (var e = 0; e < structuralFields.length; e++) {
     selected[structuralFields[e]].element = true;
     selected[structuralFields[e]].children = true;
@@ -1254,30 +1354,51 @@ function consolidateSimilar(items, optionsConfig) {
   var unique = {};
   var grouped = {};
   var selectedItems = Array.isArray(items) ? items : [];
-  var fields = exploreSelectedFields();
+  var compatibilityConfig = optionsConfig && optionsConfig.similarCompatibility;
+  var compatibilityOptions = exploreCompatibilityOptions(compatibilityConfig);
+  var fields = exploreSelectedFields(!!(optionsConfig && optionsConfig.preserveOverrides), compatibilityConfig);
 
   figma.ui.postMessage({
     type: "log",
     text: "Explorar: recebidos " + selectedItems.length + " candidato(s) selecionado(s)."
   });
 
+  var hasIncompatibleCandidate = false;
+  var signatureFor = createSignatureCalculator(fields, compatibilityOptions);
+  // A assinatura usada para deduplicar variantes precisa conter exatamente os
+  // critérios usados na validação. Caso contrário, candidatos diferentes em
+  // um critério (por exemplo, fills) podem ser agrupados como uma única
+  // variante e falhar no preflight seguinte.
+  var variantIdentitySignature = createSignatureCalculator(fields, compatibilityOptions);
+
   for (var i = 0; i < selectedItems.length; i++) {
     var item = selectedItems[i];
-    if (!item || !item.id || !item.referenceId || unique[item.id]) continue;
+    if (item && item.id && unique[item.id]) continue;
+    if (!item || !item.id || !item.referenceId) {
+      hasIncompatibleCandidate = true;
+      continue;
+    }
     var candidate = figma.getNodeById(item.id);
     var reference = figma.getNodeById(item.referenceId);
-    if (!candidate || candidate.removed || !reference || reference.removed) continue;
-    if (candidate.id === reference.id || isInsideNode(candidate, reference)) continue;
+    if (!candidate || candidate.removed || !reference || reference.removed) {
+      hasIncompatibleCandidate = true;
+      continue;
+    }
+    if (candidate.id === reference.id || isInsideNode(candidate, reference)) {
+      hasIncompatibleCandidate = true;
+      continue;
+    }
 
-    // A seleção da aba Explorar pode misturar candidatos com scores altos e
-    // baixos. Um candidato incompatível não deve bloquear os demais que usam
-    // a mesma referência.
-    var signatureFor = createSignatureCalculator(fields);
-    if (signatureFor(candidate).compatible !== signatureFor(reference).compatible) {
-      var differences = diffNodes(reference, candidate, fields, candidate.name, 4);
+    // Uma diferença estrutural pode ser consolidada como variante. Se o item
+    // incompatível continuar configurado como cópia, a operação inteira deve
+    // ser protegida para não misturar migrações parciais.
+    var candidateIsCompatible = signatureFor(candidate).compatible === signatureFor(reference).compatible;
+    if (!candidateIsCompatible && !item.asVariant) {
+      hasIncompatibleCandidate = true;
+      var differences = diffNodes(reference, candidate, fields, candidate.name, 4, undefined, compatibilityOptions.compareChildren);
       figma.ui.postMessage({
         type: "log",
-        text: "⚠️ Candidato ignorado por incompatibilidade estrutural: " + candidate.name +
+        text: "⚠️ Candidato incompatível encontrado: " + candidate.name +
           (differences.length ? "\n" + differences.map(function (difference) { return "   • " + difference; }).join("\n") : "")
       });
       continue;
@@ -1296,11 +1417,47 @@ function consolidateSimilar(items, optionsConfig) {
     else grouped[reference.id].copies.push(candidate);
   }
 
+  if (hasIncompatibleCandidate) {
+    figma.ui.postMessage({
+      type: "error",
+      text: "Operação protegida: há candidato(s) incompatível(is) configurado(s) como cópia. Marque-os como variante ou remova-os da seleção."
+    });
+    figma.ui.postMessage({
+      type: "done",
+      dryRun: false,
+      aborted: true,
+      totals: {
+        componentsCreated: 0,
+        instancesInserted: 0,
+        redirected: 0,
+        componentsRemoved: 0,
+        skipped: 0,
+        protected: selectedItems.length
+      }
+    });
+    return;
+  }
+
   var plans = [];
   var referenceIds = Object.keys(grouped);
   for (var r = 0; r < referenceIds.length; r++) {
     var group = grouped[referenceIds[r]];
     if (!group.copies.length && !group.variants.length) continue;
+    var variantsBySignature = {};
+    var uniqueVariants = [];
+    for (var uniqueVariantIndex = 0; uniqueVariantIndex < group.variants.length; uniqueVariantIndex++) {
+      var variantCandidate = group.variants[uniqueVariantIndex];
+      var variantSignature = variantIdentitySignature(variantCandidate).exact;
+      var variantGroup = variantsBySignature[variantSignature];
+      if (!variantGroup) {
+        variantGroup = { source: variantCandidate, copies: [] };
+        variantsBySignature[variantSignature] = variantGroup;
+        uniqueVariants.push(variantGroup);
+      } else {
+        variantGroup.copies.push(variantCandidate);
+      }
+    }
+
     var planVariants = [{
       variantStr: "Property 1=Default",
       sourceId: group.source.id,
@@ -1322,8 +1479,9 @@ function consolidateSimilar(items, optionsConfig) {
     }];
 
     var variantNameCounts = { "Default": 1 };
-    for (var vi = 0; vi < group.variants.length; vi++) {
-      var variantNode = group.variants[vi];
+    for (var vi = 0; vi < uniqueVariants.length; vi++) {
+      var variantGroup = uniqueVariants[vi];
+      var variantNode = variantGroup.source;
       var variantName = variantNode.name || "Variante";
       var variantNameKey = variantName;
       var variantNameCount = variantNameCounts[variantNameKey] || 0;
@@ -1336,7 +1494,17 @@ function consolidateSimilar(items, optionsConfig) {
         sourceName: variantNode.name,
         sourcePage: pageName(variantNode),
         sourcePath: nodePath(variantNode),
-        copies: []
+        copies: variantGroup.copies.map(function (node) {
+          return {
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            page: pageName(node),
+            path: nodePath(node),
+            isComponent: node.type === "COMPONENT",
+            isCompatible: false
+          };
+        })
       });
     }
 
@@ -1382,6 +1550,7 @@ function absolutePosition(node) {
 // é protegida individualmente para que uma propriedade não impeça as demais.
 var OVERRIDE_FIELDS = [
   "visible", "opacity", "blendMode", "fills", "strokes", "effects",
+  "vectorNetwork",
   "x", "y", "width", "height", "rotation", "constraints",
   "layoutAlign", "layoutGrow", "minWidth", "maxWidth", "minHeight", "maxHeight",
   "layoutMode", "layoutWrap", "primaryAxisAlignItems", "counterAxisAlignItems",
@@ -1414,18 +1583,63 @@ function collectFonts(fonts, node) {
 
 function readComponentPropertyValues(node) {
   if (!node || node.type !== "INSTANCE") return null;
+  var values = {};
+
   try {
     var properties = node.componentProperties;
-    if (!properties) return null;
-    var values = {};
-    var keys = Object.keys(properties);
-    for (var i = 0; i < keys.length; i++) {
-      values[keys[i]] = properties[keys[i]].value;
+    if (properties) {
+      var keys = Object.keys(properties);
+      for (var i = 0; i < keys.length; i++) {
+        values[keys[i]] = {
+          type: properties[keys[i]].type,
+          value: properties[keys[i]].value
+        };
+      }
     }
-    return values;
-  } catch (error) {
-    return null;
+  } catch (error) {}
+
+  // Compatibilidade com documentos/API que ainda expõem variantes apenas
+  // pelo campo legado variantProperties.
+  try {
+    var variants = node.variantProperties;
+    if (variants) {
+      var variantKeys = Object.keys(variants);
+      for (var v = 0; v < variantKeys.length; v++) {
+        if (!values[variantKeys[v]]) {
+          values[variantKeys[v]] = {
+            type: "VARIANT",
+            value: variants[variantKeys[v]]
+          };
+        }
+      }
+    }
+  } catch (error) {}
+
+  return Object.keys(values).length ? values : null;
+}
+
+function componentPropertyBaseName(propertyName) {
+  return String(propertyName || "").split("#")[0];
+}
+
+function findTargetComponentProperty(target, sourcePropertyName, sourceProperty) {
+  var targetProperties = null;
+  try { targetProperties = target.componentProperties; } catch (error) {}
+  if (!targetProperties) return null;
+
+  if (targetProperties[sourcePropertyName]) return sourcePropertyName;
+
+  var sourceBaseName = componentPropertyBaseName(sourcePropertyName);
+  var targetKeys = Object.keys(targetProperties);
+  for (var i = 0; i < targetKeys.length; i++) {
+    var targetKey = targetKeys[i];
+    var targetProperty = targetProperties[targetKey];
+    if (componentPropertyBaseName(targetKey) !== sourceBaseName) continue;
+    if (!sourceProperty || !sourceProperty.type || !targetProperty || targetProperty.type === sourceProperty.type) {
+      return targetKey;
+    }
   }
+  return null;
 }
 
 function captureOverrideDifferences(reference, original) {
@@ -1449,11 +1663,25 @@ function captureOverrideDifferences(reference, original) {
     }
 
     var componentProperties = readComponentPropertyValues(originalNode);
-    if (Object.keys(values).length > 0 || componentProperties) {
+    var nestedMainComponent = null;
+    if (path.length > 0 && originalNode.type === "INSTANCE") {
+      try {
+        var originalMainComponent = originalNode.mainComponent;
+        var referenceMainComponent = referenceNode && referenceNode.type === "INSTANCE"
+          ? referenceNode.mainComponent
+          : null;
+        if (originalMainComponent && (!referenceMainComponent || originalMainComponent.id !== referenceMainComponent.id)) {
+          nestedMainComponent = originalMainComponent;
+        }
+      } catch (error) {}
+    }
+
+    if (Object.keys(values).length > 0 || componentProperties || nestedMainComponent) {
       snapshot.items.push({
         path: path.slice(),
         values: values,
-        componentProperties: componentProperties
+        componentProperties: componentProperties,
+        mainComponent: nestedMainComponent
       });
     }
 
@@ -1507,12 +1735,32 @@ async function applyOverrideSnapshot(instance, snapshot, log) {
       continue;
     }
 
+    if (item.mainComponent && target.type === "INSTANCE") {
+      try {
+        if (target.swapComponent) {
+          target.swapComponent(item.mainComponent);
+        } else {
+          // Fallback para versões/API mocks que ainda permitem a atribuição
+          // direta; no Figma atual, swapComponent é o caminho suportado.
+          target.mainComponent = item.mainComponent;
+        }
+      } catch (error) {
+        if (log) log("⚠️ Não foi possível preservar a variante/componente interno: " + error.message);
+      }
+    }
+
     var fields = Object.keys(item.values || {});
     for (var f = 0; f < fields.length; f++) {
       var field = fields[f];
       try {
         if (field === "characters" && target.type !== "TEXT") continue;
-        target[field] = item.values[field];
+        if (field === "vectorNetwork" && target.setVectorNetworkAsync) {
+          await target.setVectorNetworkAsync(item.values[field]);
+        } else if (field === "vectorNetwork" && target.setVectorNetwork) {
+          target.setVectorNetwork(item.values[field]);
+        } else {
+          target[field] = item.values[field];
+        }
       } catch (error) {
         // Nem toda propriedade é sobrescrevível em toda subcamada. Isso é
         // esperado para alguns campos de layout/geometry do Figma.
@@ -1522,14 +1770,20 @@ async function applyOverrideSnapshot(instance, snapshot, log) {
     if (item.componentProperties && target.type === "INSTANCE" && target.setProperties) {
       var propertyNames = Object.keys(item.componentProperties);
       for (var p = 0; p < propertyNames.length; p++) {
-        var propertyName = propertyNames[p];
+        var sourcePropertyName = propertyNames[p];
+        var sourceProperty = item.componentProperties[sourcePropertyName];
+        var propertyValue = sourceProperty && Object.prototype.hasOwnProperty.call(sourceProperty, "value")
+          ? sourceProperty.value
+          : sourceProperty;
+        var propertyName = findTargetComponentProperty(target, sourcePropertyName, sourceProperty) || sourcePropertyName;
         var property = {};
-        property[propertyName] = item.componentProperties[propertyName];
+        property[propertyName] = propertyValue;
         try {
           target.setProperties(property);
         } catch (error) {
-          // Propriedades SLOT ou propriedades incompatíveis entre variantes
-          // não podem ser transferidas e permanecem no valor do novo master.
+          if (log) {
+            log("⚠️ Não foi possível preservar a configuração \"" + sourcePropertyName + "\": " + error.message);
+          }
         }
       }
     }
@@ -1575,6 +1829,48 @@ async function insertInstanceReplacing(source, component, preserveOverrides, ref
   return instance;
 }
 
+function mergeOverrideSnapshots(baseSnapshot, overrideSnapshot) {
+  var result = { items: [], fonts: {} };
+  var itemIndexes = {};
+
+  function addSnapshot(snapshot) {
+    if (!snapshot) return;
+
+    var fontKeys = Object.keys(snapshot.fonts || {});
+    for (var f = 0; f < fontKeys.length; f++) {
+      result.fonts[fontKeys[f]] = snapshot.fonts[fontKeys[f]];
+    }
+
+    var items = snapshot.items || [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var itemKey = JSON.stringify(item.path || []);
+      var index = itemIndexes[itemKey];
+      if (index === undefined) {
+        result.items.push({
+          path: (item.path || []).slice(),
+          values: Object.assign({}, item.values || {}),
+          componentProperties: item.componentProperties,
+          mainComponent: item.mainComponent || null
+        });
+        itemIndexes[itemKey] = result.items.length - 1;
+        continue;
+      }
+
+      var merged = result.items[index];
+      Object.assign(merged.values, item.values || {});
+      if (item.componentProperties) merged.componentProperties = item.componentProperties;
+      if (item.mainComponent) merged.mainComponent = item.mainComponent;
+    }
+  }
+
+  // As diferenças do original têm prioridade sobre as diferenças do master
+  // base, pois representam overrides específicos daquela instância.
+  addSnapshot(baseSnapshot);
+  addSnapshot(overrideSnapshot);
+  return result;
+}
+
 async function redirectInstances(instances, target, dryRun, log, preserveOverrides) {
   var result = { redirected: 0, failed: 0 };
   for (var i = 0; i < instances.length; i++) {
@@ -1584,7 +1880,13 @@ async function redirectInstances(instances, target, dryRun, log, preserveOverrid
     if (preserveOverrides) {
       try {
         var oldMain = instance.mainComponent;
-        if (oldMain) snapshot = captureOverrideDifferences(oldMain, instance);
+        if (oldMain) {
+          var masterDifferences = target
+            ? captureOverrideDifferences(target, oldMain)
+            : null;
+          var instanceDifferences = captureOverrideDifferences(oldMain, instance);
+          snapshot = mergeOverrideSnapshots(masterDifferences, instanceDifferences);
+        }
       } catch (error) {}
     }
     try {
@@ -1603,6 +1905,7 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skip
   var selected = normalizeSelectedFields(rawSelectedFields);
   var shouldCreateSet = !optionsConfig || optionsConfig.createSet !== false;
   var preserveOverrides = !!(optionsConfig && optionsConfig.preserveOverrides);
+  var compatibilityOptions = exploreCompatibilityOptions(optionsConfig && optionsConfig.similarCompatibility);
   var log = function (text) { figma.ui.postMessage({ type: "log", text: text }); };
   
   var totals = {
@@ -1627,6 +1930,80 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skip
   log("Critérios usados: " + activeFieldsLabel(selected));
   log("Executando " + (dryRun ? "simulação" : "aplicação") + " de " + sortedPlans.length + " família(s)...");
 
+  // Faça o preflight de todas as famílias antes de criar mestres, trocar
+  // instâncias ou remover componentes. Um plano inválido protege a operação
+  // inteira, inclusive as famílias que seriam compatíveis.
+  var hasInvalidPlan = false;
+  for (var preflightIndex = 0; preflightIndex < sortedPlans.length; preflightIndex++) {
+    var preflightPlan = sortedPlans[preflightIndex];
+    var preflightValid = !!(preflightPlan && Array.isArray(preflightPlan.variants) && preflightPlan.variants.length);
+    var preflightFailure = preflightValid ? "" : "plano sem variantes válidas";
+    var preflightSignature = createSignatureCalculator(selected, compatibilityOptions);
+
+    if (preflightValid) {
+      for (var preflightVariantIndex = 0; preflightVariantIndex < preflightPlan.variants.length; preflightVariantIndex++) {
+        var preflightVariant = preflightPlan.variants[preflightVariantIndex];
+        var preflightSource = preflightVariant && figma.getNodeById(preflightVariant.sourceId);
+        if (!preflightSource || preflightSource.removed) {
+          preflightFailure = "fonte ausente para " + (preflightVariant && preflightVariant.variantStr || "variante sem nome");
+          preflightValid = false;
+          break;
+        }
+
+        var preflightSourceSignature = preflightSignature(preflightSource).compatible;
+        var preflightCopies = (preflightVariant && Array.isArray(preflightVariant.copies))
+          ? preflightVariant.copies
+          : [];
+        for (var preflightCopyIndex = 0; preflightCopyIndex < preflightCopies.length; preflightCopyIndex++) {
+          var preflightCopy = preflightCopies[preflightCopyIndex];
+          var preflightCopyNode = preflightCopy && figma.getNodeById(preflightCopy.id);
+          if (!preflightCopyNode || preflightCopyNode.removed) {
+            preflightFailure = "cópia ausente: " + (preflightCopy && preflightCopy.name || "sem nome");
+            preflightValid = false;
+            break;
+          }
+          if (preflightSignature(preflightCopyNode).compatible !== preflightSourceSignature) {
+            preflightFailure = "cópia incompatível: " + (preflightCopy.name || preflightCopyNode.name || preflightCopy.id);
+            preflightValid = false;
+            break;
+          }
+        }
+        if (!preflightValid) break;
+      }
+
+      var preflightFirstVariant = preflightPlan.variants[0];
+      var preflightFirstSource = preflightFirstVariant && figma.getNodeById(preflightFirstVariant.sourceId);
+      if (preflightValid && (!preflightFirstSource || !getPage(preflightFirstSource))) {
+        preflightFailure = "fonte fora de uma página válida";
+        preflightValid = false;
+      }
+    }
+
+    if (!preflightValid) {
+      hasInvalidPlan = true;
+      log("❌ Família \"" + (preflightPlan && preflightPlan.name || "sem nome") +
+        "\" protegida: " + preflightFailure + ".");
+    }
+  }
+
+  if (hasInvalidPlan) {
+    log("Operação protegida: todas as famílias selecionadas foram mantidas porque pelo menos uma é inválida.");
+    figma.ui.postMessage({
+      type: "done",
+      dryRun: dryRun,
+      aborted: true,
+      totals: {
+        componentsCreated: 0,
+        instancesInserted: 0,
+        redirected: 0,
+        componentsRemoved: 0,
+        skipped: 0,
+        protected: sortedPlans.length
+      }
+    });
+    return;
+  }
+
   var instanceMap = instancesByMainComponent();
   
   var looseComponentsTrack = {};
@@ -1635,7 +2012,7 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skip
 
   for (var p = 0; p < sortedPlans.length; p++) {
     var plan = sortedPlans[p];
-    var signatureFor = createSignatureCalculator(selected);
+    var signatureFor = createSignatureCalculator(selected, compatibilityOptions);
     
     var isFamilyValid = true;
     var validatedVariants = [];
@@ -2037,7 +2414,11 @@ figma.ui.onmessage = async function (msg) {
           figma.currentPage = referencePage;
         }
       }
-      var similarItems = findSimilarNodes(similarIds);
+      var similarItems = findSimilarNodes(
+        similarIds,
+        msg.preserveDifferences !== false,
+        msg.compatibilityConfig
+      );
       figma.ui.postMessage({ type: "similar-results", items: similarItems });
       return;
     }
@@ -2045,7 +2426,8 @@ figma.ui.onmessage = async function (msg) {
     if (msg.type === "consolidate-similar") {
       await consolidateSimilar(msg.items, {
         createSet: true,
-        preserveOverrides: msg.preserveOverrides !== false
+        preserveOverrides: msg.preserveOverrides !== false,
+        similarCompatibility: msg.compatibilityConfig
       });
       return;
     }
