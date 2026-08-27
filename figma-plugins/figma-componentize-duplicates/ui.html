@@ -594,11 +594,15 @@
     // Controle da fila progressiva de previews
     let previewQueue = [];
     let isProcessingPreviews = false;
+    const previewUrls = new Map();
+    const previewPending = new Set();
     let activeTab = 'free';
     let presets = [];
     let selectedPresetId = '';
     let pendingPreset = null;
     let pendingSingleFamilyIndex = null;
+    let pendingLogLines = [];
+    let logFlushScheduled = false;
 
     function post(type, extra) { parent.postMessage({ pluginMessage: Object.assign({ type }, extra || {}) }, '*'); }
 
@@ -1338,8 +1342,22 @@
       byId('field-count').textContent = checkedCount + '/' + totalCount; 
     }
 
-    function addLog(text) { log.style.display = 'block'; log.textContent += (log.textContent ? '\n' : '') + text; log.scrollTop = log.scrollHeight; }
-    function clearLog() { log.textContent = ''; log.style.display = 'none'; }
+    function flushLog() {
+      logFlushScheduled = false;
+      if (!pendingLogLines.length) return;
+      const batch = pendingLogLines.join('\n');
+      pendingLogLines = [];
+      log.style.display = 'block';
+      log.textContent += (log.textContent ? '\n' : '') + batch;
+      log.scrollTop = log.scrollHeight;
+    }
+    function addLog(text) {
+      pendingLogLines.push(text);
+      if (logFlushScheduled) return;
+      logFlushScheduled = true;
+      setTimeout(flushLog, 0);
+    }
+    function clearLog() { pendingLogLines = []; log.textContent = ''; log.style.display = 'none'; }
 
     // Gerenciador do sistema de abas e aplicação de presets mutáveis
     function applyTabPresets(tab) {
@@ -1682,7 +1700,19 @@
 
     // Gerenciador da fila progressiva de geração de previews
     function triggerPreviewLoading() {
-      previewQueue = Array.from(document.querySelectorAll('.variant-preview[data-node-id], .explore-preview[data-node-id]')).slice(0, 60);
+      const queuedIds = new Set();
+      previewQueue = [];
+      document.querySelectorAll('.variant-preview[data-node-id], .explore-preview[data-node-id]').forEach((img) => {
+        const nodeId = img.dataset.nodeId;
+        const cachedUrl = previewUrls.get(nodeId);
+        if (cachedUrl) {
+          if (img.src !== cachedUrl) img.src = cachedUrl;
+          return;
+        }
+        if (!nodeId || previewPending.has(nodeId) || queuedIds.has(nodeId) || previewQueue.length >= 60) return;
+        queuedIds.add(nodeId);
+        previewQueue.push(nodeId);
+      });
       if (!isProcessingPreviews) {
         processNextPreview();
       }
@@ -1694,8 +1724,9 @@
         return;
       }
       isProcessingPreviews = true;
-      const nextImg = previewQueue.shift();
-      post('request-preview', { nodeId: nextImg.dataset.nodeId });
+      const nodeId = previewQueue.shift();
+      previewPending.add(nodeId);
+      post('request-preview', { nodeId });
     }
 
     function selectedPlanForFamily(family, familyIndex) {
@@ -1859,11 +1890,17 @@
       }
       
       if (msg.type === 'preview-response') {
-        const img = document.querySelector('.variant-preview[data-node-id="' + msg.nodeId + '"], .explore-preview[data-node-id="' + msg.nodeId + '"]');
-        if (img && msg.bytes) {
+        previewPending.delete(msg.nodeId);
+        if (msg.bytes) {
           try {
             const blob = new Blob([msg.bytes], { type: 'image/png' });
-            img.src = URL.createObjectURL(blob);
+            const previousUrl = previewUrls.get(msg.nodeId);
+            const previewUrl = URL.createObjectURL(blob);
+            previewUrls.set(msg.nodeId, previewUrl);
+            document.querySelectorAll('.variant-preview[data-node-id], .explore-preview[data-node-id]').forEach((img) => {
+              if (img.dataset.nodeId === msg.nodeId) img.src = previewUrl;
+            });
+            if (previousUrl && previousUrl !== previewUrl) URL.revokeObjectURL(previousUrl);
           } catch (e) {
             // Em caso de erro na geração da URL, mantém o ícone default
           }
