@@ -1225,6 +1225,144 @@ function findSimilarNodes(referenceIds) {
   return results.slice(0, 100);
 }
 
+// A aba Explorar não passa por uma análise de famílias completa. Ainda assim,
+// usamos o mesmo motor de consolidação para manter as validações, a migração
+// segura de instâncias e a preservação de overrides consistentes entre as abas.
+function exploreSelectedFields() {
+  var selected = {};
+  for (var i = 0; i < ALL_FIELD_KEYS.length; i++) {
+    var key = ALL_FIELD_KEYS[i];
+    selected[key] = { element: false, children: false };
+  }
+
+  // Nome, dimensões, aparência, visibilidade e conteúdo de texto são
+  // diferenças comuns em candidatos semelhantes e devem poder ser
+  // preservados como override da instância.
+  var structuralFields = [
+    // O tipo e a árvore de filhos já são comparados pelo signature calculator.
+    // Layout, padding e aparência podem variar e serão copiados como overrides.
+    "layoutMode", "layoutWrap", "vectorNetwork"
+  ];
+  for (var e = 0; e < structuralFields.length; e++) {
+    selected[structuralFields[e]].element = true;
+    selected[structuralFields[e]].children = true;
+  }
+  return selected;
+}
+
+function consolidateSimilar(items, optionsConfig) {
+  var unique = {};
+  var grouped = {};
+  var selectedItems = Array.isArray(items) ? items : [];
+  var fields = exploreSelectedFields();
+
+  figma.ui.postMessage({
+    type: "log",
+    text: "Explorar: recebidos " + selectedItems.length + " candidato(s) selecionado(s)."
+  });
+
+  for (var i = 0; i < selectedItems.length; i++) {
+    var item = selectedItems[i];
+    if (!item || !item.id || !item.referenceId || unique[item.id]) continue;
+    var candidate = figma.getNodeById(item.id);
+    var reference = figma.getNodeById(item.referenceId);
+    if (!candidate || candidate.removed || !reference || reference.removed) continue;
+    if (candidate.id === reference.id || isInsideNode(candidate, reference)) continue;
+
+    // A seleção da aba Explorar pode misturar candidatos com scores altos e
+    // baixos. Um candidato incompatível não deve bloquear os demais que usam
+    // a mesma referência.
+    var signatureFor = createSignatureCalculator(fields);
+    if (signatureFor(candidate).compatible !== signatureFor(reference).compatible) {
+      var differences = diffNodes(reference, candidate, fields, candidate.name, 4);
+      figma.ui.postMessage({
+        type: "log",
+        text: "⚠️ Candidato ignorado por incompatibilidade estrutural: " + candidate.name +
+          (differences.length ? "\n" + differences.map(function (difference) { return "   • " + difference; }).join("\n") : "")
+      });
+      continue;
+    }
+
+    unique[candidate.id] = true;
+    if (!grouped[reference.id]) {
+      grouped[reference.id] = {
+        name: reference.name || "Componente explorado",
+        source: reference,
+        copies: [],
+        variants: []
+      };
+    }
+    if (item.asVariant) grouped[reference.id].variants.push(candidate);
+    else grouped[reference.id].copies.push(candidate);
+  }
+
+  var plans = [];
+  var referenceIds = Object.keys(grouped);
+  for (var r = 0; r < referenceIds.length; r++) {
+    var group = grouped[referenceIds[r]];
+    if (!group.copies.length && !group.variants.length) continue;
+    var planVariants = [{
+      variantStr: "Property 1=Default",
+      sourceId: group.source.id,
+      sourceType: group.source.type === "COMPONENT" ? "loose" : "common",
+      sourceName: group.source.name,
+      sourcePage: pageName(group.source),
+      sourcePath: nodePath(group.source),
+      copies: group.copies.map(function (node) {
+        return {
+          id: node.id,
+          type: node.type,
+          name: node.name,
+          page: pageName(node),
+          path: nodePath(node),
+          isComponent: node.type === "COMPONENT",
+          isCompatible: true
+        };
+      })
+    }];
+
+    var variantNameCounts = { "Default": 1 };
+    for (var vi = 0; vi < group.variants.length; vi++) {
+      var variantNode = group.variants[vi];
+      var variantName = variantNode.name || "Variante";
+      var variantNameKey = variantName;
+      var variantNameCount = variantNameCounts[variantNameKey] || 0;
+      variantNameCounts[variantNameKey] = variantNameCount + 1;
+      if (variantNameCount > 0) variantName += " (" + (variantNameCount + 1) + ")";
+      planVariants.push({
+        variantStr: "Property 1=" + variantName,
+        sourceId: variantNode.id,
+        sourceType: variantNode.type === "COMPONENT" ? "loose" : "common",
+        sourceName: variantNode.name,
+        sourcePage: pageName(variantNode),
+        sourcePath: nodePath(variantNode),
+        copies: []
+      });
+    }
+
+    plans.push({
+      name: group.name,
+      maxDepth: nodeDepth(group.source),
+      variants: planVariants
+    });
+  }
+
+  if (!plans.length) {
+    figma.ui.postMessage({ type: "error", text: "Nenhum candidato válido foi selecionado para consolidar." });
+    return;
+  }
+
+  figma.ui.postMessage({
+    type: "log",
+    text: "Explorar: executando " + plans.length + " plano(s) de consolidação."
+  });
+
+  lastAnalysisCriteriaKey = analysisCriteriaKey(fields, optionsConfig);
+  // A exploração já possui sua própria lista de candidatos e não deve exigir
+  // uma análise prévia feita na outra aba para poder aplicar o plano.
+  return consolidate(false, plans, fields, optionsConfig, true);
+}
+
 function getPage(node) {
   var current = node;
   while (current && current.type !== "PAGE") current = current.parent;
@@ -1461,7 +1599,7 @@ async function redirectInstances(instances, target, dryRun, log, preserveOverrid
   return result;
 }
 
-async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig) {
+async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skipAnalysisCheck) {
   var selected = normalizeSelectedFields(rawSelectedFields);
   var shouldCreateSet = !optionsConfig || optionsConfig.createSet !== false;
   var preserveOverrides = !!(optionsConfig && optionsConfig.preserveOverrides);
@@ -1476,7 +1614,7 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig) {
     protected: 0
   };
 
-  if (!hasAnyField(selected) || lastAnalysisCriteriaKey !== analysisCriteriaKey(selected, optionsConfig)) {
+  if (!hasAnyField(selected) || (!skipAnalysisCheck && lastAnalysisCriteriaKey !== analysisCriteriaKey(selected, optionsConfig))) {
     figma.ui.postMessage({ type: "error", text: "Analise novamente após escolher as propriedades." });
     figma.ui.postMessage({ type: "done", dryRun: dryRun, totals: totals, invalidPlan: true });
     return;
@@ -1666,13 +1804,18 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig) {
           }
           log("📦 Novo Component Set \"" + plan.name + "\" criado com sucesso.");
         } catch (e) {
-          totals.protected++;
-          log("❌ Erro ao combinar componentes em Component Set: " + e.message);
-          for (var cleanup = 0; cleanup < newMasterComponents.length; cleanup++) {
-            try { newMasterComponents[cleanup].remove(); } catch (cleanupError) {}
+          // Alguns componentes clonados carregam metadados de variantes ou
+          // propriedades inválidas que fazem combineAsVariants falhar. Não
+          // descartamos os masters já criados: eles continuam úteis como
+          // componentes independentes e a migração pode ser concluída.
+          log("⚠️ Não foi possível criar o Component Set: " + e.message);
+          log("   Os masters serão mantidos como componentes independentes.");
+          for (var fallback = 0; fallback < validatedVariants.length; fallback++) {
+            var fallbackVariant = validatedVariants[fallback];
+            var fallbackComponent = newMasterComponents[fallback];
+            fallbackComponent.name = plan.name + " / " + fallbackVariant.variantStr;
+            finalMasterByVariantStr[fallbackVariant.variantStr] = fallbackComponent;
           }
-          totals.componentsCreated = Math.max(0, totals.componentsCreated - newMasterComponents.length);
-          continue;
         }
       } else {
         for (var v = 0; v < validatedVariants.length; v++) {
@@ -1896,6 +2039,14 @@ figma.ui.onmessage = async function (msg) {
       }
       var similarItems = findSimilarNodes(similarIds);
       figma.ui.postMessage({ type: "similar-results", items: similarItems });
+      return;
+    }
+
+    if (msg.type === "consolidate-similar") {
+      await consolidateSimilar(msg.items, {
+        createSet: true,
+        preserveOverrides: msg.preserveOverrides !== false
+      });
       return;
     }
 

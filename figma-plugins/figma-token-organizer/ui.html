@@ -938,6 +938,27 @@
       letter-spacing: 0.03em;
     }
 
+    .fixes-subtabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .fixes-subtab {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+    }
+    .fixes-subtab.active {
+      color: var(--text-main);
+      border-bottom-color: var(--accent);
+    }
+
     .prop-tag {
       font-size: 9px;
       padding: 2px 6px;
@@ -1226,7 +1247,13 @@
       </button>
     </div>
 
+    <div class="fixes-subtabs">
+      <button id="fixes-subtab-corrections" class="fixes-subtab active" onclick="switchFixesSubtab('corrections')">Correções</button>
+      <button id="fixes-subtab-suggestions" class="fixes-subtab" onclick="switchFixesSubtab('suggestions')">Sugestões <span id="fixes-suggestions-count">0</span></button>
+    </div>
+
     <!-- Search and Filters for Fixes -->
+    <div id="fixes-corrections-view">
     <div class="search-filter-section" style="padding: 0; background: transparent; border: none; margin-bottom: 12px;">
       <div class="search-container" style="margin-bottom: 8px;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -1250,6 +1277,11 @@
     <!-- Fixes container -->
     <div id="fixes-container">
       <!-- Generated dynamically -->
+    </div>
+    </div>
+
+    <div id="fixes-suggestions-view" class="hidden">
+      <div id="fixes-suggestions-container"></div>
     </div>
   </div>
 
@@ -1321,6 +1353,7 @@
     let fixesStatusFilter = 'all';
     let fixesSearchQuery = '';
     let expandedFixKeys = new Set();
+    let fixesSubtab = 'corrections';
 
     // Start loading on load
     window.onload = () => {
@@ -1492,8 +1525,18 @@
       } else if (activeTab === 'duplicates') {
         renderDuplicatesList();
       } else if (activeTab === 'fixes') {
-        renderFixesList();
+        if (fixesSubtab === 'suggestions') renderSuggestionsList();
+        else renderFixesList();
       }
+    }
+
+    function switchFixesSubtab(subtab) {
+      fixesSubtab = subtab;
+      document.getElementById('fixes-subtab-corrections').classList.toggle('active', subtab === 'corrections');
+      document.getElementById('fixes-subtab-suggestions').classList.toggle('active', subtab === 'suggestions');
+      document.getElementById('fixes-corrections-view').classList.toggle('hidden', subtab !== 'corrections');
+      document.getElementById('fixes-suggestions-view').classList.toggle('hidden', subtab !== 'suggestions');
+      render();
     }
 
     function switchTab(tab) {
@@ -2678,7 +2721,10 @@
           const g = Math.round(item.rawValue.g * 255);
           const b = Math.round(item.rawValue.b * 255);
           const a = Math.round((item.rawValue.a !== undefined ? item.rawValue.a : 1) * 100);
-          key = `${item.prop}-color-${r}-${g}-${b}-${a}`;
+          // Keep direct-variable usage separate from genuinely unbound paint,
+          // so the correction can specifically recommend the equivalent style.
+          const usageKind = item.preferStyle ? '-direct-variable' : '';
+          key = `${item.prop}-color-${r}-${g}-${b}-${a}${usageKind}`;
         } else if (item.category === 'text') {
           const font = item.rawValue.fontName || {};
           const fam = font.family || 'Inter';
@@ -2698,6 +2744,7 @@
             category: item.category,
             rawValue: item.rawValue,
             formattedValue: item.formattedValue,
+            preferStyle: !!item.preferStyle,
             nodes: []
           });
         }
@@ -2731,8 +2778,14 @@
           const b = Math.round(raw.b * 255);
           const a = Math.round((raw.a !== undefined ? raw.a : 1) * 100);
 
+          // Direct variable usage should migrate to an equivalent Paint Style.
+          // Prefer styles for that case even when the variable is listed first.
+          const exactColorTokens = group.preferStyle
+            ? [...colorTokens.filter(t => t.source === 'style'), ...colorTokens.filter(t => t.source !== 'style')]
+            : colorTokens;
+
           // 1. Exact Match
-          for (const t of colorTokens) {
+          for (const t of exactColorTokens) {
             if (t.rawValue && t.rawValue.r !== undefined) {
               const tr = Math.round(t.rawValue.r * 255);
               const tg = Math.round(t.rawValue.g * 255);
@@ -2752,7 +2805,10 @@
             let minDistance = Infinity;
             let bestCandidate = null;
 
-            for (const t of colorTokens) {
+            const fuzzyColorTokens = group.preferStyle
+              ? colorTokens.filter(t => t.source === 'style')
+              : colorTokens;
+            for (const t of fuzzyColorTokens) {
               if (t.rawValue && t.rawValue.r !== undefined) {
                 const dist = colorDeltaE(raw, t.rawValue);
                 if (dist < minDistance) {
@@ -2839,12 +2895,12 @@
       });
 
       processed.sort((a, b) => {
-        const score = item => item.matchType === 'exact' ? 1000 : (item.matchType === 'fuzzy' ? item.confidence : 0);
-        return score(b) - score(a);
+        return b.nodes.length - a.nodes.length;
       });
 
       groupedDetached = processed;
       updateFixesSummary();
+      renderSuggestionsList();
     }
 
     function updateFixesSummary() {
@@ -2880,6 +2936,81 @@
           badgeCount.classList.add('hidden');
         }
       }
+
+      const suggestionsCount = groupedDetached.filter(g => g.matchType === 'none' && g.nodes.length > 1).length;
+      const suggestionsBadge = document.getElementById('fixes-suggestions-count');
+      if (suggestionsBadge) suggestionsBadge.textContent = suggestionsCount > 0 ? `(${suggestionsCount})` : '';
+    }
+
+    function renderSuggestionsList() {
+      const container = document.getElementById('fixes-suggestions-container');
+      if (!container) return;
+      const suggestions = groupedDetached
+        .filter(g => g.matchType === 'none' && g.nodes.length > 1)
+        .sort((a, b) => b.nodes.length - a.nodes.length);
+
+      if (suggestions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h3>Nenhuma sugestão encontrada</h3>
+            <p>Valores repetidos sem token ou style correspondente aparecerão aqui.</p>
+          </div>`;
+        return;
+      }
+
+      const propLabels = { fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito' };
+      container.innerHTML = suggestions.map(group => {
+        let preview = '';
+        if (group.category === 'color') {
+          const raw = group.rawValue;
+          const r = Math.round(raw.r * 255), g = Math.round(raw.g * 255), b = Math.round(raw.b * 255);
+          const a = raw.a !== undefined ? raw.a : 1;
+          preview = `<div class="preview-color" style="background: rgba(${r}, ${g}, ${b}, ${a}); width: 28px; height: 28px; border-radius: 7px;"></div>`;
+        } else if (group.category === 'text') {
+          preview = `<div class="preview-text" style="font-size: 14px; font-weight: 700; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">Aa</div>`;
+        } else {
+          preview = `<div class="preview-other" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">◆</div>`;
+        }
+
+        const details = group.category === 'color'
+          ? `Valor: ${group.formattedValue}`
+          : group.category === 'text'
+            ? `Fonte: ${group.formattedValue}`
+            : group.formattedValue;
+        const nodeItems = group.nodes.map(n => `
+          <div class="fix-node-item" onclick="selectSpecificNode('${n.nodeId}')" title="Clique para focar no Figma">
+            <span><strong>${n.nodeName}</strong> <span style="opacity: 0.6;">(${n.nodeType})</span></span>
+            <span style="opacity: 0.5;">pág: ${n.pageName}</span>
+          </div>`).join('');
+
+        return `<div class="fix-card suggestion-card">
+          <div class="fix-card-header" onclick="toggleFixDetails('${group.key}')">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+              ${preview}
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="prop-tag ${group.prop}">${propLabels[group.prop] || group.prop}</span>
+                  <strong style="font-size: 13px; color: var(--text-main);">${details}</strong>
+                </div>
+                <span style="font-size: 11px; color: var(--text-muted);">Possível novo token/style</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="badge-fuzzy">${group.nodes.length} ocorrências</span>
+              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${group.key}')" title="Selecionar todos os elementos desta sugestão">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+              </button>
+              <svg class="arrow-icon" style="transform: ${expandedFixKeys.has(group.key) ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+          <div class="fix-card-body ${expandedFixKeys.has(group.key) ? '' : 'hidden'}">
+            <div class="fix-comparison-box">
+              <div class="fix-side-item">${preview}<div><div style="font-size: 10px; color: #fbbf24; text-transform: uppercase; font-weight: 600;">Oportunidade identificada</div><div style="font-size: 12px; color: var(--text-main);">Este valor aparece em ${group.nodes.length} elementos, mas ainda não possui token/style correspondente.</div></div></div>
+            </div>
+            <div class="fix-node-accordion"><div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Camadas no Figma (${group.nodes.length}):</div><div class="fix-node-list">${nodeItems}</div></div>
+          </div>
+        </div>`;
+      }).join('');
     }
 
     function renderFixesList() {
@@ -2887,7 +3018,9 @@
       if (!container) return;
       container.innerHTML = '';
 
-      let filtered = groupedDetached;
+      // Repeated values without a matching token/style live in the separate
+      // Suggestions subtab.
+      let filtered = groupedDetached.filter(g => !(g.matchType === 'none' && g.nodes.length > 1));
 
       if (fixesFilter !== 'all') {
         filtered = filtered.filter(g => g.prop === fixesFilter || (fixesFilter === 'other' && (g.prop === 'effect' || g.category === 'other')));
@@ -2982,7 +3115,7 @@
               <div class="fix-side-item">
                 ${rawPreview}
                 <div>
-                  <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Atual (Sem Token)</div>
+                  <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">${group.preferStyle ? 'Atual (Token Direto)' : 'Atual (Sem Token)'}</div>
                   <div style="font-size: 12px; font-weight: 500; color: var(--text-main);">${group.formattedValue}</div>
                 </div>
               </div>
@@ -2991,7 +3124,7 @@
                 <div class="preview-box-mini">${miniPreview}</div>
                 <div>
                   <div style="font-size: 10px; color: #34d399; text-transform: uppercase; font-weight: 600;">
-                    ${group.matchType === 'exact' ? 'Token Correspondente' : 'Token Mais Próximo'}
+                    ${group.matchType === 'exact' ? (group.preferStyle ? 'Style Correspondente' : 'Token Correspondente') : 'Token Mais Próximo'}
                   </div>
                   <div style="font-size: 12px; font-weight: 500; color: var(--text-main);">${t.name} <span style="color:var(--text-muted); font-size: 10px;">(${t.collectionOrFolder})</span></div>
                 </div>
@@ -3135,7 +3268,8 @@
       } else {
         expandedFixKeys.add(groupKey);
       }
-      renderFixesList();
+      if (fixesSubtab === 'suggestions') renderSuggestionsList();
+      else renderFixesList();
     }
 
     function setFixesFilter(filter) {

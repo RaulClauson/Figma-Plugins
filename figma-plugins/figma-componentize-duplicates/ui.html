@@ -200,6 +200,11 @@
     .explore-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
     .explore-actions button { padding: 7px 9px; font-size: 11px; }
     .explore-filter { width: 100%; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 5px; font: inherit; font-size: 12px; }
+    .similar-select { flex-shrink: 0; width: 15px; height: 15px; }
+    .similar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+    .similar-toolbar label { display: flex; align-items: center; gap: 6px; color: #475569; font-size: 11px; }
+    .similar-toolbar button { padding: 5px 7px; font-size: 11px; }
+    .similar-mode { flex-shrink: 0; max-width: 112px; padding: 3px 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #334155; font: inherit; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -228,7 +233,16 @@
     <section class="card" id="similar-card" style="display:none">
       <div class="heading"><span>✨ Elementos similares na página</span><span class="badge" id="similar-count">0</span></div>
       <p style="font-size:11px; margin-bottom:7px;">A pontuação considera tipo, estrutura, layout, aparência e proporções. Os resultados são candidatos para revisão.</p>
+      <div class="similar-toolbar">
+        <label><input type="checkbox" id="similar-select-all" class="similar-select" /> Marcar todos</label>
+        <button class="primary" id="consolidate-similar" disabled>⚡ Consolidar selecionados</button>
+      </div>
       <div class="explore-results" id="similar-results"></div>
+      <label class="field" style="justify-content:flex-start; margin-top:8px; padding:5px 0 0; border-top:1px solid #f1f5f9;">
+        <input type="checkbox" id="explore-preserve-overrides" checked />
+        Preservar diferenças originais como overrides
+      </label>
+      <p style="font-size:10px; margin-top:2px;">Mantém textos, aparência, visibilidade e outras diferenças editáveis ao trocar o elemento por uma instância.</p>
     </section>
 
     <section class="card">
@@ -445,7 +459,7 @@
     const log = byId('log'), done = byId('done');
     const analyze = byId('analyze'), simulate = byId('simulate'), apply = byId('apply');
     let definitions = [], families = [];
-    let inventory = [], selectionNodeIds = [];
+    let inventory = [], selectionNodeIds = [], similarItems = [];
     const exploreView = byId('explore-view'), consolidateView = byId('consolidate-view');
     
     // Controle da fila progressiva de previews
@@ -580,8 +594,27 @@
       return score >= 90 ? 'score-high' : (score >= 70 ? 'score-medium' : 'score-low');
     }
 
+    function updateSimilarControls() {
+      const selectedCount = similarItems.filter((item) => item.selected).length;
+      const selectAll = byId('similar-select-all');
+      selectAll.checked = similarItems.length > 0 && selectedCount === similarItems.length;
+      selectAll.indeterminate = selectedCount > 0 && selectedCount < similarItems.length;
+      byId('consolidate-similar').disabled = selectedCount === 0;
+      byId('consolidate-similar').textContent = selectedCount
+        ? '⚡ Consolidar selecionados (' + selectedCount + ')'
+        : '⚡ Consolidar selecionados';
+    }
+
     function renderSimilarResults(items) {
       const results = Array.isArray(items) ? items : [];
+      const previousSelection = {};
+      similarItems.forEach((item) => {
+        previousSelection[item.id] = { selected: item.selected, asVariant: item.asVariant };
+      });
+      similarItems = results.map((item) => Object.assign({}, item, {
+        selected: previousSelection[item.id] === undefined ? item.score === 100 : previousSelection[item.id].selected,
+        asVariant: previousSelection[item.id] === undefined ? false : !!previousSelection[item.id].asVariant
+      }));
       const card = byId('similar-card');
       const container = byId('similar-results');
       container.innerHTML = '';
@@ -592,11 +625,21 @@
         empty.className = 'explore-empty';
         empty.textContent = 'Nenhum candidato semelhante encontrado na página atual.';
         container.append(empty);
+        updateSimilarControls();
         return;
       }
-      results.forEach((item) => {
+      similarItems.forEach((item, index) => {
         const row = document.createElement('div');
         row.className = 'similar-row';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.className = 'similar-select';
+        check.checked = item.selected;
+        check.title = 'Selecionar para consolidação';
+        check.onchange = () => {
+          similarItems[index].selected = check.checked;
+          updateSimilarControls();
+        };
         const img = document.createElement('img');
         img.className = 'explore-preview';
         img.dataset.nodeId = item.id;
@@ -624,10 +667,17 @@
         select.textContent = '🎯';
         select.title = 'Selecionar candidato';
         select.onclick = () => post('select-nodes', { nodeIds: [item.id] });
-        actions.append(score, select);
-        row.append(img, main, actions);
+        const mode = document.createElement('select');
+        mode.className = 'similar-mode';
+        mode.title = 'Definir o papel deste elemento na consolidação';
+        mode.innerHTML = '<option value="copy">Cópia do master</option><option value="variant">Criar variante</option>';
+        mode.value = item.asVariant ? 'variant' : 'copy';
+        mode.onchange = () => { similarItems[index].asVariant = mode.value === 'variant'; };
+        actions.append(score, mode, select);
+        row.append(check, img, main, actions);
         container.append(row);
       });
+      updateSimilarControls();
       triggerPreviewLoading();
     }
 
@@ -641,6 +691,21 @@
       if (!selectionNodeIds.length) return;
       byId('explore-status').textContent = 'Procurando similares na página atual...';
       post('find-similar', { nodeIds: selectionNodeIds });
+    };
+    byId('similar-select-all').onchange = () => {
+      similarItems.forEach((item) => { item.selected = byId('similar-select-all').checked; });
+      renderSimilarResults(similarItems);
+    };
+    byId('consolidate-similar').onclick = () => {
+      const selected = similarItems.filter((item) => item.selected);
+      if (!selected.length) return;
+      if (!confirm('Consolidar ' + selected.length + ' candidato(s) selecionado(s)?')) return;
+      byId('consolidate-similar').disabled = true;
+      byId('explore-status').textContent = 'Consolidando candidatos selecionados...';
+      post('consolidate-similar', {
+        items: selected,
+        preserveOverrides: byId('explore-preserve-overrides').checked
+      });
     };
     byId('explore-close').onclick = () => post('close');
 
@@ -1369,11 +1434,17 @@
           loadPreset(preset);
         }
       }
-      if (msg.type === 'log') addLog(msg.text);
+      if (msg.type === 'log') {
+        addLog(msg.text);
+        if (exploreView.style.display !== 'none' && msg.text && msg.text.indexOf('Explorar:') === 0) {
+          byId('explore-status').textContent = msg.text;
+        }
+      }
       if (msg.type === 'error') {
         if (exploreView.style.display !== 'none') byId('explore-status').textContent = '⚠️ ' + msg.text;
         else status.textContent = '⚠️ ' + msg.text;
         analyze.disabled = false;
+        if (exploreView.style.display !== 'none') updateSimilarControls();
       }
       
       if (msg.type === 'preview-response') {
@@ -1412,6 +1483,13 @@
         else {
           simulate.disabled = true;
           analyze.disabled = false;
+          if (exploreView.style.display !== 'none') {
+            similarItems = [];
+            renderSimilarResults([]);
+            post('request-inventory');
+            byId('explore-status').textContent = 'Consolidação concluída. Inventário atualizado.';
+            return;
+          }
           if (pendingSingleFamilyIndex !== null) {
             // Só o agrupamento já aplicado fica indisponível, pois seus IDs
             // ficaram desatualizados. Os demais podem ser aplicados sem nova análise.

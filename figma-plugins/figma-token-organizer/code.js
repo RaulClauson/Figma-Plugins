@@ -491,6 +491,32 @@ function replaceVariableInNode(node, oldVarId, newVar) {
 function scanDetachedElements() {
   const detached = [];
   const pages = figma.root.children;
+  const paintStyles = figma.getLocalPaintStyles();
+
+  // A variable-bound paint is not detached, but it can still be using the
+  // raw token where an equivalent Paint Style already exists.
+  function hasPaintVariable(node, paint, property, paintIndex) {
+    const nodeBinding = node.boundVariables && node.boundVariables[property];
+    return !!(
+      (paint && paint.boundVariables && paint.boundVariables.color) ||
+      (Array.isArray(nodeBinding) ? nodeBinding[paintIndex] : nodeBinding)
+    );
+  }
+
+  function hasEquivalentPaintStyle(paint) {
+    if (!paint || paint.type !== 'SOLID') return false;
+    const opacity = paint.opacity !== undefined ? paint.opacity : 1;
+    return paintStyles.some(style => {
+      if (!style.paints || style.paints.length !== 1) return false;
+      const stylePaint = style.paints[0];
+      const styleOpacity = stylePaint.opacity !== undefined ? stylePaint.opacity : 1;
+      return stylePaint.type === 'SOLID' &&
+        Math.abs(stylePaint.color.r - paint.color.r) < 0.0001 &&
+        Math.abs(stylePaint.color.g - paint.color.g) < 0.0001 &&
+        Math.abs(stylePaint.color.b - paint.color.b) < 0.0001 &&
+        Math.abs(styleOpacity - opacity) < 0.0001;
+    });
+  }
 
   for (const page of pages) {
     if (page.type !== 'PAGE') continue;
@@ -511,9 +537,8 @@ function scanDetachedElements() {
         if (!hasStyle) {
           node.fills.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
-              const hasVar = (paint.boundVariables && paint.boundVariables.color) || 
-                             (node.boundVariables && node.boundVariables.fills && node.boundVariables.fills[pIdx]);
-              if (!hasVar) {
+              const hasVar = hasPaintVariable(node, paint, 'fills', pIdx);
+              if (!hasVar || hasEquivalentPaintStyle(paint)) {
                 const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
@@ -532,7 +557,9 @@ function scanDetachedElements() {
                   category: 'color',
                   paintIndex: pIdx,
                   rawValue: { r, g, b, a },
-                  formattedValue: formatted
+                  formattedValue: formatted,
+                  hasVariable: hasVar,
+                  preferStyle: hasVar
                 });
               }
             }
@@ -546,9 +573,8 @@ function scanDetachedElements() {
         if (!hasStyle) {
           node.strokes.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
-              const hasVar = (paint.boundVariables && paint.boundVariables.color) || 
-                             (node.boundVariables && node.boundVariables.strokes && node.boundVariables.strokes[pIdx]);
-              if (!hasVar) {
+              const hasVar = hasPaintVariable(node, paint, 'strokes', pIdx);
+              if (!hasVar || hasEquivalentPaintStyle(paint)) {
                 const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
@@ -567,7 +593,9 @@ function scanDetachedElements() {
                   category: 'color',
                   paintIndex: pIdx,
                   rawValue: { r, g, b, a },
-                  formattedValue: formatted
+                  formattedValue: formatted,
+                  hasVariable: hasVar,
+                  preferStyle: hasVar
                 });
               }
             }
