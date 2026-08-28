@@ -155,6 +155,15 @@
       color: white;
     }
 
+    .btn-warning {
+      background: #d97706;
+      color: white;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+    }
+    .btn-warning:hover {
+      background: #f59e0b;
+    }
+
     /* Tabs Navigation */
     .tabs-nav {
       display: flex;
@@ -1240,6 +1249,11 @@
           <span class="stat-chip" id="fixes-stat-exact" style="color: #34d399;">Match Exato: <strong>0</strong></span>
           <span class="stat-chip" id="fixes-stat-fuzzy" style="color: #fbbf24;">Sugestão: <strong>0</strong></span>
         </div>
+        <div class="tolerance-row" style="max-width: 300px; margin-top: 8px;">
+          <label class="section-label" for="radius-tolerance" style="min-width: 108px; margin: 0;">Tolerância de raio</label>
+          <input type="range" id="radius-tolerance" min="0" max="10" value="4" step="0.5" oninput="updateRadiusTolerance(this.value)" title="0 = somente valores exatos">
+          <span class="tolerance-value" id="radius-tolerance-label">4 px</span>
+        </div>
       </div>
       <button id="auto-fix-all-btn" class="btn-primary" onclick="handleAutoFixAll()" disabled style="white-space: nowrap; gap: 6px; padding: 8px 14px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -1264,6 +1278,7 @@
         <button class="filter-pill" onclick="setFixesFilter('fill')">Preenchimentos (Fills)</button>
         <button class="filter-pill" onclick="setFixesFilter('stroke')">Contornos (Strokes)</button>
         <button class="filter-pill" onclick="setFixesFilter('text')">Textos</button>
+        <button class="filter-pill" onclick="setFixesFilter('spacing')">Layout / Espaçamentos</button>
         <button class="filter-pill" onclick="setFixesFilter('other')">Efeitos / Outros</button>
       </div>
       <div class="filters-row">
@@ -1281,6 +1296,17 @@
     </div>
 
     <div id="fixes-suggestions-view" class="hidden">
+      <div class="filters-row" id="suggestions-filters" style="margin-bottom: 12px;">
+        <button class="filter-pill active" data-filter="all" onclick="setSuggestionsFilter('all')">Todos</button>
+        <button class="filter-pill" data-filter="padding" onclick="setSuggestionsFilter('padding')">Padding</button>
+        <button class="filter-pill" data-filter="spacing" onclick="setSuggestionsFilter('spacing')">Espaçamentos</button>
+        <button class="filter-pill" data-filter="radius" onclick="setSuggestionsFilter('radius')">Raios</button>
+        <button class="filter-pill" data-filter="stroke" onclick="setSuggestionsFilter('stroke')">Bordas</button>
+        <button class="filter-pill" data-filter="opacity" onclick="setSuggestionsFilter('opacity')">Opacidade</button>
+        <button class="filter-pill" data-filter="effect" onclick="setSuggestionsFilter('effect')">Efeitos</button>
+        <button class="filter-pill" data-filter="color" onclick="setSuggestionsFilter('color')">Cores</button>
+        <button class="filter-pill" data-filter="text" onclick="setSuggestionsFilter('text')">Textos</button>
+      </div>
       <div id="fixes-suggestions-container"></div>
     </div>
   </div>
@@ -1354,6 +1380,72 @@
     let fixesSearchQuery = '';
     let expandedFixKeys = new Set();
     let fixesSubtab = 'corrections';
+    let suggestionsFilter = 'all';
+    let searchRenderTimer = null;
+    let fixesSearchRenderTimer = null;
+    let radiusToleranceRenderTimer = null;
+    const numericMatchThresholds = { spacing: 4, radius: 4, stroke: 1, opacity: 0.1 };
+    let compatibleTokensByCategoryAndSource = new Map();
+
+    function rebuildTokenIndexes() {
+      compatibleTokensByCategoryAndSource = new Map();
+      tokens.forEach(token => {
+        const key = `${token.category}|${token.source}`;
+        if (!compatibleTokensByCategoryAndSource.has(key)) {
+          compatibleTokensByCategoryAndSource.set(key, []);
+        }
+        compatibleTokensByCategoryAndSource.get(key).push(token);
+      });
+    }
+
+    function stableSerialize(value) {
+      if (value === null || value === undefined) return String(value);
+      if (typeof value !== 'object') return JSON.stringify(value);
+      if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+      return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+    }
+
+    function effectSignature(effects) {
+      const visibleEffects = Array.isArray(effects)
+        ? effects.filter(effect => effect && effect.visible !== false)
+        : [];
+      return stableSerialize(visibleEffects.map(effect => {
+        const normalized = {};
+        Object.keys(effect).forEach(key => {
+          // Visibility is already handled by the filter; omitting it avoids
+          // treating an implicit `true` differently from `visible: true`.
+          if (key !== 'visible' && effect[key] !== undefined) normalized[key] = effect[key];
+        });
+        return normalized;
+      }));
+    }
+
+    // Group keys for effects contain JSON (including double quotes). Encode
+    // them before placing them in inline HTML handlers/IDs.
+    function encodeGroupKey(key) {
+      return encodeURIComponent(key).replace(/'/g, '%27');
+    }
+
+    function decodeGroupKey(key) {
+      try { return decodeURIComponent(key); } catch (e) { return key; }
+    }
+
+    function effectDetails(effects) {
+      if (!Array.isArray(effects)) return '';
+      return effects.filter(effect => effect && effect.visible !== false).map(effect => {
+        const parts = [String(effect.type || 'Efeito').toLowerCase().replace('_', ' ')];
+        if (typeof effect.radius === 'number') parts.push(`blur ${effect.radius}px`);
+        if (typeof effect.spread === 'number') parts.push(`spread ${effect.spread}px`);
+        if (effect.offset && typeof effect.offset.x === 'number' && typeof effect.offset.y === 'number') {
+          parts.push(`offset ${effect.offset.x},${effect.offset.y}`);
+        }
+        if (effect.color && typeof effect.color.r === 'number') {
+          const c = effect.color;
+          parts.push(`rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${c.a === undefined ? 1 : c.a})`);
+        }
+        return parts.join(' • ');
+      }).join(' | ');
+    }
 
     // Start loading on load
     window.onload = () => {
@@ -1379,6 +1471,7 @@
 
       if (msg.type === 'analysis-result') {
         tokens = msg.tokens || [];
+        rebuildTokenIndexes();
         duplicates = msg.duplicates || [];
         detachedElements = msg.detached || [];
         computedDuplicates = duplicates;
@@ -1582,7 +1675,8 @@
 
     function handleSearch(val) {
       searchQuery = val.toLowerCase().trim();
-      renderTokensList();
+      clearTimeout(searchRenderTimer);
+      searchRenderTimer = setTimeout(renderTokensList, 120);
     }
 
     // Convert font weights helper
@@ -1773,12 +1867,17 @@
           previewHtml = `<svg class="preview-other" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
         }
 
-        // Dropdown of other compatible tokens for replacement
-        const otherCompatibleTokens = tokens.filter(ot => ot.id !== t.id && ot.category === t.category && ot.source === t.source);
         let replacementOptions = '<option value="">Selecionar token...</option>';
-        otherCompatibleTokens.forEach(ot => {
-          replacementOptions += `<option value="${ot.id}">${ot.name} (${ot.propertiesText})</option>`;
-        });
+        // The replacement select is only visible on the expanded token.  Do
+        // not build every option list for every hidden item in large files.
+        if (isExpanded) {
+          const otherCompatibleTokens = compatibleTokensByCategoryAndSource.get(`${t.category}|${t.source}`) || [];
+          otherCompatibleTokens.forEach(ot => {
+            if (ot.id !== t.id) {
+              replacementOptions += `<option value="${ot.id}">${ot.name} (${ot.propertiesText})</option>`;
+            }
+          });
+        }
 
         // Properties Input HTML based on category
         let propertiesEditHtml = '';
@@ -2006,6 +2105,18 @@
       document.getElementById('text-size-tolerance-label').textContent = `${val} px`;
     }
 
+    function updateRadiusTolerance(val) {
+      const value = Math.max(0, Math.min(10, parseFloat(val) || 0));
+      numericMatchThresholds.radius = value;
+      const label = document.getElementById('radius-tolerance-label');
+      if (label) label.textContent = `${value} px`;
+      clearTimeout(radiusToleranceRenderTimer);
+      radiusToleranceRenderTimer = setTimeout(() => {
+        processDetachedElements();
+        if (activeTab === 'fixes') render();
+      }, 120);
+    }
+
     function toggleCheckboxStyle(label) {
       setTimeout(() => {
         const cb = label.querySelector('input[type="checkbox"]');
@@ -2131,34 +2242,22 @@
       // 2. Spacing clustering within a 4px range
       const spacingTokens = tokens.filter(t => t.category === 'spacing' && t.subType === 'FLOAT' && typeof t.rawValue === 'number');
       if (spacingTokens.length > 0) {
-        const parent = spacingTokens.map((_, i) => i);
-        function find(i) {
-          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
-          return i;
-        }
-        function union(i, j) {
-          const ri = find(i), rj = find(j);
-          if (ri !== rj) parent[ri] = rj;
-        }
-        for (let i = 0; i < spacingTokens.length; i++) {
-          for (let j = i + 1; j < spacingTokens.length; j++) {
-            if (Math.abs(spacingTokens[i].rawValue - spacingTokens[j].rawValue) <= 4) {
-              union(i, j);
-            }
+        const sortedSpacing = [...spacingTokens].sort((a, b) => a.rawValue - b.rawValue);
+        const spacingGroups = [];
+        let currentGroup = [];
+        sortedSpacing.forEach(token => {
+          if (currentGroup.length > 0 && token.rawValue - currentGroup[currentGroup.length - 1].rawValue > 4) {
+            spacingGroups.push(currentGroup);
+            currentGroup = [];
           }
-        }
-        const spacingGroups = {};
-        for (let i = 0; i < spacingTokens.length; i++) {
-          const root = find(i);
-          if (!spacingGroups[root]) spacingGroups[root] = [];
-          spacingGroups[root].push(spacingTokens[i]);
-        }
-        for (const root in spacingGroups) {
-          if (spacingGroups[root].length > 1) {
-            const sorted = spacingGroups[root].sort((a,b) => a.rawValue - b.rawValue);
+          currentGroup.push(token);
+        });
+        if (currentGroup.length > 0) spacingGroups.push(currentGroup);
+        spacingGroups.forEach((sorted, groupIndex) => {
+          if (sorted.length > 1) {
             const minVal = sorted[0].rawValue;
             const maxVal = sorted[sorted.length - 1].rawValue;
-            const key = `smart-spacing-${root}`;
+            const key = `smart-spacing-${groupIndex}`;
             groups[key] = {
               name: `Coleta Inteligente: Espaçamentos Próximos (${minVal}px - ${maxVal}px)`,
               type: 'spacing',
@@ -2167,42 +2266,29 @@
               tokens: sorted
             };
           }
-        }
+        });
       }
 
       // 3. Text clustering within a 3px font size difference
       const textTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text' && t.rawValue && t.rawValue.fontName);
       if (textTokens.length > 0) {
-        const parent = textTokens.map((_, i) => i);
-        function find(i) {
-          while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; }
-          return i;
-        }
-        function union(i, j) {
-          const ri = find(i), rj = find(j);
-          if (ri !== rj) parent[ri] = rj;
-        }
-        for (let i = 0; i < textTokens.length; i++) {
-          for (let j = i + 1; j < textTokens.length; j++) {
-            const a = textTokens[i].rawValue, b = textTokens[j].rawValue;
-            if (a.fontName.family === b.fontName.family && Math.abs(a.fontSize - b.fontSize) <= 3) {
-              union(i, j);
-            }
-          }
-        }
-        const textGroups = {};
-        for (let i = 0; i < textTokens.length; i++) {
-          const root = find(i);
-          if (!textGroups[root]) textGroups[root] = [];
-          textGroups[root].push(textTokens[i]);
-        }
-        for (const root in textGroups) {
-          if (textGroups[root].length > 1) {
-            const sorted = textGroups[root].sort((a,b) => a.rawValue.fontSize - b.rawValue.fontSize);
+        const byFamily = new Map();
+        textTokens.forEach(token => {
+          const family = token.rawValue.fontName.family;
+          if (!byFamily.has(family)) byFamily.set(family, []);
+          byFamily.get(family).push(token);
+        });
+        let textGroupIndex = 0;
+        byFamily.forEach(familyTokens => {
+          const sortedFamily = [...familyTokens].sort((a, b) => a.rawValue.fontSize - b.rawValue.fontSize);
+          let currentGroup = [];
+          const flushGroup = () => {
+            if (currentGroup.length <= 1) return;
+            const sorted = currentGroup;
             const minSize = sorted[0].rawValue.fontSize;
             const maxSize = sorted[sorted.length - 1].rawValue.fontSize;
             const family = sorted[0].rawValue.fontName.family;
-            const key = `smart-text-${root}`;
+            const key = `smart-text-${textGroupIndex++}`;
             groups[key] = {
               name: `Coleta Inteligente: Textos (${family} ${minSize}px - ${maxSize}px)`,
               type: 'text',
@@ -2210,8 +2296,16 @@
               propertiesText: `${family} (${minSize}px a ${maxSize}px)`,
               tokens: sorted
             };
-          }
-        }
+          };
+          sortedFamily.forEach(token => {
+            if (currentGroup.length > 0 && token.rawValue.fontSize - currentGroup[currentGroup.length - 1].rawValue.fontSize > 3) {
+              flushGroup();
+              currentGroup = [];
+            }
+            currentGroup.push(token);
+          });
+          flushGroup();
+        });
       }
 
       // Build array
@@ -2715,6 +2809,10 @@
       const groupsMap = new Map();
 
       detachedElements.forEach(item => {
+        // Keep the UI defensive against stale/legacy analysis payloads that
+        // may still contain layout values rendered as 0.00.
+        if (item.category === 'spacing' && typeof item.rawValue === 'number' &&
+            Math.round(item.rawValue * 100) / 100 === 0) return;
         let key = '';
         if (item.category === 'color') {
           const r = Math.round(item.rawValue.r * 255);
@@ -2733,6 +2831,15 @@
           const lhUnit = item.rawValue.lineHeight ? item.rawValue.lineHeight.unit : 'AUTO';
           const lhVal = item.rawValue.lineHeight ? item.rawValue.lineHeight.value || 0 : 0;
           key = `text-${fam}-${sty}-${size}-${lhUnit}-${lhVal}`;
+        } else if (item.category === 'spacing') {
+          // Layout fields with the same value share one suggestion. Their
+          // token kind keeps spacing, radius, stroke and opacity separate.
+          key = `${item.tokenKind || 'unclassified'}-numeric-${item.rawValue}`;
+        } else if (item.prop === 'effect') {
+          // Effects must be grouped by their complete visual definition, not
+          // only by the number/type of shadows. Blur, spread, offset, color
+          // and visibility differences represent different suggestions.
+          key = `effect-${effectSignature(item.rawValue)}`;
         } else {
           key = `${item.prop}-${item.formattedValue}`;
         }
@@ -2740,13 +2847,19 @@
         if (!groupsMap.has(key)) {
           groupsMap.set(key, {
             key: key,
-            prop: item.prop,
+            prop: item.category === 'spacing' ? item.tokenKind : item.prop,
             category: item.category,
+            tokenKind: item.tokenKind,
             rawValue: item.rawValue,
             formattedValue: item.formattedValue,
             preferStyle: !!item.preferStyle,
+            properties: new Map(),
             nodes: []
           });
+        }
+
+        if (item.category === 'spacing') {
+          groupsMap.get(key).properties.set(item.prop, item.propLabel || item.prop);
         }
 
         groupsMap.get(key).nodes.push({
@@ -2755,13 +2868,59 @@
           nodeType: item.nodeType,
           pageId: item.pageId,
           pageName: item.pageName,
-          paintIndex: item.paintIndex
+          paintIndex: item.paintIndex,
+          prop: item.prop,
+          propLabel: item.propLabel,
+          tokenKind: item.tokenKind
         });
       });
 
       const colorTokens = tokens.filter(t => t.category === 'color');
       const textTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
+      const numericTokens = tokens.filter(t =>
+        t.category === 'spacing' && t.subType === 'FLOAT' &&
+        typeof t.rawValue === 'number' && t.tokenKind && t.tokenKind !== 'unclassified'
+      );
       const effectTokens = tokens.filter(t => t.subType === 'effect');
+      const colorTokensByValue = new Map();
+      const styleColorTokensByValue = new Map();
+      const textTokensByValue = new Map();
+      const numericTokensByKindAndValue = new Map();
+      const numericTokensByKind = new Map();
+      const effectTokensBySignature = new Map();
+
+      const colorValueKey = raw => {
+        if (!raw || raw.r === undefined) return '';
+        const alpha = raw.a !== undefined ? raw.a : 1;
+        return `${Math.round(raw.r * 255)}-${Math.round(raw.g * 255)}-${Math.round(raw.b * 255)}-${Math.round(alpha * 100)}`;
+      };
+      const textValueKey = raw => {
+        const font = raw && raw.fontName || {};
+        return `${(font.family || '').toLowerCase()}|${(font.style || '').toLowerCase()}|${raw && raw.fontSize || 0}`;
+      };
+
+      colorTokens.forEach(token => {
+        const key = colorValueKey(token.rawValue);
+        if (!key) return;
+        if (!colorTokensByValue.has(key)) colorTokensByValue.set(key, token);
+        if (token.source === 'style' && !styleColorTokensByValue.has(key)) {
+          styleColorTokensByValue.set(key, token);
+        }
+      });
+      textTokens.forEach(token => {
+        const key = textValueKey(token.rawValue);
+        if (!textTokensByValue.has(key)) textTokensByValue.set(key, token);
+      });
+      numericTokens.forEach(token => {
+        const key = `${token.tokenKind}|${token.rawValue}`;
+        if (!numericTokensByKindAndValue.has(key)) numericTokensByKindAndValue.set(key, token);
+        if (!numericTokensByKind.has(token.tokenKind)) numericTokensByKind.set(token.tokenKind, []);
+        numericTokensByKind.get(token.tokenKind).push(token);
+      });
+      effectTokens.forEach(token => {
+        const key = effectSignature(token.rawValue);
+        if (!effectTokensBySignature.has(key)) effectTokensBySignature.set(key, token);
+      });
 
       const processed = [];
 
@@ -2770,6 +2929,7 @@
         let matchedToken = null;
         let confidence = 0;
         let deltaE = null;
+        let deltaValue = null;
 
         if (group.category === 'color') {
           const raw = group.rawValue;
@@ -2784,8 +2944,18 @@
             ? [...colorTokens.filter(t => t.source === 'style'), ...colorTokens.filter(t => t.source !== 'style')]
             : colorTokens;
 
-          // 1. Exact Match
-          for (const t of exactColorTokens) {
+          // 1. Exact Match. The index covers the common exact-value path;
+          // the loop remains as a fallback to preserve the prior rounding
+          // behavior for every existing document.
+          const colorKey = `${r}-${g}-${b}-${a}`;
+          matchedToken = group.preferStyle
+            ? (styleColorTokensByValue.get(colorKey) || colorTokensByValue.get(colorKey) || null)
+            : (colorTokensByValue.get(colorKey) || null);
+          if (matchedToken) {
+            matchType = 'exact';
+            confidence = 100;
+          }
+          for (const t of matchedToken ? [] : exactColorTokens) {
             if (t.rawValue && t.rawValue.r !== undefined) {
               const tr = Math.round(t.rawValue.r * 255);
               const tg = Math.round(t.rawValue.g * 255);
@@ -2832,8 +3002,13 @@
           const sty = (font.style || '').toLowerCase();
           const size = raw.fontSize || 16;
 
-          // 1. Exact Match
-          for (const t of textTokens) {
+          // 1. Exact Match, indexed before the tolerance-compatible fallback.
+          matchedToken = textTokensByValue.get(`${fam}|${sty}|${size}`) || null;
+          if (matchedToken) {
+            matchType = 'exact';
+            confidence = 100;
+          }
+          for (const t of matchedToken ? [] : textTokens) {
             const tf = t.rawValue?.fontName || {};
             if (
               (tf.family || '').toLowerCase() === fam &&
@@ -2869,17 +3044,48 @@
               confidence = Math.max(50, Math.round(100 - minSizeDiff * 5));
             }
           }
+        } else if (group.category === 'spacing') {
+          // Only use FLOAT variables from the matching token folder. A
+          // padding value therefore cannot be linked to Font Size, Radius,
+          // Stroke or Opacity merely because the raw number is the same.
+          const rawValue = group.rawValue;
+          const compatibleTokens = numericTokensByKind.get(group.tokenKind) || [];
+          const threshold = numericMatchThresholds[group.tokenKind];
+          matchedToken = numericTokensByKindAndValue.get(`${group.tokenKind}|${rawValue}`) ||
+            (threshold !== 0 && compatibleTokens.find(t => Math.abs(t.rawValue - rawValue) < 0.001)) || null;
+          if (matchedToken) {
+            matchType = 'exact';
+            confidence = 100;
+          } else if (compatibleTokens.length > 0) {
+            // Numeric tokens use a semantic nearest-value match after the
+            // exact pass. The thresholds avoid suggesting unrelated values
+            // while still catching common 1–4px deviations in layouts.
+            if (threshold !== undefined && threshold > 0) {
+              let closest = null;
+              let minDiff = Infinity;
+              compatibleTokens.forEach(token => {
+                const diff = Math.abs(token.rawValue - rawValue);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  closest = token;
+                }
+              });
+              if (closest && minDiff <= threshold) {
+                matchedToken = closest;
+                matchType = 'fuzzy';
+                deltaValue = Math.round(minDiff * 100) / 100;
+                confidence = Math.max(40, Math.round(100 - (minDiff / threshold) * 60));
+              }
+            }
+          }
         } else {
           // Effects
           if (effectTokens.length > 0) {
             const rawEffects = group.rawValue;
-            for (const t of effectTokens) {
-              if (Array.isArray(t.rawValue) && t.rawValue.length === rawEffects.length) {
-                matchType = 'exact';
-                matchedToken = t;
-                confidence = 100;
-                break;
-              }
+            matchedToken = effectTokensBySignature.get(effectSignature(rawEffects)) || null;
+            if (matchedToken) {
+              matchType = 'exact';
+              confidence = 100;
             }
           }
         }
@@ -2890,6 +3096,7 @@
           matchedToken: matchedToken,
           confidence: confidence,
           deltaE: deltaE,
+          deltaValue: deltaValue,
           selectedTokenId: matchedToken ? matchedToken.id : ''
         });
       });
@@ -2900,7 +3107,6 @@
 
       groupedDetached = processed;
       updateFixesSummary();
-      renderSuggestionsList();
     }
 
     function updateFixesSummary() {
@@ -2921,10 +3127,15 @@
       if (fuzzyEl) fuzzyEl.innerHTML = `Sugestão: <strong>${fuzzyNodes}</strong>`;
 
       if (autoFixBtn) {
-        autoFixBtn.disabled = exactNodes === 0;
+        const hasExact = exactNodes > 0;
+        const hasFuzzy = fuzzyNodes > 0;
+        autoFixBtn.disabled = hasExact ? false : !hasFuzzy;
+        autoFixBtn.onclick = hasExact ? handleAutoFixAll : handleAutoFixFuzzy;
+        autoFixBtn.classList.toggle('btn-primary', hasExact);
+        autoFixBtn.classList.toggle('btn-warning', !hasExact && hasFuzzy);
         autoFixBtn.innerHTML = `
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Auto Fix (${exactNodes} Exatos)
+          ${hasExact ? `Auto Fix (${exactNodes} Exatos)` : `Corrigir Sugestões (${fuzzyNodes})`}
         `;
       }
 
@@ -2937,28 +3148,67 @@
         }
       }
 
-      const suggestionsCount = groupedDetached.filter(g => g.matchType === 'none' && g.nodes.length > 1).length;
+      const suggestionsCount = groupedDetached.filter(g => g.matchType === 'none').length;
       const suggestionsBadge = document.getElementById('fixes-suggestions-count');
       if (suggestionsBadge) suggestionsBadge.textContent = suggestionsCount > 0 ? `(${suggestionsCount})` : '';
+    }
+
+    function suggestionMatchesFilter(group, filter) {
+      if (filter === 'all') return true;
+      if (filter === 'effect') return group.category === 'other' && group.prop === 'effect';
+      if (filter === 'color' || filter === 'text') return group.category === filter;
+      if (group.category !== 'spacing') return false;
+      if (filter === 'radius') return group.tokenKind === 'radius';
+      if (filter === 'stroke') return group.tokenKind === 'stroke';
+      if (filter === 'opacity') return group.tokenKind === 'opacity';
+      if (filter === 'padding') {
+        return group.properties && [...group.properties.keys()].some(prop => prop.indexOf('padding') === 0);
+      }
+      if (filter === 'spacing') {
+        return group.tokenKind === 'spacing' &&
+          (!group.properties || ![...group.properties.keys()].some(prop => prop.indexOf('padding') === 0));
+      }
+      return false;
+    }
+
+    function setSuggestionsFilter(filter) {
+      suggestionsFilter = filter;
+      document.querySelectorAll('#suggestions-filters .filter-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.filter === filter);
+      });
+      renderSuggestionsList();
     }
 
     function renderSuggestionsList() {
       const container = document.getElementById('fixes-suggestions-container');
       if (!container) return;
       const suggestions = groupedDetached
-        .filter(g => g.matchType === 'none' && g.nodes.length > 1)
+        .filter(g => g.matchType === 'none' && suggestionMatchesFilter(g, suggestionsFilter))
         .sort((a, b) => b.nodes.length - a.nodes.length);
 
       if (suggestions.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
             <h3>Nenhuma sugestão encontrada</h3>
-            <p>Valores repetidos sem token ou style correspondente aparecerão aqui.</p>
+            <p>Valores sem token ou style correspondente aparecerão aqui, mesmo quando aparecem uma única vez.</p>
           </div>`;
         return;
       }
 
-      const propLabels = { fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito' };
+      const propLabels = {
+        fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito',
+        spacing: 'Layout / Espaçamento', radius: 'Raios', opacity: 'Opacidade',
+        paddingTop: 'Padding superior', paddingRight: 'Padding direito',
+        paddingBottom: 'Padding inferior', paddingLeft: 'Padding esquerdo',
+        itemSpacing: 'Espaçamento entre itens', counterAxisSpacing: 'Espaçamento no eixo cruzado',
+        gridRowGap: 'Gap entre linhas', gridColumnGap: 'Gap entre colunas',
+        cornerRadius: 'Raio dos cantos', topLeftRadius: 'Raio superior esquerdo',
+        topRightRadius: 'Raio superior direito', bottomRightRadius: 'Raio inferior direito',
+        bottomLeftRadius: 'Raio inferior esquerdo', strokeWeight: 'Peso da borda',
+        strokeTopWeight: 'Peso da borda superior', strokeRightWeight: 'Peso da borda direita',
+        strokeBottomWeight: 'Peso da borda inferior', strokeLeftWeight: 'Peso da borda esquerda',
+        opacity: 'Opacidade'
+      };
       container.innerHTML = suggestions.map(group => {
         let preview = '';
         if (group.category === 'color') {
@@ -2968,6 +3218,9 @@
           preview = `<div class="preview-color" style="background: rgba(${r}, ${g}, ${b}, ${a}); width: 28px; height: 28px; border-radius: 7px;"></div>`;
         } else if (group.category === 'text') {
           preview = `<div class="preview-text" style="font-size: 14px; font-weight: 700; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">Aa</div>`;
+        } else if (group.category === 'spacing') {
+          const previewWidth = Math.max(8, Math.min(28, Number(group.rawValue) || 8));
+          preview = `<div class="preview-spacing" style="width: ${previewWidth}px; height: 6px;"></div>`;
         } else {
           preview = `<div class="preview-other" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">◆</div>`;
         }
@@ -2976,20 +3229,55 @@
           ? `Valor: ${group.formattedValue}`
           : group.category === 'text'
             ? `Fonte: ${group.formattedValue}`
+            : group.category === 'other' && group.prop === 'effect'
+              ? effectDetails(group.rawValue)
             : group.formattedValue;
-        const nodeItems = group.nodes.map(n => `
+        const propertyTitle = group.category === 'spacing' && group.properties
+          ? [...group.properties.values()].join(' • ')
+          : (propLabels[group.prop] || group.prop);
+        let compatibleTokens = [];
+        if (expandedFixKeys.has(group.key)) {
+          if (group.category === 'color') {
+            compatibleTokens = tokens.filter(t => t.category === 'color');
+          } else if (group.category === 'text') {
+            compatibleTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
+          } else if (group.category === 'spacing') {
+            compatibleTokens = tokens.filter(t =>
+              t.category === 'spacing' && t.subType === 'FLOAT' &&
+              typeof t.rawValue === 'number' && t.tokenKind === group.tokenKind
+            );
+          } else if (group.category === 'other') {
+            compatibleTokens = tokens.filter(t => t.subType === 'effect');
+          }
+        }
+        const suggestionOptions = compatibleTokens.map(t =>
+          `<option value="${t.id}">${t.name} (${t.collectionOrFolder}) - ${t.propertiesText}</option>`
+        ).join('');
+        const suggestionControls = `
+          <div class="form-group" style="margin-top: 10px;">
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Vincular a um token existente:</label>
+            <div style="display: flex; gap: 8px;">
+              <select id="suggestion-select-${encodeGroupKey(group.key)}" style="flex: 1;">
+                <option value="">Selecionar token...</option>${suggestionOptions}
+              </select>
+              <button class="btn-primary btn-small" onclick="applySuggestionFromDropdown('${encodeGroupKey(group.key)}')" ${compatibleTokens.length === 0 ? 'disabled' : ''}>
+                Vincular
+              </button>
+            </div>
+          </div>`;
+        const nodeItems = expandedFixKeys.has(group.key) ? group.nodes.map(n => `
           <div class="fix-node-item" onclick="selectSpecificNode('${n.nodeId}')" title="Clique para focar no Figma">
             <span><strong>${n.nodeName}</strong> <span style="opacity: 0.6;">(${n.nodeType})</span></span>
             <span style="opacity: 0.5;">pág: ${n.pageName}</span>
-          </div>`).join('');
+          </div>`).join('') : '';
 
         return `<div class="fix-card suggestion-card">
-          <div class="fix-card-header" onclick="toggleFixDetails('${group.key}')">
+          <div class="fix-card-header" onclick="toggleFixDetails('${encodeGroupKey(group.key)}')">
             <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
               ${preview}
               <div>
                 <div style="display: flex; align-items: center; gap: 6px;">
-                  <span class="prop-tag ${group.prop}">${propLabels[group.prop] || group.prop}</span>
+                  <span class="prop-tag ${group.prop}">${propertyTitle}</span>
                   <strong style="font-size: 13px; color: var(--text-main);">${details}</strong>
                 </div>
                 <span style="font-size: 11px; color: var(--text-muted);">Possível novo token/style</span>
@@ -2997,7 +3285,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span class="badge-fuzzy">${group.nodes.length} ocorrências</span>
-              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${group.key}')" title="Selecionar todos os elementos desta sugestão">
+              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${encodeGroupKey(group.key)}')" title="Selecionar todos os elementos desta sugestão">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
               </button>
               <svg class="arrow-icon" style="transform: ${expandedFixKeys.has(group.key) ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -3005,8 +3293,9 @@
           </div>
           <div class="fix-card-body ${expandedFixKeys.has(group.key) ? '' : 'hidden'}">
             <div class="fix-comparison-box">
-              <div class="fix-side-item">${preview}<div><div style="font-size: 10px; color: #fbbf24; text-transform: uppercase; font-weight: 600;">Oportunidade identificada</div><div style="font-size: 12px; color: var(--text-main);">Este valor aparece em ${group.nodes.length} elementos, mas ainda não possui token/style correspondente.</div></div></div>
+              <div class="fix-side-item">${preview}<div><div style="font-size: 10px; color: #fbbf24; text-transform: uppercase; font-weight: 600;">Oportunidade identificada</div><div style="font-size: 12px; color: var(--text-main);">Este valor aparece em ${group.nodes.length} elemento(s), mas ainda não possui token/style correspondente.</div></div></div>
             </div>
+            ${suggestionControls}
             <div class="fix-node-accordion"><div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Camadas no Figma (${group.nodes.length}):</div><div class="fix-node-list">${nodeItems}</div></div>
           </div>
         </div>`;
@@ -3018,12 +3307,16 @@
       if (!container) return;
       container.innerHTML = '';
 
-      // Repeated values without a matching token/style live in the separate
-      // Suggestions subtab.
-      let filtered = groupedDetached.filter(g => !(g.matchType === 'none' && g.nodes.length > 1));
+      // Values without a matching token/style live in the separate Suggestions
+      // subtab, including values that occur only once.
+      let filtered = groupedDetached.filter(g => g.matchType !== 'none');
 
       if (fixesFilter !== 'all') {
-        filtered = filtered.filter(g => g.prop === fixesFilter || (fixesFilter === 'other' && (g.prop === 'effect' || g.category === 'other')));
+        filtered = filtered.filter(g =>
+          (fixesFilter === 'spacing' && g.category === 'spacing') ||
+          g.prop === fixesFilter ||
+          (fixesFilter === 'other' && (g.prop === 'effect' || g.category === 'other'))
+        );
       }
 
       if (fixesStatusFilter !== 'all') {
@@ -3045,7 +3338,7 @@
             <div class="empty-state">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               <h3>Design 100% Tokenizado!</h3>
-              <p>Não encontramos nenhum elemento com estilos ou cores soltas (detached) no documento.</p>
+              <p>Não encontramos nenhum elemento com estilos, cores ou propriedades numéricas soltas (detached) no documento.</p>
             </div>`;
         } else {
           container.innerHTML = `
@@ -3075,39 +3368,66 @@
         } else if (group.category === 'text') {
           const fontStyles = getCssStylesForFont(group.rawValue.fontName);
           rawPreview = `<div class="preview-text" style="${fontStyles}; font-size: 12px; font-weight:700; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">Aa</div>`;
+        } else if (group.category === 'spacing') {
+          const previewWidth = Math.max(8, Math.min(22, Number(group.rawValue) || 8));
+          rawPreview = `<div class="preview-spacing" style="width: ${previewWidth}px; height: 6px;"></div>`;
         } else {
           rawPreview = `<svg class="preview-other" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
         }
 
-        const propLabels = { fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito' };
-        const propLabel = propLabels[group.prop] || group.prop;
+        const propLabels = {
+          fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito',
+          spacing: 'Layout / Espaçamento', radius: 'Raios', opacity: 'Opacidade',
+          paddingTop: 'Padding superior', paddingRight: 'Padding direito',
+          paddingBottom: 'Padding inferior', paddingLeft: 'Padding esquerdo',
+          itemSpacing: 'Espaçamento entre itens', counterAxisSpacing: 'Espaçamento no eixo cruzado',
+          gridRowGap: 'Gap entre linhas', gridColumnGap: 'Gap entre colunas',
+          cornerRadius: 'Raio dos cantos', topLeftRadius: 'Raio superior esquerdo',
+          topRightRadius: 'Raio superior direito', bottomRightRadius: 'Raio inferior direito',
+          bottomLeftRadius: 'Raio inferior esquerdo', strokeWeight: 'Peso da borda',
+          strokeTopWeight: 'Peso da borda superior', strokeRightWeight: 'Peso da borda direita',
+          strokeBottomWeight: 'Peso da borda inferior', strokeLeftWeight: 'Peso da borda esquerda',
+          opacity: 'Opacidade'
+        };
+        const propLabel = group.category === 'spacing' && group.properties
+          ? [...group.properties.values()].join(' • ')
+          : (propLabels[group.prop] || group.prop);
 
         let statusBadge = '';
         if (group.matchType === 'exact') {
           statusBadge = `<span class="badge-exact">Match Exato</span>`;
         } else if (group.matchType === 'fuzzy') {
-          const diffText = group.deltaE !== null ? `ΔE ${group.deltaE} • ` : '';
+          const diffText = group.deltaE !== null
+            ? `ΔE ${group.deltaE} • `
+            : (group.deltaValue !== null && group.deltaValue !== undefined ? `dif. ${group.deltaValue} • ` : '');
           statusBadge = `<span class="badge-fuzzy">Sugestão (${diffText}${group.confidence}%)</span>`;
         } else {
           statusBadge = `<span class="badge-none">Sem Match</span>`;
         }
 
         let relevantTokens = [];
-        if (group.category === 'color') {
-          relevantTokens = tokens.filter(t => t.category === 'color');
-        } else if (group.category === 'text') {
-          relevantTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
-        } else {
-          relevantTokens = tokens.filter(t => t.subType === 'effect');
+        let selectOptions = '';
+        if (isExpanded) {
+          if (group.category === 'color') {
+            relevantTokens = tokens.filter(t => t.category === 'color');
+          } else if (group.category === 'text') {
+            relevantTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
+          } else if (group.category === 'spacing') {
+            relevantTokens = tokens.filter(t =>
+              t.category === 'spacing' && t.subType === 'FLOAT' &&
+              typeof t.rawValue === 'number' && t.tokenKind === group.tokenKind
+            );
+          } else {
+            relevantTokens = tokens.filter(t => t.subType === 'effect');
+          }
+          selectOptions = relevantTokens.map(t => {
+            const isSelected = group.matchedToken && group.matchedToken.id === t.id ? 'selected' : '';
+            return `<option value="${t.id}" ${isSelected}>${t.name} (${t.collectionOrFolder}) - ${t.propertiesText}</option>`;
+          }).join('');
         }
 
-        const selectOptions = relevantTokens.map(t => {
-          const isSelected = group.matchedToken && group.matchedToken.id === t.id ? 'selected' : '';
-          return `<option value="${t.id}" ${isSelected}>${t.name} (${t.collectionOrFolder}) - ${t.propertiesText}</option>`;
-        }).join('');
-
         let suggestedBox = '';
-        if (group.matchedToken) {
+        if (isExpanded && group.matchedToken) {
           const t = group.matchedToken;
           const miniPreview = getMiniPreview(t);
           suggestedBox = `
@@ -3133,7 +3453,7 @@
           `;
         }
 
-        const nodeItemsHtml = group.nodes.map(n => `
+        const nodeItemsHtml = isExpanded ? group.nodes.map(n => `
           <div class="fix-node-item" onclick="selectSpecificNode('${n.nodeId}')" title="Clique para focar no Figma">
             <span style="display: flex; align-items: center; gap: 4px;">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
@@ -3142,23 +3462,23 @@
             </span>
             <span style="opacity: 0.5;">pág: ${n.pageName}</span>
           </div>
-        `).join('');
+        `).join('') : '';
 
         card.innerHTML = `
-          <div class="fix-card-header" onclick="toggleFixDetails('${group.key}')">
+          <div class="fix-card-header" onclick="toggleFixDetails('${encodeGroupKey(group.key)}')">
             <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
               ${rawPreview}
               <div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span class="prop-tag ${group.prop}">${propLabel}</span>
-                  <strong style="font-size: 13px; color: var(--text-main);">${group.formattedValue}</strong>
+                  <strong style="font-size: 13px; color: var(--text-main);">${group.category === 'other' && group.prop === 'effect' ? effectDetails(group.rawValue) : group.formattedValue}</strong>
                 </div>
                 <span style="font-size: 11px; color: var(--text-muted);">${group.nodes.length} elemento(s) afetado(s)</span>
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               ${statusBadge}
-              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${group.key}')" title="Selecionar no Figma">
+              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${encodeGroupKey(group.key)}')" title="Selecionar no Figma">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
               </button>
               <svg class="arrow-icon" style="transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -3172,7 +3492,7 @@
                 <select id="fix-select-${idx}" style="flex: 1;">
                   ${selectOptions || '<option value="">Nenhum token disponível</option>'}
                 </select>
-                <button class="btn-primary btn-small" onclick="applyFixFromDropdown('${group.key}', ${idx})" ${relevantTokens.length === 0 ? 'disabled' : ''}>
+                <button class="btn-primary btn-small" onclick="applyFixFromDropdown('${encodeGroupKey(group.key)}', ${idx})" ${relevantTokens.length === 0 ? 'disabled' : ''}>
                   Aplicar Token
                 </button>
               </div>
@@ -3210,7 +3530,7 @@
         g.nodes.forEach(n => {
           fixes.push({
             nodeId: n.nodeId,
-            prop: g.prop,
+            prop: n.prop || g.prop,
             targetTokenId: g.matchedToken.id,
             source: g.matchedToken.source,
             paintIndex: n.paintIndex
@@ -3222,7 +3542,37 @@
       parent.postMessage({ pluginMessage: { type: "auto-fix-all", fixes } }, '*');
     }
 
+    function handleAutoFixFuzzy() {
+      const fuzzyGroups = groupedDetached.filter(g => g.matchType === 'fuzzy' && g.matchedToken);
+      if (fuzzyGroups.length === 0) {
+        showToast("Nenhuma sugestão próxima disponível para correção.");
+        return;
+      }
+
+      const totalNodes = fuzzyGroups.reduce((acc, g) => acc + g.nodes.length, 0);
+      if (!confirm(`Isso irá vincular ${totalNodes} elementos aos tokens sugeridos por proximidade. Deseja continuar?`)) {
+        return;
+      }
+
+      const fixes = [];
+      fuzzyGroups.forEach(g => {
+        g.nodes.forEach(n => {
+          fixes.push({
+            nodeId: n.nodeId,
+            prop: n.prop || g.prop,
+            targetTokenId: g.matchedToken.id,
+            source: g.matchedToken.source,
+            paintIndex: n.paintIndex
+          });
+        });
+      });
+
+      showLoader(true, "Corrigindo sugestões próximas...");
+      parent.postMessage({ pluginMessage: { type: "auto-fix-all", fixes } }, '*');
+    }
+
     function applyFixFromDropdown(groupKey, selectIdx) {
+      groupKey = decodeGroupKey(groupKey);
       const group = groupedDetached.find(g => g.key === groupKey);
       if (!group) return;
 
@@ -3240,7 +3590,7 @@
 
       const fixes = group.nodes.map(n => ({
         nodeId: n.nodeId,
-        prop: group.prop,
+        prop: n.prop || group.prop,
         targetTokenId: targetToken.id,
         source: targetToken.source,
         paintIndex: n.paintIndex
@@ -3250,7 +3600,37 @@
       parent.postMessage({ pluginMessage: { type: "fix-detached", fixes } }, '*');
     }
 
+    function applySuggestionFromDropdown(groupKey) {
+      groupKey = decodeGroupKey(groupKey);
+      const group = groupedDetached.find(g => g.key === groupKey);
+      if (!group) return;
+
+      const select = document.getElementById(`suggestion-select-${groupKey}`);
+      if (!select || !select.value) {
+        showToast("Selecione um token válido.");
+        return;
+      }
+
+      const targetToken = tokens.find(t => t.id === select.value);
+      if (!targetToken) {
+        showToast("Token selecionado não encontrado.");
+        return;
+      }
+
+      const fixes = group.nodes.map(n => ({
+        nodeId: n.nodeId,
+        prop: n.prop || group.prop,
+        targetTokenId: targetToken.id,
+        source: targetToken.source,
+        paintIndex: n.paintIndex
+      }));
+
+      showLoader(true, "Vinculando token aos elementos...");
+      parent.postMessage({ pluginMessage: { type: "fix-detached", fixes } }, '*');
+    }
+
     function selectGroupNodes(groupKey) {
+      groupKey = decodeGroupKey(groupKey);
       const group = groupedDetached.find(g => g.key === groupKey);
       if (!group || group.nodes.length === 0) return;
 
@@ -3263,6 +3643,7 @@
     }
 
     function toggleFixDetails(groupKey) {
+      groupKey = decodeGroupKey(groupKey);
       if (expandedFixKeys.has(groupKey)) {
         expandedFixKeys.delete(groupKey);
       } else {
@@ -3280,7 +3661,8 @@
           filter === 'all' ? 'todas' :
           filter === 'fill' ? 'preenchimento' :
           filter === 'stroke' ? 'contorno' :
-          filter === 'text' ? 'texto' : 'efeito'
+          filter === 'text' ? 'texto' :
+          filter === 'spacing' ? 'layout / espaçamentos' : 'efeito'
         ));
       });
       renderFixesList();
@@ -3301,7 +3683,8 @@
 
     function handleFixesSearch(val) {
       fixesSearchQuery = val.toLowerCase().trim();
-      renderFixesList();
+      clearTimeout(fixesSearchRenderTimer);
+      fixesSearchRenderTimer = setTimeout(renderFixesList, 120);
     }
 
     // --- MODAL & LOADER HELPERS ---

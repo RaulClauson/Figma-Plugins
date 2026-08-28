@@ -318,6 +318,30 @@
     .similar-compatibility-options label { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #475569; cursor: pointer; }
     .similar-grouping-option { display: flex; align-items: center; gap: 4px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #475569; cursor: pointer; }
     .similar-mode { flex-shrink: 0; max-width: 112px; padding: 3px 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #334155; font: inherit; font-size: 10px; }
+    .cleanup-parent {
+      padding: 9px;
+      border: 1px solid #bfdbfe;
+      border-radius: 7px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      line-height: 1.4;
+    }
+    .cleanup-options { display: flex; flex-direction: column; gap: 6px; }
+    .cleanup-option { display: flex; align-items: flex-start; gap: 7px; cursor: pointer; }
+    .cleanup-option span { line-height: 1.35; }
+    .cleanup-option small { display: block; color: #64748b; font-size: 10px; margin-top: 1px; }
+    .cleanup-differences { max-height: 370px; overflow: auto; }
+    .cleanup-difference-row {
+      padding: 9px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .cleanup-difference-row:last-child { border-bottom: 0; }
+    .cleanup-difference-head { display: flex; align-items: center; gap: 7px; }
+    .cleanup-difference-main { min-width: 0; flex: 1; }
+    .cleanup-difference-labels { color: #b45309; font-size: 10px; line-height: 1.4; margin-top: 3px; overflow-wrap: anywhere; }
+    .cleanup-difference-examples { color: #64748b; font-size: 10px; line-height: 1.4; margin-top: 2px; overflow-wrap: anywhere; }
+    .cleanup-difference-actions { display: flex; gap: 5px; margin-top: 6px; }
+    .cleanup-difference-actions button { padding: 5px 7px; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -328,6 +352,7 @@
   <div class="workspace-tabs">
     <button class="workspace-tab active" data-workspace="consolidate">🧩 Consolidar</button>
     <button class="workspace-tab" data-workspace="explore">🧭 Explorar</button>
+    <button class="workspace-tab" data-workspace="cleanup">🧹 Limpar instâncias</button>
   </div>
 
   <div id="explore-view" style="display:none">
@@ -336,6 +361,14 @@
     <section class="card">
       <div class="heading"><span>🎯 Seleção atual</span><span class="badge" id="explore-selection-count">0</span></div>
       <div class="explore-selection" id="explore-selection"><span class="explore-empty">Selecione um ou mais elementos no canvas.</span></div>
+      <div class="explore-actions">
+        <select class="similar-mode" id="create-components-mode" style="max-width:none; flex:1; padding:7px 8px; font-size:11px;">
+          <option value="each">Criar um componente por elemento</option>
+          <option value="single">Criar componente compartilhado (instância em cada contêiner)</option>
+        </select>
+        <button class="primary" id="create-components" disabled>🧩 Criar componentes</button>
+      </div>
+      <p style="font-size:10px; margin-top:4px;">Ao selecionar elementos correspondentes em componentes diferentes, será criado um único mestre e uma instância dele dentro de cada componente pai. Textos, variantes e propriedades dos componentes filhos podem ser preservados como overrides. Dentro de uma instância, selecione o componente mestre ou desanexe a instância para criar algo exclusivo.</p>
       <div class="similar-compatibility">
         <span class="similar-compatibility-title">Considerar incompatível quando houver diferença em:</span>
         <div class="similar-compatibility-options">
@@ -351,12 +384,38 @@
           <label><input type="checkbox" id="similar-compat-rotation" /> Rotação</label>
         </div>
         <label class="similar-grouping-option"><input type="checkbox" id="similar-group-inner-variants" /> Agrupar itens mesmo com variantes/configurações internas diferentes</label>
+        <label class="similar-grouping-option"><input type="checkbox" id="similar-search-component-contents" /> Buscar também dentro de componentes e instâncias</label>
+        <p style="font-size:10px; margin-top:4px;">Desmarcado, a busca considera apenas elementos fora de subárvores protegidas de componentes/instâncias.</p>
       </div>
       <div class="explore-actions">
         <button class="primary" id="find-similar">🔎 Encontrar similares</button>
         <button class="secondary" id="refresh-explore">↻ Atualizar inventário</button>
       </div>
       <div id="explore-status" style="min-height:16px; margin-top:8px; color:#64748b; font-size:11px;"></div>
+    </section>
+
+    <section class="card">
+      <div class="heading"><span>🔁 Substituir instâncias por um componente wrapper</span></div>
+      <p style="font-size:11px; margin-bottom:8px;">Use quando o componente destino já contém uma instância do componente antigo. O plugin preservará a variante, as propriedades dos componentes filhos e os overrides de texto.</p>
+      <div class="explore-actions" style="align-items:center;">
+        <strong style="font-size:11px; min-width:52px;">Origem</strong>
+        <span id="replace-source" class="cleanup-parent" style="flex:1; padding:6px;">Não definida</span>
+        <button class="small ghost" id="replace-source-set">Usar seleção</button>
+      </div>
+      <div class="explore-actions" style="align-items:center;">
+        <strong style="font-size:11px; min-width:52px;">Destino</strong>
+        <span id="replace-target" class="cleanup-parent" style="flex:1; padding:6px;">Não definido</span>
+        <button class="small ghost" id="replace-target-set">Usar seleção</button>
+      </div>
+      <div class="cleanup-options" style="margin-top:8px;">
+        <label class="cleanup-option"><input type="checkbox" id="replace-preserve-overrides" checked /><span><strong>Preservar overrides</strong><small>Migra texto, variante e propriedades dos componentes filhos para o componente interno.</small></span></label>
+        <label class="cleanup-option"><input type="radio" name="replace-scope" value="document" checked /><span><strong>Documento inteiro</strong></span></label>
+        <label class="cleanup-option"><input type="radio" name="replace-scope" value="page" /><span><strong>Página atual</strong></span></label>
+      </div>
+      <div class="explore-actions">
+        <button class="primary" id="replace-instances" disabled>🔁 Substituir instâncias</button>
+      </div>
+      <div id="replace-status" style="min-height:16px; margin-top:6px; color:#64748b; font-size:11px;"></div>
     </section>
 
     <section class="card" id="similar-card" style="display:none">
@@ -383,6 +442,53 @@
     <div class="actions">
       <button class="ghost" id="explore-close">Fechar</button>
     </div>
+  </div>
+
+  <div id="cleanup-view" style="display:none">
+    <p class="explore-intro">Remove overrides das instâncias de um componente pai e mantém apenas os tipos de diferença que você escolher.</p>
+
+    <section class="card">
+      <div class="heading"><span>🧩 Componente pai selecionado</span></div>
+      <div id="cleanup-selection" class="cleanup-parent">Selecione um componente ou uma instância no canvas.</div>
+      <div id="cleanup-selection-status" style="min-height:16px; margin-top:8px; color:#64748b; font-size:11px;"></div>
+    </section>
+
+    <section class="card">
+      <div class="heading"><span>🎯 Instâncias a limpar</span><span class="badge" id="cleanup-instance-count">0</span></div>
+      <div class="cleanup-options">
+        <label class="cleanup-option"><input type="radio" name="cleanup-scope" value="document" checked /><span><strong>Documento inteiro</strong><small>Todas as instâncias que usam exatamente este componente pai.</small></span></label>
+        <label class="cleanup-option"><input type="radio" name="cleanup-scope" value="page" /><span><strong>Página atual</strong><small>Somente as instâncias visíveis na página ativa.</small></span></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="heading"><span>🛡 O que manter depois da limpeza</span></div>
+      <div class="cleanup-options">
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-text" checked /><span><strong>Conteúdo dos textos</strong><small>Mantém o texto atual de todas as camadas TEXT, mesmo que seja diferente do pai.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-appearance" /><span><strong>Cores e aparência</strong><small>Mantém preenchimentos, traçados, efeitos, opacidade e propriedades visuais.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-shape" /><span><strong>Forma e cantos</strong><small>Mantém raios, alinhamento de traçado e formato dos vetores.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-dimensions" /><span><strong>Dimensões e sizing</strong><small>Mantém largura, altura e comportamentos FIXED, FILL ou HUG.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-layout" /><span><strong>Layout</strong><small>Mantém espaçamentos, paddings, alinhamentos e modo de layout.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-visibility" /><span><strong>Visibilidade</strong><small>Mantém camadas ocultas ou visíveis.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-rotation" /><span><strong>Rotação</strong><small>Mantém a rotação personalizada das camadas.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-properties" checked /><span><strong>Propriedades/configurações dos componentes</strong><small>Mantém propriedades expostas do pai e configurações dos componentes filhos.</small></span></label>
+        <label class="cleanup-option"><input type="checkbox" id="cleanup-keep-variants" checked /><span><strong>Variantes dos componentes filhos</strong><small>Mantém a variante ou componente usado em cada instância aninhada.</small></span></label>
+      </div>
+      <p style="font-size:10px; margin-top:9px;">Dimensões, cores, visibilidade, layout e demais overrides não marcados voltarão ao padrão do componente pai.</p>
+    </section>
+
+    <section class="card">
+      <div class="heading"><span>📊 Diferenças encontradas automaticamente</span><span><span class="badge" id="cleanup-analysis-count">0</span> <button class="small primary" id="cleanup-search">🔎 Buscar diferenças</button></span></div>
+      <p style="font-size:10px; margin-bottom:7px;">Mostra componentes que têm instâncias com overrides diferentes do componente pai. As ações abaixo atuam somente nas instâncias divergentes.</p>
+      <div class="cleanup-differences" id="cleanup-differences"><div class="explore-empty">Clique em “Buscar diferenças” para iniciar o diagnóstico.</div></div>
+    </section>
+
+    <div id="cleanup-status" style="min-height:18px; margin-top:9px; color:#64748b;"></div>
+    <div class="actions">
+      <button class="danger" id="cleanup-apply-selected" disabled>🧹 Limpar componente selecionado</button>
+      <button class="ghost" id="cleanup-close">Fechar</button>
+    </div>
+    <div class="done" id="cleanup-done"></div>
   </div>
 
   <div id="consolidate-view">
@@ -588,8 +694,8 @@
     const log = byId('log'), done = byId('done');
     const analyze = byId('analyze'), simulate = byId('simulate'), apply = byId('apply');
     let definitions = [], families = [];
-    let inventory = [], selectionNodeIds = [], similarItems = [], similarSearchPending = false;
-    const exploreView = byId('explore-view'), consolidateView = byId('consolidate-view');
+    let inventory = [], selectionNodeIds = [], selectionItems = [], similarItems = [], similarSearchPending = false;
+    const exploreView = byId('explore-view'), cleanupView = byId('cleanup-view'), consolidateView = byId('consolidate-view');
     
     // Controle da fila progressiva de previews
     let previewQueue = [];
@@ -601,6 +707,9 @@
     let selectedPresetId = '';
     let pendingPreset = null;
     let pendingSingleFamilyIndex = null;
+    let cleanupParent = null;
+    let cleanupParents = [];
+    let replacementSourceIds = [], replacementTargetId = '', replacementSourceLabel = '', replacementTargetLabel = '';
     let pendingLogLines = [];
     let logFlushScheduled = false;
 
@@ -612,19 +721,27 @@
 
     function switchWorkspace(workspace) {
       const isExplore = workspace === 'explore';
+      const isCleanup = workspace === 'cleanup';
       document.querySelectorAll('.workspace-tab').forEach((tab) => {
         tab.classList.toggle('active', tab.dataset.workspace === workspace);
       });
       exploreView.style.display = isExplore ? 'block' : 'none';
-      consolidateView.style.display = isExplore ? 'none' : 'block';
-      byId('workspace-title').textContent = isExplore ? 'Explorar Componentes' : 'Consolidar Famílias de Componentes';
+      cleanupView.style.display = isCleanup ? 'block' : 'none';
+      consolidateView.style.display = isExplore || isCleanup ? 'none' : 'block';
+      byId('workspace-title').textContent = isExplore
+        ? 'Explorar Componentes'
+        : (isCleanup ? 'Limpar Overrides de Instâncias' : 'Consolidar Famílias de Componentes');
       byId('workspace-description').textContent = isExplore
         ? 'Inspecione componentes existentes e encontre elementos parecidos com a seleção atual na página.'
-        : 'Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.';
-      byId('consolidate-notice').style.display = isExplore ? 'none' : 'block';
+        : (isCleanup
+          ? 'A seleção atual identifica um ou mais componentes pai; depois, remova das instâncias as diferenças que não precisam ser preservadas.'
+          : 'Consolida elementos gerando um mestre único por família. Elementos são agrupados e comparados sob os critérios selecionados.');
+      byId('consolidate-notice').style.display = isExplore || isCleanup ? 'none' : 'block';
       if (isExplore) {
         post('request-selection');
         post('request-inventory');
+      } else if (isCleanup) {
+        post('request-selection');
       }
     }
 
@@ -635,6 +752,7 @@
     function renderSelection(selection) {
       const items = Array.isArray(selection) ? selection : [];
       selectionNodeIds = items.map((item) => item.id);
+      selectionItems = items;
       byId('explore-selection-count').textContent = items.length;
       const container = byId('explore-selection');
       container.innerHTML = '';
@@ -644,6 +762,8 @@
         empty.textContent = 'Selecione um ou mais elementos no canvas.';
         container.append(empty);
         byId('find-similar').disabled = true;
+        byId('create-components').disabled = true;
+        updateReplacementControls();
         return;
       }
       items.forEach((item) => {
@@ -654,6 +774,18 @@
         container.append(chip);
       });
       byId('find-similar').disabled = false;
+      byId('create-components').disabled = false;
+      updateReplacementControls();
+    }
+
+    function updateReplacementControls() {
+      byId('replace-source').textContent = replacementSourceIds.length
+        ? replacementSourceLabel
+        : 'Não definida';
+      byId('replace-target').textContent = replacementTargetId
+        ? replacementTargetLabel
+        : 'Não definido';
+      byId('replace-instances').disabled = !replacementSourceIds.length || !replacementTargetId;
     }
 
     function inventoryItemsFiltered() {
@@ -676,7 +808,8 @@
         text: byId('similar-compat-text').checked,
         visibility: byId('similar-compat-visibility').checked,
         rotation: byId('similar-compat-rotation').checked,
-        groupNestedVariants: byId('similar-group-inner-variants').checked
+        groupNestedVariants: byId('similar-group-inner-variants').checked,
+        includeComponentContents: byId('similar-search-component-contents').checked
       };
     }
 
@@ -846,6 +979,148 @@
       });
       triggerPreviewLoading();
     }
+
+    function renderCleanupSelection(parent, parents) {
+      cleanupParents = Array.isArray(parents) ? parents : (parent ? [parent] : []);
+      cleanupParent = cleanupParents.length === 1 ? cleanupParents[0] : null;
+      const container = byId('cleanup-selection');
+      container.innerHTML = '';
+      if (!cleanupParents.length) {
+        container.textContent = 'Selecione um ou mais componentes no canvas.';
+        byId('cleanup-selection-status').textContent = 'A seleção atual identifica automaticamente o componente pai.';
+        byId('cleanup-apply-selected').disabled = true;
+        byId('cleanup-apply-selected').textContent = '🧹 Limpar componente selecionado';
+        return;
+      }
+      const title = document.createElement('strong');
+      title.textContent = cleanupParents.length === 1
+        ? cleanupParents[0].name
+        : cleanupParents.length + ' componentes selecionados';
+      const details = document.createElement('div');
+      if (cleanupParents.length === 1) {
+        details.textContent = '[' + cleanupParents[0].type + '] ' + cleanupParents[0].path + ' · ' + cleanupParents[0].instances +
+          (cleanupParents[0].instances === 1 ? ' instância no documento' : ' instâncias no documento');
+      } else {
+        details.textContent = cleanupParents.map((item) => item.name).join(', ');
+      }
+      container.append(title, details);
+      const instanceCount = cleanupParents.reduce((total, item) => total + item.instances, 0);
+      byId('cleanup-selection-status').textContent = instanceCount +
+        (instanceCount === 1 ? ' instância' : ' instâncias') + ' no documento.';
+      byId('cleanup-apply-selected').disabled = instanceCount === 0;
+      byId('cleanup-apply-selected').textContent = cleanupParents.length > 1
+        ? '🧹 Limpar componentes selecionados'
+        : '🧹 Limpar componente selecionado';
+    }
+
+    function renderCleanupAnalysis(items) {
+      const list = Array.isArray(items) ? items : [];
+      byId('cleanup-analysis-count').textContent = list.length;
+      const container = byId('cleanup-differences');
+      container.innerHTML = '';
+      if (!list.length) {
+        const empty = document.createElement('div');
+        empty.className = 'explore-empty';
+        empty.textContent = 'Nenhuma diferença encontrada nas instâncias deste arquivo.';
+        container.append(empty);
+        return;
+      }
+      list.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'cleanup-difference-row';
+        const head = document.createElement('div');
+        head.className = 'cleanup-difference-head';
+        const main = document.createElement('div');
+        main.className = 'cleanup-difference-main';
+        const title = document.createElement('div');
+        title.className = 'explore-row-title';
+        title.textContent = item.name;
+        const meta = document.createElement('div');
+        meta.className = 'explore-row-meta';
+        meta.textContent = (item.family ? item.family + ' · ' : '') + item.page + ' · ' + item.differentInstances +
+          ' de ' + item.instances + (item.instances === 1 ? ' instância divergente' : ' instâncias divergentes');
+        const path = document.createElement('div');
+        path.className = 'cleanup-difference-labels';
+        path.textContent = 'Diferenças: ' + item.differenceLabels.join(', ');
+        const examples = document.createElement('div');
+        examples.className = 'cleanup-difference-examples';
+        examples.textContent = item.examples && item.examples.length
+          ? 'Exemplos: ' + item.examples.map((example) => example.name + ' (' + example.page + ')').join(', ')
+          : '';
+        path.title = item.path;
+        main.append(title, meta, path, examples);
+        head.append(main);
+        const actions = document.createElement('div');
+        actions.className = 'cleanup-difference-actions';
+        const select = document.createElement('button');
+        select.className = 'secondary';
+        select.textContent = '↗ Selecionar';
+        select.title = 'Selecionar as instâncias divergentes desta página';
+        select.onclick = () => post('select-cleanup-instances', { componentId: item.id, options: cleanupOptions() });
+        const clean = document.createElement('button');
+        clean.className = 'danger';
+        clean.textContent = '🧹 Limpar';
+        clean.onclick = () => runCleanup([item.id], true, item.name);
+        actions.append(select, clean);
+        row.append(head, actions);
+        container.append(row);
+      });
+    }
+
+    function cleanupOptions() {
+      return {
+        keepText: byId('cleanup-keep-text').checked,
+        keepAppearance: byId('cleanup-keep-appearance').checked,
+        keepShape: byId('cleanup-keep-shape').checked,
+        keepDimensions: byId('cleanup-keep-dimensions').checked,
+        keepLayout: byId('cleanup-keep-layout').checked,
+        keepVisibility: byId('cleanup-keep-visibility').checked,
+        keepRotation: byId('cleanup-keep-rotation').checked,
+        keepComponentProperties: byId('cleanup-keep-properties').checked,
+        keepNestedVariants: byId('cleanup-keep-variants').checked
+      };
+    }
+
+    function invalidateCleanupAnalysis() {
+      byId('cleanup-analysis-count').textContent = '—';
+      byId('cleanup-differences').innerHTML = '<div class="explore-empty">As opções mudaram. Clique em “Buscar diferenças” para atualizar o diagnóstico.</div>';
+    }
+
+    byId('cleanup-search').onclick = () => {
+      byId('cleanup-status').textContent = 'Buscando diferenças no documento...';
+      byId('cleanup-search').disabled = true;
+      post('request-cleanup-analysis', { options: cleanupOptions() });
+    };
+    ['cleanup-keep-text', 'cleanup-keep-appearance', 'cleanup-keep-shape', 'cleanup-keep-dimensions', 'cleanup-keep-layout', 'cleanup-keep-visibility', 'cleanup-keep-rotation', 'cleanup-keep-properties', 'cleanup-keep-variants'].forEach((id) => {
+      byId(id).onchange = () => invalidateCleanupAnalysis();
+    });
+    document.querySelectorAll('input[name="cleanup-scope"]').forEach((input) => {
+      input.onchange = () => {};
+    });
+    function runCleanup(parentIds, onlyDifferent, itemName) {
+      const ids = Array.isArray(parentIds) ? parentIds : [parentIds];
+      const parentName = itemName || (ids.length === 1 && cleanupParent && cleanupParent.id === ids[0]
+        ? cleanupParent.name
+        : (ids.length > 1 ? ids.length + ' componentes selecionados' : 'este componente'));
+      const selectedScope = document.querySelector('input[name="cleanup-scope"]:checked');
+      const scope = selectedScope ? selectedScope.value : 'document';
+      const scopeLabel = scope === 'document' ? 'documento inteiro' : 'página atual';
+      const targetLabel = onlyDifferent ? 'instâncias divergentes de ' : 'instâncias de ';
+      if (!confirm('Limpar as ' + targetLabel + '"' + parentName + '" no escopo ' + scopeLabel + '?\n\nOverrides não marcados serão resetados.')) return;
+      byId('cleanup-apply-selected').disabled = true;
+      byId('cleanup-status').textContent = 'Limpando instâncias...';
+      byId('cleanup-done').style.display = 'none';
+      post('cleanup-instances', {
+        parentIds: ids,
+        scope: scope,
+        onlyDifferent: onlyDifferent,
+        options: cleanupOptions()
+      });
+    }
+    byId('cleanup-apply-selected').onclick = () => {
+      if (cleanupParents.length) runCleanup(cleanupParents.map((item) => item.id), true);
+    };
+    byId('cleanup-close').onclick = () => post('close');
 
     function scoreClass(score) {
       return score >= 90 ? 'score-high' : (score >= 70 ? 'score-medium' : 'score-low');
@@ -1094,6 +1369,51 @@
         compatibilityConfig: similarCompatibilityConfig()
       });
     };
+    byId('create-components').onclick = () => {
+      if (!selectionNodeIds.length) return;
+      const mode = byId('create-components-mode').value;
+      const modeLabel = mode === 'single' ? 'um componente mestre compartilhado e uma instância em cada contêiner' : 'um componente por elemento';
+      if (!confirm('Criar ' + modeLabel + ' a partir da seleção atual?')) return;
+      byId('create-components').disabled = true;
+      byId('explore-status').textContent = 'Criando componentes a partir da seleção...';
+      post('create-components-from-selection', { mode: mode });
+    };
+    byId('replace-source-set').onclick = () => {
+      if (!selectionItems.length || !selectionItems.every((item) => ['INSTANCE', 'COMPONENT'].includes(item.type))) {
+        byId('replace-status').textContent = 'Selecione uma ou mais instâncias/componentes da mesma família para definir a origem.';
+        return;
+      }
+      replacementSourceIds = selectionItems.map((item) => item.id);
+      replacementSourceLabel = selectionItems.length === 1
+        ? '[' + selectionItems[0].type + '] ' + selectionItems[0].name
+        : selectionItems.length + ' instância(s)/variante(s) selecionada(s)';
+      byId('replace-status').textContent = 'Origem definida. Agora selecione o componente wrapper e use “Usar seleção”.';
+      updateReplacementControls();
+    };
+    byId('replace-target-set').onclick = () => {
+      if (selectionItems.length !== 1 || !['INSTANCE', 'COMPONENT'].includes(selectionItems[0].type)) {
+        byId('replace-status').textContent = 'Selecione exatamente o componente wrapper (ou uma instância dele).';
+        return;
+      }
+      replacementTargetId = selectionItems[0].id;
+      replacementTargetLabel = '[' + selectionItems[0].type + '] ' + selectionItems[0].name;
+      byId('replace-status').textContent = 'Destino definido. Confira os dois componentes e execute a substituição.';
+      updateReplacementControls();
+    };
+    byId('replace-instances').onclick = () => {
+      if (!replacementSourceIds.length || !replacementTargetId) return;
+      const scopeInput = document.querySelector('input[name="replace-scope"]:checked');
+      const scope = scopeInput ? scopeInput.value : 'document';
+      if (!confirm('Substituir todas as instâncias da origem pelo componente wrapper no escopo selecionado?')) return;
+      byId('replace-instances').disabled = true;
+      byId('replace-status').textContent = 'Substituindo instâncias e migrando overrides...';
+      post('replace-instances-with-wrapper', {
+        sourceIds: replacementSourceIds,
+        targetId: replacementTargetId,
+        scope: scope,
+        preserveOverrides: byId('replace-preserve-overrides').checked
+      });
+    };
     byId('explore-preserve-overrides').onchange = () => {
       markSimilarSearchPending('Critérios alterados. Clique em “Encontrar similares” para atualizar a lista.');
     };
@@ -1105,6 +1425,9 @@
       });
     byId('similar-group-inner-variants').onchange = () => {
       markSimilarSearchPending('Critérios de agrupamento alterados. Clique em “Encontrar similares” para atualizar a lista.');
+    };
+    byId('similar-search-component-contents').onchange = () => {
+      markSimilarSearchPending('Escopo da busca alterado. Clique em “Encontrar similares” para atualizar a lista.');
     };
     byId('similar-select-all').onchange = () => {
       similarItems.forEach((item) => { item.selected = byId('similar-select-all').checked; });
@@ -1843,6 +2166,7 @@
       const msg = event.data.pluginMessage; if (!msg) return;
       if (msg.type === 'selection-state') {
         renderSelection(msg.selection);
+        renderCleanupSelection(msg.cleanupParent, msg.cleanupParents);
         return;
       }
       if (msg.type === 'inventory') {
@@ -1850,9 +2174,36 @@
         byId('explore-status').textContent = (msg.items || []).length + ' componente(s) identificados.';
         return;
       }
+      if (msg.type === 'cleanup-analysis') {
+        renderCleanupAnalysis(msg.items);
+        byId('cleanup-search').disabled = false;
+        byId('cleanup-status').textContent = (msg.items || []).length
+          ? 'Diagnóstico atualizado.'
+          : 'Nenhuma instância divergente encontrada.';
+        return;
+      }
       if (msg.type === 'similar-results') {
         renderSimilarResults(msg.items, false);
         byId('explore-status').textContent = (msg.items || []).length + ' candidato(s) encontrado(s).';
+        return;
+      }
+      if (msg.type === 'replace-instances-done') {
+        let message = '✓ ' + msg.replaced + ' instância(s) substituída(s) e overrides migrados.';
+        if (msg.skipped) message += ' ' + msg.skipped + ' ignorada(s).';
+        if (msg.errors && msg.errors.length) message += ' ' + msg.errors.join(' | ');
+        byId('replace-status').textContent = message;
+        byId('replace-instances').disabled = false;
+        return;
+      }
+      if (msg.type === 'create-components-done') {
+        const modeLabel = msg.mode === 'single'
+          ? 'mestre compartilhado criado e ' + (msg.instances || 0) + ' instância(s) inserida(s)'
+          : 'componente(s) criado(s)';
+        let message = '✓ ' + msg.created + ' ' + modeLabel + '.';
+        if (msg.skipped && msg.skipped.length) message += ' Ignorados: ' + msg.skipped.join(', ') + '.';
+        if (msg.errors && msg.errors.length) message += ' Falhas: ' + msg.errors.join(' | ') + '.';
+        byId('explore-status').textContent = message;
+        byId('create-components').disabled = false;
         return;
       }
       if (msg.type === 'presets') {
@@ -1883,10 +2234,35 @@
         }
       }
       if (msg.type === 'error') {
-        if (exploreView.style.display !== 'none') byId('explore-status').textContent = '⚠️ ' + msg.text;
-        else status.textContent = '⚠️ ' + msg.text;
+        if (exploreView.style.display !== 'none') {
+          byId('explore-status').textContent = '⚠️ ' + msg.text;
+          byId('create-components').disabled = !selectionNodeIds.length;
+          updateReplacementControls();
+        }
+        else if (cleanupView.style.display !== 'none') {
+          byId('cleanup-status').textContent = '⚠️ ' + msg.text;
+          byId('cleanup-apply-selected').disabled = !cleanupParents.length;
+          byId('cleanup-search').disabled = false;
+        }
+        else {
+          status.textContent = '⚠️ ' + msg.text;
+          byId('create-components').disabled = false;
+        }
         analyze.disabled = false;
         if (exploreView.style.display !== 'none') updateSimilarControls();
+      }
+
+      if (msg.type === 'cleanup-done') {
+        const cleanupDone = byId('cleanup-done');
+        cleanupDone.style.display = 'block';
+        cleanupDone.className = 'done' + (msg.failed ? ' warn' : '');
+        cleanupDone.innerHTML = '<strong>Limpeza concluída</strong><br>' +
+          '🧹 ' + msg.cleaned + ' instância(s) limpa(s)<br>' +
+          (msg.failed ? '⚠️ ' + msg.failed + ' instância(s) com falha' : '✓ Nenhuma falha registrada');
+        byId('cleanup-status').textContent = 'A limpeza foi concluída. Clique em “Buscar diferenças” para atualizar o diagnóstico.';
+        byId('cleanup-apply-selected').disabled = !cleanupParents.length;
+        byId('cleanup-search').disabled = false;
+        return;
       }
       
       if (msg.type === 'preview-response') {

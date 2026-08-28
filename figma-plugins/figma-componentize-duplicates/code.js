@@ -692,9 +692,10 @@ function shouldIgnoreNode(node, filterConfig, subtreeMetadataFor) {
   return false;
 }
 
-function getCandidates(scope, selectedTypes, filterConfig) {
+function getCandidates(scope, selectedTypes, filterConfig, includeComponentContents) {
   var result = [];
   var candidateIds = {};
+  var allowProtectedContents = !!includeComponentContents;
   var subtreeMetadataFor = filterConfig &&
     ((filterConfig.enableSubtreeExclusion && filterConfig.prohibitedTypes && filterConfig.prohibitedTypes.length) ||
       filterConfig.enableComponentLimits)
@@ -744,17 +745,29 @@ function getCandidates(scope, selectedTypes, filterConfig) {
             addCandidate(node);
           }
         }
-        return;
-      }
-      
-      if (node.type === "INSTANCE") {
-        if ((!selectedTypes || selectedTypes["INSTANCE"]) && !hasProtectedAncestor(node) && !shouldIgnoreNode(node, filterConfig, subtreeMetadataFor)) {
-          addCandidate(node);
+        if (allowProtectedContents && node.children) {
+          for (var componentChild = 0; componentChild < node.children.length; componentChild++) {
+            walk(node.children[componentChild]);
+          }
         }
         return;
       }
       
-      if (!hasProtectedAncestor(node)) {
+      if (node.type === "INSTANCE") {
+        if ((!selectedTypes || selectedTypes["INSTANCE"]) &&
+            (allowProtectedContents || !hasProtectedAncestor(node)) &&
+            !shouldIgnoreNode(node, filterConfig, subtreeMetadataFor)) {
+          addCandidate(node);
+        }
+        if (allowProtectedContents && node.children) {
+          for (var instanceChild = 0; instanceChild < node.children.length; instanceChild++) {
+            walk(node.children[instanceChild]);
+          }
+        }
+        return;
+      }
+      
+      if (allowProtectedContents || !hasProtectedAncestor(node)) {
         var allowed = true;
         if (selectedTypes) {
           if (node.type === "TEXT") {
@@ -873,7 +886,7 @@ function analyzeDocument(selected, selectedTypes, scope, filterConfig, optionsCo
     if (node.type === "COMPONENT" && node.parent && node.parent.type === "COMPONENT_SET") {
       familyName = node.parent.name;
       isVariant = true;
-      rawProps = node.variantProperties || {};
+      rawProps = readVariantPropertiesSafely(node);
     } else if (node.type === "INSTANCE") {
       // Instâncias de variantes herdam a família e as propriedades do
       // componente principal, permitindo analisá-las como variantes reais.
@@ -882,7 +895,7 @@ function analyzeDocument(selected, selectedTypes, scope, filterConfig, optionsCo
         if (mainComponent && mainComponent.parent && mainComponent.parent.type === "COMPONENT_SET") {
           familyName = mainComponent.parent.name;
           isVariant = true;
-          rawProps = mainComponent.variantProperties || {};
+          rawProps = readVariantPropertiesSafely(mainComponent);
         }
       } catch (error) {}
 
@@ -1075,9 +1088,26 @@ function selectionSummary(nodes) {
 }
 
 function postSelectionState() {
+  var selection = figma.currentPage.selection || [];
+  var cleanupParents = [];
+  var cleanupParentIds = {};
+  if (selection.length > 0 && selection.every(function (node) { return node.type === "COMPONENT"; })) {
+    for (var i = 0; i < selection.length; i++) {
+      if (cleanupParentIds[selection[i].id]) continue;
+      cleanupParentIds[selection[i].id] = true;
+      cleanupParents.push(cleanupParentSummary(selection[i]));
+    }
+  } else if (selection.length === 1 && selection[0].type === "INSTANCE") {
+    try {
+      if (selection[0].mainComponent) cleanupParents.push(cleanupParentSummary(selection[0].mainComponent));
+    } catch (error) {}
+  }
+  var cleanupParent = cleanupParents.length === 1 ? cleanupParents[0] : null;
   figma.ui.postMessage({
     type: "selection-state",
-    selection: selectionSummary(figma.currentPage.selection || [])
+    selection: selectionSummary(selection),
+    cleanupParent: cleanupParent,
+    cleanupParents: cleanupParents
   });
 }
 
@@ -1293,7 +1323,12 @@ function findSimilarNodes(referenceIds, preserveDifferences, compatibilityConfig
   }
   if (!references.length) throw new Error("Selecione ao menos um elemento válido na página atual.");
 
-  var candidates = getCandidates("page", null, null);
+  var candidates = getCandidates(
+    "page",
+    null,
+    null,
+    !!(compatibilityConfig && compatibilityConfig.includeComponentContents)
+  );
   var results = [];
   var featureCache = {};
   var compatibilityFields = exploreSelectedFields(preserveDifferences, compatibilityConfig);
@@ -1635,6 +1670,7 @@ var OVERRIDE_FIELDS = [
   "vectorNetwork",
   "x", "y", "width", "height", "rotation", "constraints",
   "layoutAlign", "layoutGrow", "minWidth", "maxWidth", "minHeight", "maxHeight",
+  "layoutSizingHorizontal", "layoutSizingVertical", "layoutPositioning",
   "layoutMode", "layoutWrap", "primaryAxisAlignItems", "counterAxisAlignItems",
   "itemSpacing", "counterAxisSpacing", "paddingTop", "paddingRight",
   "paddingBottom", "paddingLeft", "clipsContent", "strokeWeight", "strokeAlign",
@@ -1644,8 +1680,47 @@ var OVERRIDE_FIELDS = [
   "textCase", "textDecoration", "openTypeFeatures", "characters"
 ];
 
+var CLEANUP_APPEARANCE_FIELDS = [
+  "opacity", "blendMode", "fills", "strokes", "effects"
+];
+var CLEANUP_SHAPE_FIELDS = [
+  "vectorNetwork", "strokeWeight", "strokeAlign", "dashPattern",
+  "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius",
+  "bottomRightRadius"
+];
+var CLEANUP_DIMENSION_FIELDS = [
+  "width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight",
+  "layoutSizingHorizontal", "layoutSizingVertical"
+];
+var CLEANUP_LAYOUT_FIELDS = [
+  "layoutAlign", "layoutGrow", "layoutPositioning", "layoutMode", "layoutWrap",
+  "primaryAxisAlignItems", "counterAxisAlignItems", "itemSpacing",
+  "counterAxisSpacing", "paddingTop", "paddingRight", "paddingBottom",
+  "paddingLeft", "clipsContent"
+];
+
+function cleanupFieldIsKept(field, config) {
+  if (config.keepAppearance && CLEANUP_APPEARANCE_FIELDS.indexOf(field) >= 0) return true;
+  if (config.keepShape && CLEANUP_SHAPE_FIELDS.indexOf(field) >= 0) return true;
+  if (config.keepDimensions && CLEANUP_DIMENSION_FIELDS.indexOf(field) >= 0) return true;
+  if (config.keepLayout && CLEANUP_LAYOUT_FIELDS.indexOf(field) >= 0) return true;
+  if (config.keepVisibility && field === "visible") return true;
+  if (config.keepRotation && field === "rotation") return true;
+  return false;
+}
+
 function readNodeProperty(node, field) {
   try { return node[field]; } catch (error) { return undefined; }
+}
+
+function readVariantPropertiesSafely(node) {
+  try {
+    return node && node.variantProperties ? node.variantProperties : {};
+  } catch (error) {
+    // Component Sets com erro interno podem lançar ao acessar esta API.
+    // A análise continua sem os nomes das variantes.
+    return {};
+  }
 }
 
 function sameComparableValue(valueA, valueB) {
@@ -1724,8 +1799,9 @@ function findTargetComponentProperty(target, sourcePropertyName, sourceProperty)
   return null;
 }
 
-function captureOverrideDifferences(reference, original) {
+function captureOverrideDifferences(reference, original, options) {
   var snapshot = { items: [], fonts: {} };
+  var config = options || {};
 
   function walk(referenceNode, originalNode, path) {
     if (!originalNode) return;
@@ -1734,6 +1810,8 @@ function captureOverrideDifferences(reference, original) {
     var values = {};
     for (var i = 0; i < OVERRIDE_FIELDS.length; i++) {
       var field = OVERRIDE_FIELDS[i];
+      if (config.skipFields && config.skipFields[field]) continue;
+      if (path.length === 0 && config.skipRootFields && config.skipRootFields[field]) continue;
       if (field === "characters" && originalNode.type !== "TEXT") continue;
 
       var originalValue = readNodeProperty(originalNode, field);
@@ -1746,13 +1824,14 @@ function captureOverrideDifferences(reference, original) {
 
     var componentProperties = readComponentPropertyValues(originalNode);
     var nestedMainComponent = null;
-    if (path.length > 0 && originalNode.type === "INSTANCE") {
+    if ((path.length > 0 || config.includeRootMainComponent) && originalNode.type === "INSTANCE") {
       try {
         var originalMainComponent = originalNode.mainComponent;
         var referenceMainComponent = referenceNode && referenceNode.type === "INSTANCE"
           ? referenceNode.mainComponent
           : null;
-        if (originalMainComponent && (!referenceMainComponent || originalMainComponent.id !== referenceMainComponent.id)) {
+        if (originalMainComponent && (!referenceMainComponent || originalMainComponent.id !== referenceMainComponent.id) &&
+            (path.length > 0 || config.includeRootMainComponent)) {
           nestedMainComponent = originalMainComponent;
         }
       } catch (error) {}
@@ -1803,6 +1882,108 @@ function nodeAtPath(root, path) {
     }
   }
   return current;
+}
+
+function indexPathFromAncestor(node, ancestor) {
+  var path = [];
+  var current = node;
+  while (current && current !== ancestor) {
+    var parent = current.parent;
+    if (!parent || !parent.children) return null;
+    var index = -1;
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i].id === current.id) {
+        index = i;
+        break;
+      }
+    }
+    if (index < 0) return null;
+    path.unshift(index);
+    current = parent;
+  }
+  return current === ancestor ? path : null;
+}
+
+function owningComponent(node) {
+  var current = node;
+  while (current && current.type !== "DOCUMENT") {
+    if (current.type === "COMPONENT") return current;
+    current = current.parent;
+  }
+  return null;
+}
+
+function addPrefixedSnapshot(target, source, prefix) {
+  if (!source) return;
+  var fontKeys = Object.keys(source.fonts || {});
+  for (var f = 0; f < fontKeys.length; f++) {
+    target.fonts[fontKeys[f]] = source.fonts[fontKeys[f]];
+  }
+  for (var i = 0; i < (source.items || []).length; i++) {
+    var item = source.items[i];
+    target.items.push({
+      path: prefix.concat(item.path || []),
+      values: item.values || {},
+      componentProperties: item.componentProperties || null,
+      mainComponent: item.mainComponent || null
+    });
+  }
+}
+
+function captureParentInstanceOverrides(parentComponent, groupNodes) {
+  var migrations = [];
+  if (!parentComponent) return migrations;
+
+  var instanceIndex = instancesByMainComponent().index;
+  var parentInstances = instanceIndex[parentComponent.id] || [];
+  for (var i = 0; i < parentInstances.length; i++) {
+    var parentInstance = parentInstances[i];
+    var snapshot = { items: [], fonts: {} };
+    for (var n = 0; n < groupNodes.length; n++) {
+      var oldPath = indexPathFromAncestor(groupNodes[n], parentComponent);
+      if (!oldPath) continue;
+      var instanceNode = nodeAtPath(parentInstance, oldPath);
+      if (!instanceNode) continue;
+      var nodeSnapshot = captureOverrideDifferences(
+        groupNodes[n],
+        instanceNode,
+        {
+          includeRootMainComponent: true,
+          // A selected child will be reparented into the new component. Its
+          // old x/y belonged to the button, so carrying those coordinates
+          // into the new component would move it incorrectly.
+          skipFields: { x: true, y: true }
+        }
+      );
+      var prefix = groupNodes.length === 1 ? [] : [n];
+      addPrefixedSnapshot(snapshot, nodeSnapshot, prefix);
+    }
+    if (snapshot.items.length) {
+      migrations.push({ instance: parentInstance, snapshot: snapshot });
+    }
+  }
+  return migrations;
+}
+
+async function applyParentInstanceOverrides(migrations, sharedComponent) {
+  for (var i = 0; i < migrations.length; i++) {
+    var migration = migrations[i];
+    var nestedInstances = [];
+    try {
+      nestedInstances = migration.instance.findAll(function (node) {
+        if (node.type !== "INSTANCE") return false;
+        try {
+          return node.mainComponent && node.mainComponent.id === sharedComponent.id;
+        } catch (error) {
+          return false;
+        }
+      });
+    } catch (error) {}
+    if (!nestedInstances.length) continue;
+    await applyOverrideSnapshot(nestedInstances[0], migration.snapshot, function (text) {
+      figma.ui.postMessage({ type: "log", text: text });
+    });
+  }
 }
 
 async function applyOverrideSnapshot(instance, snapshot, log) {
@@ -1911,6 +2092,207 @@ async function insertInstanceReplacing(source, component, preserveOverrides, ref
   return instance;
 }
 
+function componentFamilyId(component) {
+  if (!component) return null;
+  return component.parent && component.parent.type === "COMPONENT_SET"
+    ? component.parent.id
+    : component.id;
+}
+
+function sameComponentFamily(componentA, componentB) {
+  return !!componentA && !!componentB && componentFamilyId(componentA) === componentFamilyId(componentB);
+}
+
+function isDescendantOfNode(node, ancestor) {
+  var current = node && node.parent;
+  while (current && current.type !== "DOCUMENT") {
+    if (current === ancestor) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function nodeStillExists(node) {
+  if (!node || !node.id) return false;
+  try {
+    return !!figma.getNodeById(node.id);
+  } catch (error) {
+    return false;
+  }
+}
+
+function findNestedSourceInstance(wrapperComponent, sourceComponent) {
+  var nested = [];
+  try {
+    nested = wrapperComponent.findAll(function (node) {
+      return node.type === "INSTANCE" && sameComponentFamily(node.mainComponent, sourceComponent);
+    });
+  } catch (error) {}
+  if (!nested.length) return null;
+
+  for (var i = 0; i < nested.length; i++) {
+    try {
+      if (nested[i].mainComponent && nested[i].mainComponent.id === sourceComponent.id) return nested[i];
+    } catch (error) {}
+  }
+  return nested[0];
+}
+
+async function replaceInstanceWithWrapper(sourceInstance, sourceComponent, targetComponent, preserveOverrides) {
+  var parent = sourceInstance.parent;
+  if (!parent || !parent.insertChild || parent.type === "INSTANCE") {
+    throw new Error("A instância está dentro de uma estrutura não editável.");
+  }
+
+  var sourceMain = null;
+  try { sourceMain = sourceInstance.mainComponent; } catch (error) {}
+  if (!sourceMain) throw new Error("A instância de origem não possui componente mestre.");
+
+  var snapshot = null;
+  if (preserveOverrides) {
+    snapshot = captureOverrideDifferences(sourceMain, sourceInstance, {
+      // A posição e o tamanho da instância antiga pertencem ao uso externo.
+      // Eles serão aplicados ao wrapper, não ao botão interno.
+      skipRootFields: {
+        x: true, y: true, width: true, height: true, rotation: true,
+        visible: true, layoutAlign: true, layoutGrow: true,
+        layoutSizingHorizontal: true, layoutSizingVertical: true,
+        layoutPositioning: true
+      }
+    });
+  }
+
+  var siblings = parent.children || [];
+  var index = 0;
+  for (var i = 0; i < siblings.length; i++) {
+    if (siblings[i].id === sourceInstance.id) { index = i; break; }
+  }
+
+  var x = sourceInstance.x;
+  var y = sourceInstance.y;
+  var width = sourceInstance.width;
+  var height = sourceInstance.height;
+  var rotation = sourceInstance.rotation;
+  var visible = sourceInstance.visible;
+  var wrapperInstance = targetComponent.createInstance();
+  parent.insertChild(index, wrapperInstance);
+
+  try {
+    try { wrapperInstance.resizeWithoutConstraints(width, height); } catch (error) { try { wrapperInstance.resize(width, height); } catch (resizeError) {} }
+    try { wrapperInstance.x = x; wrapperInstance.y = y; } catch (error) {}
+    try { wrapperInstance.rotation = rotation; wrapperInstance.visible = visible; } catch (error) {}
+
+    var nestedSourceInstance = findNestedSourceInstance(wrapperInstance, sourceComponent);
+    if (!nestedSourceInstance) {
+      throw new Error("O componente destino não contém uma instância do componente de origem.");
+    }
+
+    // Seleciona a mesma variante/componente filho usada pela instância antiga.
+    nestedSourceInstance.swapComponent(sourceMain);
+    if (snapshot) {
+      await applyOverrideSnapshot(nestedSourceInstance, snapshot, function (text) {
+        figma.ui.postMessage({ type: "log", text: text });
+      });
+    }
+    sourceInstance.remove();
+    return wrapperInstance;
+  } catch (error) {
+    try { wrapperInstance.remove(); } catch (cleanupError) {}
+    throw error;
+  }
+}
+
+async function replaceInstancesWithWrapper(sourceIds, targetId, scope, preserveOverrides) {
+  if (!Array.isArray(sourceIds)) sourceIds = sourceIds ? [sourceIds] : [];
+  if (!sourceIds.length) throw new Error("Nenhuma origem foi definida.");
+
+  var targetNode = figma.getNodeById(targetId);
+  if (!targetNode) throw new Error("O destino não foi encontrado.");
+
+  var targetComponent = targetNode.type === "INSTANCE" ? targetNode.mainComponent : targetNode;
+  var sourceComponents = [];
+  var sourceComponentIds = {};
+  var sourceFamily = null;
+  for (var s = 0; s < sourceIds.length; s++) {
+    var sourceNode = figma.getNodeById(sourceIds[s]);
+    if (!sourceNode) throw new Error("Uma das origens não foi encontrada.");
+    var sourceComponent = sourceNode.type === "INSTANCE" ? sourceNode.mainComponent : sourceNode;
+    if (!sourceComponent || sourceComponent.type !== "COMPONENT") {
+      throw new Error("Todas as origens precisam ser componentes ou instâncias com componente mestre.");
+    }
+    var currentFamily = componentFamilyId(sourceComponent);
+    if (sourceFamily && sourceFamily !== currentFamily) {
+      throw new Error("As origens precisam pertencer à mesma família de componentes/variantes.");
+    }
+    sourceFamily = currentFamily;
+    if (!sourceComponentIds[sourceComponent.id]) {
+      sourceComponentIds[sourceComponent.id] = true;
+      sourceComponents.push(sourceComponent);
+    }
+  }
+  if (!targetComponent || targetComponent.type !== "COMPONENT") {
+    throw new Error("O destino precisa ser um componente ou uma instância com componente mestre.");
+  }
+  if (sameComponentFamily(sourceComponents[0], targetComponent)) {
+    throw new Error("A origem e o destino pertencem ao mesmo componente/família.");
+  }
+  for (var sc = 0; sc < sourceComponents.length; sc++) {
+    if (isDescendantOfNode(sourceComponents[sc], targetComponent)) {
+      throw new Error("Um componente de origem está dentro do destino; ele deve ser apenas o componente filho do wrapper.");
+    }
+  }
+
+  var indexedInstances = instancesByMainComponent().index;
+  var allInstances = [];
+  var instanceIds = {};
+  for (var si = 0; si < sourceComponents.length; si++) {
+    var sourceInstances = indexedInstances[sourceComponents[si].id] || [];
+    for (var ii = 0; ii < sourceInstances.length; ii++) {
+      if (instanceIds[sourceInstances[ii].id]) continue;
+      instanceIds[sourceInstances[ii].id] = true;
+      allInstances.push(sourceInstances[ii]);
+    }
+  }
+  var replaced = [];
+  var errors = [];
+  var currentPageId = figma.currentPage.id;
+  for (var i = 0; i < allInstances.length; i++) {
+    var instance = allInstances[i];
+    // Trocar uma instância dentro de um componente mestre pode atualizar e
+    // remover instâncias derivadas que já estavam no índice inicial.
+    if (!nodeStillExists(instance)) continue;
+    var page = null;
+    try { page = getPage(instance); } catch (error) { continue; }
+    if (scope === "page" && (!page || page.id !== currentPageId)) continue;
+    // Instâncias dentro de outra instância são atualizadas pelo mestre externo
+    // e não podem ser editadas estruturalmente de forma independente.
+    if (hasInstanceAncestor(instance) || isDescendantOfNode(instance, targetComponent)) continue;
+    try {
+      replaced.push(await replaceInstanceWithWrapper(instance, sourceComponents[0], targetComponent, preserveOverrides));
+    } catch (error) {
+      errors.push((instance.name || instance.id) + ": " + error.message);
+    }
+  }
+
+  if (!replaced.length) {
+    throw new Error("Nenhuma instância foi substituída. " + (errors.join(" ") || "Nenhuma instância elegível encontrada."));
+  }
+
+  var currentPageReplaced = replaced.filter(function (node) {
+    var page = getPage(node);
+    return page && page.id === currentPageId;
+  });
+  try { figma.currentPage.selection = currentPageReplaced; } catch (error) {}
+  if (currentPageReplaced.length) figma.viewport.scrollAndZoomIntoView(currentPageReplaced);
+  figma.ui.postMessage({
+    type: "replace-instances-done",
+    replaced: replaced.length,
+    skipped: errors.length,
+    errors: errors
+  });
+  figma.notify(replaced.length + (replaced.length === 1 ? " instância substituída." : " instâncias substituídas."));
+}
+
 function mergeOverrideSnapshots(baseSnapshot, overrideSnapshot) {
   var result = { items: [], fonts: {} };
   var itemIndexes = {};
@@ -1988,6 +2370,402 @@ async function redirectInstances(instances, target, dryRun, log, preserveOverrid
     }
   }
   return result;
+}
+
+// --- Limpeza seletiva de instâncias ---
+// A limpeza usa removeOverrides() como operação base e reaplica somente as
+// diferenças que o usuário escolheu manter. Assim, valores herdados do antigo
+// componente mestre deixam de ficar presos na instância.
+function captureCleanupDifferences(reference, original, options) {
+  var config = options || {};
+  var snapshot = { items: [], fonts: {} };
+
+  function walk(referenceNode, originalNode, path) {
+    if (!originalNode) return;
+
+    var values = {};
+    for (var i = 0; i < OVERRIDE_FIELDS.length; i++) {
+      var field = OVERRIDE_FIELDS[i];
+      if (field === "characters" || !cleanupFieldIsKept(field, config)) continue;
+      var originalValue = readNodeProperty(originalNode, field);
+      if (originalValue === undefined) continue;
+      var referenceValue = readNodeProperty(referenceNode, field);
+      if (!sameComparableValue(referenceValue, originalValue)) {
+        values[field] = originalValue;
+      }
+    }
+
+    if (config.keepText && originalNode.type === "TEXT") {
+      var originalCharacters = readNodeProperty(originalNode, "characters");
+      var referenceCharacters = readNodeProperty(referenceNode, "characters");
+      if (originalCharacters !== undefined && !sameComparableValue(referenceCharacters, originalCharacters)) {
+        values.characters = originalCharacters;
+        collectFonts(snapshot.fonts, originalNode);
+        // Depois do reset o texto volta à fonte do pai; ela também precisa
+        // estar carregada quando o conteúdo preservado for reaplicado.
+        collectFonts(snapshot.fonts, referenceNode);
+      }
+    }
+
+    var componentProperties = null;
+    if (config.keepComponentProperties && originalNode.type === "INSTANCE") {
+      componentProperties = readComponentPropertyValues(originalNode);
+    }
+
+    var nestedMainComponent = null;
+    if (config.keepNestedVariants && path.length > 0 && originalNode.type === "INSTANCE") {
+      try {
+        var originalMainComponent = originalNode.mainComponent;
+        var referenceMainComponent = referenceNode && referenceNode.type === "INSTANCE"
+          ? referenceNode.mainComponent
+          : null;
+        if (originalMainComponent && (!referenceMainComponent || originalMainComponent.id !== referenceMainComponent.id)) {
+          nestedMainComponent = originalMainComponent;
+        }
+      } catch (error) {}
+    }
+
+    if (Object.keys(values).length > 0 || componentProperties || nestedMainComponent) {
+      snapshot.items.push({
+        path: path.slice(),
+        values: values,
+        componentProperties: componentProperties,
+        mainComponent: nestedMainComponent
+      });
+    }
+
+    var referenceChildren = [];
+    var originalChildren = [];
+    try { if (referenceNode && referenceNode.children) referenceChildren = referenceNode.children; } catch (error) {}
+    try { if (originalNode.children) originalChildren = originalNode.children; } catch (error) {}
+    var childCount = Math.min(referenceChildren.length, originalChildren.length);
+    for (var c = 0; c < childCount; c++) {
+      walk(referenceChildren[c], originalChildren[c], path.concat(c));
+    }
+  }
+
+  walk(reference, original, []);
+  return snapshot;
+}
+
+function cleanupParentSummary(component) {
+  var counts = instancesByMainComponent().index[component.id] || [];
+  var currentPageCount = 0;
+  for (var i = 0; i < counts.length; i++) {
+    var page = getPage(counts[i]);
+    if (page && page.id === figma.currentPage.id) currentPageCount++;
+  }
+  return {
+    id: component.id,
+    name: component.name || "(sem nome)",
+    type: component.type,
+    family: component.parent && component.parent.type === "COMPONENT_SET" ? component.parent.name : "",
+    page: pageName(component),
+    path: nodePath(component),
+    instances: counts.length,
+    instancesOnCurrentPage: currentPageCount
+  };
+}
+
+function componentPropertiesDiffer(referenceNode, originalNode) {
+  if (!referenceNode || referenceNode.type !== "INSTANCE" || !originalNode || originalNode.type !== "INSTANCE") {
+    return false;
+  }
+  var originalProperties = readComponentPropertyValues(originalNode);
+  var referenceProperties = readComponentPropertyValues(referenceNode);
+  if (!originalProperties) return false;
+
+  var names = Object.keys(originalProperties);
+  for (var i = 0; i < names.length; i++) {
+    var sourceName = names[i];
+    var sourceProperty = originalProperties[sourceName];
+    var targetName = findTargetComponentProperty(referenceNode, sourceName, sourceProperty);
+    if (!targetName || !referenceProperties || !referenceProperties[targetName]) return true;
+    if (!sameComparableValue(
+      referenceProperties[targetName].value,
+      sourceProperty && sourceProperty.value
+    )) return true;
+  }
+  return false;
+}
+
+function cleanupDifferenceSummary(reference, original, options) {
+  var config = options || {};
+  var labels = {};
+
+  function addLabel(label) { labels[label] = true; }
+
+  function labelForField(field) {
+    if (field === "characters") return "Texto";
+    if (field === "width" || field === "height" ||
+        field === "layoutSizingHorizontal" || field === "layoutSizingVertical") return "Dimensões / Fill / Hug";
+    if (field === "fills" || field === "strokes" || field === "effects" || field === "vectorNetwork") return "Aparência";
+    if (field.indexOf("layout") === 0 || field.indexOf("padding") === 0 ||
+        field === "itemSpacing" || field === "counterAxisSpacing" ||
+        field === "primaryAxisAlignItems" || field === "counterAxisAlignItems") return "Layout";
+    return field;
+  }
+
+  function walk(referenceNode, originalNode, path) {
+    if (!originalNode) return;
+    for (var i = 0; i < OVERRIDE_FIELDS.length; i++) {
+      var field = OVERRIDE_FIELDS[i];
+      // A posição absoluta pertence ao contexto onde a instância foi usada;
+      // compará-la com x/y do componente pai faria todas as instâncias
+      // parecerem divergentes.
+      if (field === "x" || field === "y") continue;
+      if (field === "characters" && config.keepText) continue;
+      if (field === "characters" && originalNode.type !== "TEXT") continue;
+      if (cleanupFieldIsKept(field, config)) continue;
+      var originalValue = readNodeProperty(originalNode, field);
+      if (originalValue === undefined) continue;
+      var referenceValue = readNodeProperty(referenceNode, field);
+      if (!sameComparableValue(referenceValue, originalValue)) addLabel(labelForField(field));
+    }
+
+    if (!config.keepComponentProperties && path.length > 0 && componentPropertiesDiffer(referenceNode, originalNode)) {
+      addLabel("Propriedades de componentes filhos");
+    }
+
+    if (!config.keepNestedVariants && path.length > 0 && originalNode.type === "INSTANCE") {
+      try {
+        var originalMain = originalNode.mainComponent;
+        var referenceMain = referenceNode && referenceNode.type === "INSTANCE" ? referenceNode.mainComponent : null;
+        if (originalMain && (!referenceMain || originalMain.id !== referenceMain.id)) {
+          addLabel("Variantes de componentes filhos");
+        }
+      } catch (error) {}
+    }
+
+    var referenceChildren = [];
+    var originalChildren = [];
+    try { if (referenceNode && referenceNode.children) referenceChildren = referenceNode.children; } catch (error) {}
+    try { if (originalNode.children) originalChildren = originalNode.children; } catch (error) {}
+    var childCount = Math.min(referenceChildren.length, originalChildren.length);
+    for (var c = 0; c < childCount; c++) {
+      walk(referenceChildren[c], originalChildren[c], path.concat(c));
+    }
+  }
+
+  walk(reference, original, []);
+  var labelList = Object.keys(labels);
+  return { hasDifferences: labelList.length > 0, labels: labelList };
+}
+
+function cleanupDifferenceInventory(options) {
+  var nodes = figma.root.findAll(function (node) {
+    return node.type === "COMPONENT" || node.type === "INSTANCE";
+  });
+  var components = [];
+  var instanceIndex = {};
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    if (node.type === "COMPONENT") {
+      components.push(node);
+      continue;
+    }
+    try {
+      var mainComponent = node.mainComponent;
+      if (!mainComponent) continue;
+      if (!instanceIndex[mainComponent.id]) instanceIndex[mainComponent.id] = [];
+      instanceIndex[mainComponent.id].push(node);
+    } catch (error) {}
+  }
+
+  var result = [];
+  for (var c = 0; c < components.length; c++) {
+    var component = components[c];
+    var instances = instanceIndex[component.id] || [];
+    var differentInstances = [];
+    var labels = {};
+    for (var n = 0; n < instances.length; n++) {
+      var instance = instances[n];
+      try {
+        var summary = cleanupDifferenceSummary(component, instance, options);
+        if (!summary.hasDifferences) continue;
+        differentInstances.push({
+          id: instance.id,
+          name: instance.name || "(sem nome)",
+          page: pageName(instance),
+          path: nodePath(instance)
+        });
+        summary.labels.forEach(function (label) { labels[label] = true; });
+      } catch (error) {}
+    }
+    if (!differentInstances.length) continue;
+
+    var componentSet = component.parent && component.parent.type === "COMPONENT_SET" ? component.parent : null;
+    result.push({
+      id: component.id,
+      name: component.name || "(sem nome)",
+      family: componentSet ? componentSet.name : "",
+      page: pageName(component),
+      path: nodePath(component),
+      instances: instances.length,
+      differentInstances: differentInstances.length,
+      differenceLabels: Object.keys(labels),
+      examples: differentInstances.slice(0, 3)
+    });
+  }
+
+  result.sort(function (a, b) {
+    if (b.differentInstances !== a.differentInstances) return b.differentInstances - a.differentInstances;
+    return a.name.localeCompare(b.name);
+  });
+  return result;
+}
+
+function cleanupInstancesForParentId(parentId, onlyDifferent, options) {
+  var parent = figma.getNodeById(parentId);
+  if (!parent || parent.removed || parent.type !== "COMPONENT") return [];
+  var instances = instancesByMainComponent().index[parent.id] || [];
+  if (!onlyDifferent) return instances;
+  return instances.filter(function (instance) {
+    try { return cleanupDifferenceSummary(parent, instance, options).hasDifferences; } catch (error) { return false; }
+  });
+}
+
+function restoreParentSizing(parent, instance, log) {
+  var sizingFields = ["layoutSizingHorizontal", "layoutSizingVertical", "layoutPositioning"];
+  for (var i = 0; i < sizingFields.length; i++) {
+    var field = sizingFields[i];
+    var parentValue = readNodeProperty(parent, field);
+    if (parentValue === undefined || parentValue === null || parentValue === "") continue;
+    try { instance[field] = parentValue; } catch (error) {
+      if (log) log("⚠️ Não foi possível restaurar " + field + ": " + error.message);
+    }
+  }
+
+  // Em componentes com sizing FIXED, o tamanho também é parte do padrão do
+  // pai. Para FILL/HUG, a propriedade de sizing acima é a fonte de verdade e
+  // não devemos transformar o comportamento em uma largura fixa.
+  var horizontal = readNodeProperty(parent, "layoutSizingHorizontal");
+  var vertical = readNodeProperty(parent, "layoutSizingVertical");
+  try {
+    if (horizontal === "FIXED" && typeof parent.width === "number") {
+      instance.resizeWithoutConstraints(parent.width, instance.height);
+    }
+  } catch (error) {}
+  try {
+    if (vertical === "FIXED" && typeof parent.height === "number") {
+      instance.resizeWithoutConstraints(instance.width, parent.height);
+    }
+  } catch (error) {}
+}
+
+async function cleanupInstancesForParent(parentId, scope, options, postResult) {
+  var parent = figma.getNodeById(parentId);
+  if (!parent || parent.removed || parent.type !== "COMPONENT") {
+    throw new Error("Escolha um componente pai válido para a limpeza.");
+  }
+
+  var allInstances = cleanupInstancesForParentId(parent.id, !!(options && options.onlyDifferent), options);
+  var instances = allInstances.filter(function (instance) {
+    if (!instance || instance.removed) return false;
+    if (scope === "page") {
+      var page = getPage(instance);
+      return page && page.id === figma.currentPage.id;
+    }
+    if (scope === "selection") {
+      return (figma.currentPage.selection || []).some(function (selected) {
+        return selected && selected.id === instance.id;
+      });
+    }
+    return true;
+  });
+
+  if (!instances.length) {
+    throw new Error(scope === "selection"
+      ? "Nenhuma instância do componente pai está selecionada."
+      : "Nenhuma instância encontrada para o escopo escolhido.");
+  }
+
+  var keepConfig = {
+    keepText: !!(options && options.keepText),
+    keepAppearance: !!(options && options.keepAppearance),
+    keepShape: !!(options && options.keepShape),
+    keepDimensions: !!(options && options.keepDimensions),
+    keepLayout: !!(options && options.keepLayout),
+    keepVisibility: !!(options && options.keepVisibility),
+    keepRotation: !!(options && options.keepRotation),
+    keepComponentProperties: !!(options && options.keepComponentProperties),
+    keepNestedVariants: !!(options && options.keepNestedVariants)
+  };
+  var cleaned = 0;
+  var failed = 0;
+  var log = function (text) { figma.ui.postMessage({ type: "log", text: text }); };
+
+  for (var i = 0; i < instances.length; i++) {
+    var instance = instances[i];
+    try {
+      var snapshot = captureCleanupDifferences(parent, instance, keepConfig);
+      var removeOverrides = instance.removeOverrides || instance.resetOverrides;
+      if (!removeOverrides) {
+        throw new Error("Esta versão da API do Figma não oferece remoção de overrides.");
+      }
+      var resetResult = removeOverrides.call(instance);
+      if (resetResult && typeof resetResult.then === "function") await resetResult;
+      await applyOverrideSnapshot(instance, snapshot, log);
+      if (!keepConfig.keepDimensions && !keepConfig.keepLayout) {
+        restoreParentSizing(parent, instance, log);
+      }
+      cleaned++;
+    } catch (error) {
+      failed++;
+      log("⚠️ Não foi possível limpar a instância " + instance.id + ": " + error.message);
+    }
+  }
+
+  var result = {
+    parent: cleanupParentSummary(parent),
+    scope: scope,
+    total: instances.length,
+    cleaned: cleaned,
+    failed: failed
+  };
+  if (postResult !== false) {
+    figma.ui.postMessage({ type: "cleanup-done", parent: result.parent, scope: scope, total: result.total, cleaned: cleaned, failed: failed });
+    figma.notify(cleaned + " instância(s) limpa(s)" + (failed ? "; " + failed + " falha(s)." : "."));
+  }
+  return result;
+}
+
+async function cleanupInstancesForParents(parentIds, scope, options) {
+  var ids = [];
+  var seen = {};
+  for (var i = 0; i < (parentIds || []).length; i++) {
+    var id = String(parentIds[i] || "");
+    if (id && !seen[id]) {
+      seen[id] = true;
+      ids.push(id);
+    }
+  }
+  if (!ids.length) throw new Error("Selecione ao menos um componente pai válido.");
+
+  var total = 0;
+  var cleaned = 0;
+  var failed = 0;
+  for (var p = 0; p < ids.length; p++) {
+    try {
+      var result = await cleanupInstancesForParent(ids[p], scope, options, false);
+      total += result.total;
+      cleaned += result.cleaned;
+      failed += result.failed;
+    } catch (error) {
+      failed++;
+      figma.ui.postMessage({ type: "log", text: "⚠️ Não foi possível limpar o componente " + ids[p] + ": " + error.message });
+    }
+  }
+  if (!total) throw new Error("Nenhuma instância divergente foi encontrada para os componentes selecionados.");
+  figma.ui.postMessage({
+    type: "cleanup-done",
+    parent: null,
+    scope: scope,
+    total: total,
+    cleaned: cleaned,
+    failed: failed
+  });
+  figma.notify(cleaned + " instância(s) limpa(s)" + (failed ? "; " + failed + " falha(s)." : "."));
 }
 
 async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skipAnalysisCheck) {
@@ -2262,7 +3040,7 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skip
           
           for (var c = 0; c < newSet.children.length; c++) {
             var child = newSet.children[c];
-            var childProps = child.variantProperties || {};
+            var childProps = readVariantPropertiesSafely(child);
             var childVariantStr = Object.keys(childProps).sort().map(function (k) {
               return k + "=" + childProps[k];
             }).join(", ");
@@ -2455,6 +3233,226 @@ async function consolidate(dryRun, plans, rawSelectedFields, optionsConfig, skip
   });
 }
 
+function isInsideSelectedNode(node, selectedIds) {
+  var current = node.parent;
+  while (current && current.type !== "DOCUMENT") {
+    if (selectedIds[current.id]) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function hasInstanceAncestor(node) {
+  var current = node.parent;
+  while (current && current.type !== "DOCUMENT") {
+    if (current.type === "INSTANCE") return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function prepareNodeForComponentCreation(node) {
+  if (node.type === "INSTANCE") {
+    return node.detachInstance();
+  }
+  return node;
+}
+
+function groupNodesByParent(nodes) {
+  var groups = [];
+  var groupByParentId = {};
+  for (var i = 0; i < nodes.length; i++) {
+    var parent = nodes[i].parent;
+    if (!parent || !parent.id) continue;
+    var group = groupByParentId[parent.id];
+    if (!group) {
+      group = { parent: parent, nodes: [] };
+      groupByParentId[parent.id] = group;
+      groups.push(group);
+    }
+    group.nodes.push(nodes[i]);
+  }
+  for (var g = 0; g < groups.length; g++) {
+    var siblings = groups[g].parent.children || [];
+    groups[g].nodes.sort(function (a, b) {
+      var indexA = siblings.indexOf(a);
+      var indexB = siblings.indexOf(b);
+      return indexA - indexB;
+    });
+  }
+  return groups;
+}
+
+function createSharedComponentFromNodeGroup(groupNodes) {
+  var page = getPage(groupNodes[0]) || figma.currentPage;
+  var clones = [];
+  var group = null;
+  var component = null;
+  try {
+    for (var i = 0; i < groupNodes.length; i++) {
+      var clone = groupNodes[i].clone();
+      page.appendChild(clone);
+      var position = absolutePosition(groupNodes[i]);
+      try { clone.x = position.x; clone.y = position.y; } catch (positionError) {}
+      try { clone.rotation = groupNodes[i].rotation; } catch (rotationError) {}
+      clones.push(clone);
+    }
+    if (!clones.length) throw new Error("A seleção não contém elementos para formar o componente compartilhado.");
+    if (clones.length === 1) {
+      component = figma.createComponentFromNode(clones[0]);
+    } else {
+      group = figma.group(clones, page);
+      component = figma.createComponentFromNode(group);
+    }
+    component.name = "Componente criado da seleção";
+    try {
+      var bounds = component.absoluteBoundingBox;
+      if (bounds) {
+        component.x = bounds.x + bounds.width + 120;
+        component.y = bounds.y;
+      }
+    } catch (positionError) {}
+    return component;
+  } catch (error) {
+    if (component) {
+      try { component.remove(); } catch (componentCleanupError) {}
+    }
+    if (group) {
+      try { group.remove(); } catch (cleanupError) {}
+    }
+    for (var c = 0; c < clones.length; c++) {
+      try { if (clones[c].removed !== true) clones[c].remove(); } catch (cloneCleanupError) {}
+    }
+    throw error;
+  }
+}
+
+function groupsHaveCompatibleStructure(referenceNodes, targetNodes) {
+  if (referenceNodes.length !== targetNodes.length) return false;
+  for (var i = 0; i < referenceNodes.length; i++) {
+    if (referenceNodes[i].type !== targetNodes[i].type) return false;
+  }
+  return true;
+}
+
+function replaceNodeGroupWithSharedInstance(groupNodes, component, preserveOverrides, reference) {
+  var parent = groupNodes[0] && groupNodes[0].parent;
+  if (!parent || !parent.insertChild) throw new Error("Elemento sem contêiner editável.");
+  for (var i = 1; i < groupNodes.length; i++) {
+    if (groupNodes[i].parent !== parent) throw new Error("Os elementos do grupo não pertencem ao mesmo contêiner.");
+  }
+
+  var source = groupNodes.length === 1 ? groupNodes[0] : figma.group(groupNodes, parent);
+  return insertInstanceReplacing(source, component, preserveOverrides, reference);
+}
+
+async function createComponentsFromSelection(mode) {
+  var selection = figma.currentPage.selection || [];
+  if (!selection.length) throw new Error("Selecione ao menos um elemento para criar componentes.");
+
+  var selectedIds = {};
+  for (var s = 0; s < selection.length; s++) selectedIds[selection[s].id] = true;
+
+  var candidates = [];
+  var skipped = [];
+  for (var i = 0; i < selection.length; i++) {
+    var node = selection[i];
+    if (node.type === "COMPONENT") {
+      skipped.push(node.name + " (já é um componente)");
+      continue;
+    }
+    if (isInsideSelectedNode(node, selectedIds)) {
+      skipped.push(node.name + " (filho de outro item selecionado)");
+      continue;
+    }
+    if (hasInstanceAncestor(node)) {
+      skipped.push(node.name + " (está dentro de uma instância; selecione o mestre do componente)");
+      continue;
+    }
+    candidates.push(node);
+  }
+
+  if (!candidates.length) {
+    throw new Error("Nenhum elemento elegível encontrado na seleção. Componentes existentes e elementos internos de instâncias foram ignorados.");
+  }
+
+  var created = [];
+  var errors = [];
+  if (mode === "single") {
+    var parentGroups = groupNodesByParent(candidates);
+    var templateGroup = parentGroups[0];
+    var sharedComponent;
+    try {
+      sharedComponent = createSharedComponentFromNodeGroup(templateGroup.nodes);
+    } catch (error) {
+      throw new Error("Não foi possível criar o componente compartilhado: " + error.message);
+    }
+
+    var instancesCreated = 0;
+    for (var g = 0; g < parentGroups.length; g++) {
+      if (!groupsHaveCompatibleStructure(templateGroup.nodes, parentGroups[g].nodes)) {
+        errors.push(parentGroups[g].parent.name + ": estrutura diferente do primeiro grupo selecionado");
+        continue;
+      }
+      var parentComponent = owningComponent(parentGroups[g].parent);
+      var instanceOverrideMigrations = captureParentInstanceOverrides(
+        parentComponent,
+        parentGroups[g].nodes
+      );
+      try {
+        await replaceNodeGroupWithSharedInstance(
+          parentGroups[g].nodes,
+          sharedComponent,
+          g > 0,
+          sharedComponent
+        );
+        await applyParentInstanceOverrides(instanceOverrideMigrations, sharedComponent);
+        instancesCreated++;
+      } catch (error) {
+        errors.push(parentGroups[g].parent.name + ": " + error.message);
+      }
+    }
+    if (!instancesCreated) {
+      try { sharedComponent.remove(); } catch (cleanupError) {}
+      throw new Error("Nenhuma instância foi inserida. " + errors.join(" "));
+    }
+    created.push(sharedComponent);
+    figma.currentPage.selection = [sharedComponent];
+    figma.viewport.scrollAndZoomIntoView([sharedComponent]);
+    figma.ui.postMessage({
+      type: "create-components-done",
+      created: 1,
+      instances: instancesCreated,
+      skipped: skipped,
+      errors: errors,
+      mode: mode
+    });
+    figma.notify("Componente compartilhado criado com " + instancesCreated + " instância(s) inserida(s).");
+    return;
+  } else {
+    for (var c = 0; c < candidates.length; c++) {
+      try {
+        var preparedNode = prepareNodeForComponentCreation(candidates[c]);
+        created.push(figma.createComponentFromNode(preparedNode));
+      } catch (error) {
+        errors.push(candidates[c].name + ": " + error.message);
+      }
+    }
+  }
+
+  if (!created.length) throw new Error("Nenhum componente foi criado. " + errors.join(" "));
+  figma.currentPage.selection = created;
+  figma.viewport.scrollAndZoomIntoView(created);
+  figma.ui.postMessage({
+    type: "create-components-done",
+    created: created.length,
+    skipped: skipped,
+    errors: errors,
+    mode: mode
+  });
+  figma.notify(created.length + (created.length === 1 ? " componente criado." : " componentes criados."));
+}
+
 var selectionChangeTimer = null;
 figma.on("selectionchange", function () {
   // Arrastar ou selecionar vários nós dispara diversos eventos em sequência.
@@ -2498,6 +3496,52 @@ figma.ui.onmessage = async function (msg) {
 
     if (msg.type === "request-inventory") {
       figma.ui.postMessage({ type: "inventory", items: componentInventory() });
+      return;
+    }
+
+    if (msg.type === "request-cleanup-analysis") {
+      figma.ui.postMessage({ type: "cleanup-analysis", items: cleanupDifferenceInventory(msg.options || {}) });
+      return;
+    }
+
+    if (msg.type === "create-components-from-selection") {
+      await createComponentsFromSelection(msg.mode || "each");
+      return;
+    }
+
+    if (msg.type === "replace-instances-with-wrapper") {
+      await replaceInstancesWithWrapper(
+        msg.sourceIds || msg.sourceId,
+        msg.targetId,
+        msg.scope || "document",
+        msg.preserveOverrides !== false
+      );
+      return;
+    }
+
+    if (msg.type === "cleanup-instances") {
+      var cleanupOptions = Object.assign({}, msg.options || {}, { onlyDifferent: !!msg.onlyDifferent });
+      if (Array.isArray(msg.parentIds) && msg.parentIds.length > 1) {
+        await cleanupInstancesForParents(msg.parentIds, msg.scope || "document", cleanupOptions);
+      } else {
+        var singleParentId = Array.isArray(msg.parentIds) && msg.parentIds.length ? msg.parentIds[0] : msg.parentId;
+        await cleanupInstancesForParent(singleParentId, msg.scope || "document", cleanupOptions);
+      }
+      return;
+    }
+
+    if (msg.type === "select-cleanup-instances") {
+      var cleanupInstances = cleanupInstancesForParentId(msg.componentId, true, msg.options || {}).filter(function (instance) {
+        var page = getPage(instance);
+        return page && page.id === figma.currentPage.id;
+      });
+      figma.currentPage.selection = cleanupInstances;
+      if (cleanupInstances.length) {
+        figma.viewport.scrollAndZoomIntoView(cleanupInstances);
+        figma.notify(cleanupInstances.length + " instância(s) com diferenças selecionada(s).");
+      } else {
+        figma.notify("Nenhuma instância com diferenças deste componente nesta página.");
+      }
       return;
     }
 

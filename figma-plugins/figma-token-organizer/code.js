@@ -40,12 +40,225 @@ function getFolderFromName(name) {
 }
 
 const loadedFontsSet = new Set();
-async function prepareTextNodeForStyleChange(node, targetStyleId) {
+
+// These are the numeric node properties that Figma exposes as bindable
+// fields. Width/height and min/max dimensions are intentionally excluded:
+// treating every layer dimension as a design-token candidate creates a large
+// amount of noise and does not represent spacing/radius/border tokens.
+const NUMERIC_TOKEN_FIELDS = [
+  { field: 'paddingTop', label: 'Padding superior', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'paddingRight', label: 'Padding direito', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'paddingBottom', label: 'Padding inferior', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'paddingLeft', label: 'Padding esquerdo', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'itemSpacing', label: 'Espaçamento entre itens', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'counterAxisSpacing', label: 'Espaçamento no eixo cruzado', kind: 'auto-layout', tokenKind: 'spacing' },
+  { field: 'gridRowGap', label: 'Gap entre linhas', kind: 'grid', tokenKind: 'spacing' },
+  { field: 'gridColumnGap', label: 'Gap entre colunas', kind: 'grid', tokenKind: 'spacing' },
+  { field: 'cornerRadius', label: 'Raio dos cantos', kind: 'radius', tokenKind: 'radius' },
+  { field: 'topLeftRadius', label: 'Raio superior esquerdo', kind: 'radius', tokenKind: 'radius' },
+  { field: 'topRightRadius', label: 'Raio superior direito', kind: 'radius', tokenKind: 'radius' },
+  { field: 'bottomRightRadius', label: 'Raio inferior direito', kind: 'radius', tokenKind: 'radius' },
+  { field: 'bottomLeftRadius', label: 'Raio inferior esquerdo', kind: 'radius', tokenKind: 'radius' },
+  { field: 'strokeWeight', label: 'Peso da borda', kind: 'stroke', tokenKind: 'stroke' },
+  { field: 'strokeTopWeight', label: 'Peso da borda superior', kind: 'stroke', tokenKind: 'stroke' },
+  { field: 'strokeRightWeight', label: 'Peso da borda direita', kind: 'stroke', tokenKind: 'stroke' },
+  { field: 'strokeBottomWeight', label: 'Peso da borda inferior', kind: 'stroke', tokenKind: 'stroke' },
+  { field: 'strokeLeftWeight', label: 'Peso da borda esquerda', kind: 'stroke', tokenKind: 'stroke' },
+  { field: 'opacity', label: 'Opacidade', kind: 'opacity', tokenKind: 'opacity' }
+];
+const NUMERIC_TOKEN_FIELD_NAMES = new Set(NUMERIC_TOKEN_FIELDS.map(definition => definition.field));
+const EQUIVALENT_BOUND_FIELDS = {
+  // Figma may expose a uniform radius/stroke as a numeric aggregate while
+  // retaining its variable bindings in individual side/corner fields.
+  cornerRadius: ['cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomRightRadius', 'bottomLeftRadius'],
+  topLeftRadius: ['topLeftRadius', 'cornerRadius'],
+  topRightRadius: ['topRightRadius', 'cornerRadius'],
+  bottomRightRadius: ['bottomRightRadius', 'cornerRadius'],
+  bottomLeftRadius: ['bottomLeftRadius', 'cornerRadius'],
+  strokeWeight: ['strokeWeight', 'strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'],
+  strokeTopWeight: ['strokeTopWeight', 'strokeWeight'],
+  strokeRightWeight: ['strokeRightWeight', 'strokeWeight'],
+  strokeBottomWeight: ['strokeBottomWeight', 'strokeWeight'],
+  strokeLeftWeight: ['strokeLeftWeight', 'strokeWeight']
+};
+
+function getTokenKind(name, collectionOrFolder, resolvedType) {
+  if (resolvedType === 'COLOR') return 'color';
+  const path = `${collectionOrFolder || ''}/${name || ''}`
+    .toLowerCase()
+    .replace(/[\s_\-/]+/g, ' ')
+    .trim();
+  if (/\bopacity\b/.test(path)) return 'opacity';
+  if (/\bradius\b/.test(path)) return 'radius';
+  if (/\bstroke\b/.test(path)) return 'stroke';
+  if (/\bfont\s*size\b/.test(path)) return 'font-size';
+  if (/\bfont\s*weight\b/.test(path)) return 'font-weight';
+  if (/\bfont\s*(family|familly)\b/.test(path)) return 'font-family';
+  if (/\bspacing\b/.test(path)) return 'spacing';
+  return 'unclassified';
+}
+
+function createAnalysisContext() {
+  const variables = figma.variables.getLocalVariables();
+  const paintStyles = figma.getLocalPaintStyles();
+  const textStyles = figma.getLocalTextStyles();
+  const effectStyles = figma.getLocalEffectStyles();
+  const gridStyles = figma.getLocalGridStyles();
+  const variablesById = Object.create(null);
+  const collectionsById = Object.create(null);
+  const paintStylesByColor = new Map();
+
+  variables.forEach(variable => { variablesById[variable.id] = variable; });
+  paintStyles.forEach(style => {
+    if (!style.paints || style.paints.length !== 1) return;
+    const paint = style.paints[0];
+    if (!paint || paint.type !== 'SOLID') return;
+    const opacity = paint.opacity !== undefined ? paint.opacity : 1;
+    const key = paintColorKey(paint.color.r, paint.color.g, paint.color.b, opacity);
+    if (!paintStylesByColor.has(key)) paintStylesByColor.set(key, []);
+    paintStylesByColor.get(key).push(paint);
+  });
+
+  return {
+    variables, paintStyles, textStyles, effectStyles, gridStyles,
+    variablesById, collectionsById, paintStylesByColor
+  };
+}
+
+function collectDocumentNodes() {
+  const nodes = [];
+  const stack = [{ node: figma.root, page: null }];
+  while (stack.length > 0) {
+    const entry = stack.pop();
+    const node = entry.node;
+    const page = node.type === 'PAGE' ? node : entry.page;
+    nodes.push({ node, page });
+    if ('children' in node && node.children) {
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        stack.push({ node: node.children[i], page });
+      }
+    }
+  }
+  return nodes;
+}
+
+function paintColorKey(r, g, b, a) {
+  return [r, g, b, a].map(value => Math.floor(value * 10000)).join(':');
+}
+
+function hasEquivalentPaintStyle(paint, paintStylesByColor) {
+  if (!paint || paint.type !== 'SOLID') return false;
+  const opacity = paint.opacity !== undefined ? paint.opacity : 1;
+  const values = [paint.color.r, paint.color.g, paint.color.b, opacity];
+  const buckets = values.map(value => Math.floor(value * 10000));
+  // Values within the original < 0.0001 rule can lie in a neighboring
+  // bucket. Checking those sparse buckets preserves that rule exactly.
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dg = -1; dg <= 1; dg++) {
+      for (let db = -1; db <= 1; db++) {
+        for (let da = -1; da <= 1; da++) {
+          const matches = paintStylesByColor.get([
+            buckets[0] + dr, buckets[1] + dg, buckets[2] + db, buckets[3] + da
+          ].join(':'));
+          if (matches && matches.some(stylePaint => {
+            const styleOpacity = stylePaint.opacity !== undefined ? stylePaint.opacity : 1;
+            return Math.abs(stylePaint.color.r - paint.color.r) < 0.0001 &&
+              Math.abs(stylePaint.color.g - paint.color.g) < 0.0001 &&
+              Math.abs(stylePaint.color.b - paint.color.b) < 0.0001 &&
+              Math.abs(styleOpacity - opacity) < 0.0001;
+          })) return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function getFirstVariableValue(variable) {
+  if (!variable || !variable.valuesByMode) return null;
+  const modeIds = Object.keys(variable.valuesByMode);
+  return modeIds.length > 0 ? variable.valuesByMode[modeIds[0]] : null;
+}
+
+function resolveVariableValue(value, variablesById, seen) {
+  if (!value || typeof value !== 'object' || value.type !== 'VARIABLE_ALIAS') {
+    return value;
+  }
+
+  const visited = seen || new Set();
+  if (visited.has(value.id) || !variablesById[value.id]) return value;
+  visited.add(value.id);
+  return resolveVariableValue(getFirstVariableValue(variablesById[value.id]), variablesById, visited);
+}
+
+function isVariableBinding(binding) {
+  // Current Figma objects expose VARIABLE_ALIAS. The id fallback keeps the
+  // scanner compatible with bindings surfaced without the discriminator.
+  return !!(binding && (binding.type === 'VARIABLE_ALIAS' || typeof binding.id === 'string'));
+}
+
+function hasBoundVariable(node, field) {
+  if (!node || !node.boundVariables) return false;
+  const fields = EQUIVALENT_BOUND_FIELDS[field] || [field];
+  return fields.some(candidateField => {
+    const binding = node.boundVariables[candidateField];
+    return Array.isArray(binding) ? binding.some(isVariableBinding) : isVariableBinding(binding);
+  });
+}
+
+function safeReadNumber(node, field) {
+  try {
+    if (!(field in node)) return null;
+    const value = node[field];
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function shouldScanNumericField(node, definition, value) {
+  if (definition.kind === 'auto-layout') {
+    // Padding is meaningful on auto-layout frames. itemSpacing and
+    // counterAxisSpacing are only meaningful when the corresponding layout
+    // mode is active.
+    if (node.layoutMode !== 'HORIZONTAL' && node.layoutMode !== 'VERTICAL') return false;
+    // SPACE_BETWEEN lets Figma calculate the gap automatically; any numeric
+    // value exposed alongside it is not the effective item spacing.
+    if (definition.field === 'itemSpacing' &&
+        (node.itemSpacing === 'AUTO' || node.primaryAxisAlignItems === 'SPACE_BETWEEN')) return false;
+    if (definition.field === 'counterAxisSpacing' && node.layoutWrap !== 'WRAP') return false;
+  }
+  if (definition.kind === 'grid' && node.layoutMode !== 'GRID') return false;
+  if (definition.kind === 'stroke') {
+    if (!Array.isArray(node.strokes) || !node.strokes.some(p => p && p.visible !== false)) return false;
+    if (value <= 0) return false;
+    // A uniform stroke has one canonical property. Only inspect the four
+    // side-specific fields when Figma reports the aggregate as mixed.
+    if (definition.field !== 'strokeWeight' && safeReadNumber(node, 'strokeWeight') !== null) return false;
+  }
+  if (definition.kind === 'radius') {
+    if (value <= 0) return false;
+    // Avoid reporting cornerRadius and the four individual radii twice when
+    // all corners share the same value.
+    if (definition.field !== 'cornerRadius' && safeReadNumber(node, 'cornerRadius') !== null) return false;
+  }
+  // 1 is the default opacity and is not useful as an opacity-token candidate.
+  if (definition.kind === 'opacity' && value >= 1) return false;
+  return true;
+}
+
+function formatNumericTokenValue(value, definition) {
+  const rounded = Math.round(value * 100) / 100;
+  if (definition.kind === 'opacity') return `${Math.round(rounded * 100)}%`;
+  return `${rounded}px`;
+}
+
+async function prepareTextNodeForStyleChange(node, targetStyleId, targetStyle) {
   if (node.type !== 'TEXT') return;
   try {
     // 1. Load target style's font if applicable
     if (targetStyleId) {
-      const style = await figma.getStyleByIdAsync(targetStyleId);
+      const style = targetStyle || await figma.getStyleByIdAsync(targetStyleId);
       if (style && style.type === 'TEXT' && style.fontName) {
         const key = `${style.fontName.family}-${style.fontName.style}`;
         if (!loadedFontsSet.has(key)) {
@@ -76,40 +289,58 @@ async function prepareTextNodeForStyleChange(node, targetStyleId) {
   }
 }
 
+function forEachTextStyleRange(node, getStyleId, callback) {
+  const length = node.characters.length;
+  let start = 0;
+  while (start < length) {
+    const styleId = getStyleId(start, start + 1);
+    let end = start + 1;
+    let low = end;
+    let high = length;
+
+    // The API returns figma.mixed as soon as a range contains another style.
+    // Binary search lets us process a continuous segment instead of every
+    // character, preserving the old character-based usage count.
+    while (low < high) {
+      const mid = Math.ceil((low + high) / 2);
+      if (getStyleId(start, mid) === styleId) low = mid;
+      else high = mid - 1;
+    }
+    end = low;
+    if (callback(styleId, start, end) === false) return false;
+    start = end;
+  }
+  return true;
+}
+
 // --- SCANNING USAGES IN DOCUMENT ---
 
-function scanUsages() {
-  const tokenMap = {};
+function scanUsages(context) {
+  const tokenMap = Object.create(null);
 
-  // Get local variables
-  const variables = figma.variables.getLocalVariables();
+  const { variables, paintStyles, textStyles, effectStyles, gridStyles } = context;
   variables.forEach(v => {
     tokenMap[v.id] = { id: v.id, type: 'variable', resolvedType: v.resolvedType, name: v.name, count: 0 };
   });
 
   // Get local styles
-  const paintStyles = figma.getLocalPaintStyles();
   paintStyles.forEach(s => {
     tokenMap[s.id] = { id: s.id, type: 'style', styleType: 'paint', name: s.name, count: 0 };
   });
 
-  const textStyles = figma.getLocalTextStyles();
   textStyles.forEach(s => {
     tokenMap[s.id] = { id: s.id, type: 'style', styleType: 'text', name: s.name, count: 0 };
   });
 
-  const effectStyles = figma.getLocalEffectStyles();
   effectStyles.forEach(s => {
     tokenMap[s.id] = { id: s.id, type: 'style', styleType: 'effect', name: s.name, count: 0 };
   });
 
-  const gridStyles = figma.getLocalGridStyles();
   gridStyles.forEach(s => {
     tokenMap[s.id] = { id: s.id, type: 'style', styleType: 'grid', name: s.name, count: 0 };
   });
 
-  // Traverse all nodes to count usage
-  function walk(node) {
+  function inspect(node) {
     // 1. Style properties
     if ('fillStyleId' in node && node.fillStyleId) {
       const id = node.fillStyleId;
@@ -163,33 +394,30 @@ function scanUsages() {
     if (node.type === "TEXT") {
       if (node.textStyleId === figma.mixed) {
         try {
-          const len = node.characters.length;
-          let start = 0;
-          while (start < len) {
-            const styleId = node.getRangeTextStyleId(start, start + 1);
+          forEachTextStyleRange(node, (start, end) => node.getRangeTextStyleId(start, end), (styleId, start, end) => {
             if (styleId && tokenMap[styleId]) {
-              tokenMap[styleId].count++;
+              tokenMap[styleId].count += end - start;
             }
-            start++;
-          }
+          });
         } catch (e) {}
       }
       if (node.fillStyleId === figma.mixed) {
         try {
-          const len = node.characters.length;
-          let start = 0;
-          while (start < len) {
-            const styleId = node.getRangeFillStyleId(start, start + 1);
+          forEachTextStyleRange(node, (start, end) => node.getRangeFillStyleId(start, end), (styleId, start, end) => {
             if (styleId && tokenMap[styleId]) {
-              tokenMap[styleId].count++;
+              tokenMap[styleId].count += end - start;
             }
-            start++;
-          }
+          });
         } catch (e) {}
       }
     }
 
-    // Recursive children traversal
+  }
+
+  // Keep the traversal separate from inspection so the detached-elements
+  // scanner can reuse the same node list during one analysis.
+  function walk(node) {
+    inspect(node);
     if ('children' in node && node.children) {
       for (let i = 0; i < node.children.length; i++) {
         walk(node.children[i]);
@@ -197,21 +425,27 @@ function scanUsages() {
     }
   }
 
-  walk(figma.root);
+  if (context.nodes) context.nodes.forEach(entry => inspect(entry.node));
+  else walk(figma.root);
   return tokenMap;
 }
 
 // --- SERIALIZE DATA FOR UI ---
 
-function getSerializedTokens(tokenCounts) {
+function getSerializedTokens(tokenCounts, context) {
   const result = [];
 
   // 1. Local Variables
-  const localVars = figma.variables.getLocalVariables();
+  const localVars = context.variables;
+  const variablesById = context.variablesById;
   localVars.forEach(v => {
     let collectionName = "Variables";
     try {
-      const coll = figma.variables.getVariableCollectionById(v.variableCollectionId);
+      let coll = context.collectionsById[v.variableCollectionId];
+      if (coll === undefined) {
+        coll = figma.variables.getVariableCollectionById(v.variableCollectionId) || null;
+        context.collectionsById[v.variableCollectionId] = coll;
+      }
       if (coll) collectionName = coll.name;
     } catch (e) {}
 
@@ -220,7 +454,9 @@ function getSerializedTokens(tokenCounts) {
     try {
       const modeIds = Object.keys(v.valuesByMode);
       if (modeIds.length > 0) {
-        rawValue = v.valuesByMode[modeIds[0]];
+        // Resolve local aliases so FLOAT variables can be compared with
+        // numeric node properties during the detached-elements analysis.
+        rawValue = resolveVariableValue(v.valuesByMode[modeIds[0]], variablesById);
         if (rawValue && typeof rawValue === 'object') {
           if ('r' in rawValue && 'g' in rawValue && 'b' in rawValue) {
             const a = 'a' in rawValue ? Math.round(rawValue.a * 100) / 100 : 1;
@@ -248,6 +484,7 @@ function getSerializedTokens(tokenCounts) {
       source: 'variable',
       subType: v.resolvedType,
       category: category,
+      tokenKind: getTokenKind(v.name, collectionName, v.resolvedType),
       collectionOrFolder: collectionName,
       description: v.description || "",
       count: (tokenCounts[v.id] && tokenCounts[v.id].count) || 0,
@@ -257,7 +494,7 @@ function getSerializedTokens(tokenCounts) {
   });
 
   // 2. Paint Styles
-  const paintStyles = figma.getLocalPaintStyles();
+  const paintStyles = context.paintStyles;
   paintStyles.forEach(s => {
     let formattedValue = "";
     let rawValue = null;
@@ -290,6 +527,7 @@ function getSerializedTokens(tokenCounts) {
       source: 'style',
       subType: 'paint',
       category: 'color',
+      tokenKind: 'color',
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
@@ -300,7 +538,7 @@ function getSerializedTokens(tokenCounts) {
   });
 
   // 3. Text Styles
-  const textStyles = figma.getLocalTextStyles();
+  const textStyles = context.textStyles;
   textStyles.forEach(s => {
     let fontName = s.fontName || { family: "Inter", style: "Regular" };
     let fontSize = s.fontSize || 16;
@@ -321,6 +559,7 @@ function getSerializedTokens(tokenCounts) {
       source: 'style',
       subType: 'text',
       category: 'text',
+      tokenKind: 'text-style',
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
@@ -335,7 +574,7 @@ function getSerializedTokens(tokenCounts) {
   });
 
   // 4. Effect Styles
-  const effectStyles = figma.getLocalEffectStyles();
+  const effectStyles = context.effectStyles;
   effectStyles.forEach(s => {
     const count = s.effects ? s.effects.length : 0;
     const propertiesText = `${count} effect(s)`;
@@ -345,6 +584,7 @@ function getSerializedTokens(tokenCounts) {
       source: 'style',
       subType: 'effect',
       category: 'other',
+      tokenKind: 'effect',
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
@@ -354,7 +594,7 @@ function getSerializedTokens(tokenCounts) {
   });
 
   // 5. Local Grid Styles
-  const gridStyles = figma.getLocalGridStyles();
+  const gridStyles = context.gridStyles;
   gridStyles.forEach(s => {
     const count = s.layoutGrids ? s.layoutGrids.length : 0;
     const propertiesText = `${count} grid(s)`;
@@ -364,6 +604,7 @@ function getSerializedTokens(tokenCounts) {
       source: 'style',
       subType: 'grid',
       category: 'other',
+      tokenKind: 'grid',
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
@@ -488,10 +729,8 @@ function replaceVariableInNode(node, oldVarId, newVar) {
 
 // --- SCANNING DETACHED / UNBOUND ELEMENTS ---
 
-function scanDetachedElements() {
+function scanDetachedElements(context) {
   const detached = [];
-  const pages = figma.root.children;
-  const paintStyles = figma.getLocalPaintStyles();
 
   // A variable-bound paint is not detached, but it can still be using the
   // raw token where an equivalent Paint Style already exists.
@@ -503,33 +742,10 @@ function scanDetachedElements() {
     );
   }
 
-  function hasEquivalentPaintStyle(paint) {
-    if (!paint || paint.type !== 'SOLID') return false;
-    const opacity = paint.opacity !== undefined ? paint.opacity : 1;
-    return paintStyles.some(style => {
-      if (!style.paints || style.paints.length !== 1) return false;
-      const stylePaint = style.paints[0];
-      const styleOpacity = stylePaint.opacity !== undefined ? stylePaint.opacity : 1;
-      return stylePaint.type === 'SOLID' &&
-        Math.abs(stylePaint.color.r - paint.color.r) < 0.0001 &&
-        Math.abs(stylePaint.color.g - paint.color.g) < 0.0001 &&
-        Math.abs(stylePaint.color.b - paint.color.b) < 0.0001 &&
-        Math.abs(styleOpacity - opacity) < 0.0001;
-    });
-  }
-
-  for (const page of pages) {
-    if (page.type !== 'PAGE') continue;
-
-    function walk(node) {
-      if (node.type === 'DOCUMENT' || node.type === 'PAGE') {
-        if ('children' in node && node.children) {
-          for (let i = 0; i < node.children.length; i++) {
-            walk(node.children[i]);
-          }
-        }
-        return;
-      }
+  const entries = context.nodes || collectDocumentNodes();
+  for (const entry of entries) {
+      const { node, page } = entry;
+      if (!page || node.type === 'DOCUMENT' || node.type === 'PAGE') continue;
 
       // 1. Fills (Colors)
       if ('fills' in node && Array.isArray(node.fills) && node.fills.length > 0) {
@@ -538,7 +754,7 @@ function scanDetachedElements() {
           node.fills.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
               const hasVar = hasPaintVariable(node, paint, 'fills', pIdx);
-              if (!hasVar || hasEquivalentPaintStyle(paint)) {
+              if (!hasVar || hasEquivalentPaintStyle(paint, context.paintStylesByColor)) {
                 const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
@@ -574,7 +790,7 @@ function scanDetachedElements() {
           node.strokes.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
               const hasVar = hasPaintVariable(node, paint, 'strokes', pIdx);
-              if (!hasVar || hasEquivalentPaintStyle(paint)) {
+              if (!hasVar || hasEquivalentPaintStyle(paint, context.paintStylesByColor)) {
                 const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
@@ -637,7 +853,39 @@ function scanDetachedElements() {
         }
       }
 
-      // 4. Effect Styles
+      // 4. Numeric token fields (Auto Layout, Grid, radius, borders and
+      // opacity). A value is detached when the field has no variable binding.
+      // The field name is kept in `prop` so the correction can bind the exact
+      // property instead of merely changing the displayed value.
+      for (const definition of NUMERIC_TOKEN_FIELDS) {
+        const value = safeReadNumber(node, definition.field);
+        // Zero is the default for several layout fields and does not warrant
+        // a token suggestion. This applies only to numeric properties, never
+        // to color channels or other token types.
+        // Ignore values that are rendered as 0.00 by the UI as well (some
+        // documents contain tiny floating-point residues instead of a literal
+        // zero).
+        if (value === 0 || Math.round(value * 100) / 100 === 0) continue;
+        if (value === null || hasBoundVariable(node, definition.field)) continue;
+        if (!shouldScanNumericField(node, definition, value)) continue;
+
+        detached.push({
+          nodeId: node.id,
+          nodeName: node.name || 'Elemento',
+          nodeType: node.type,
+          pageId: page.id,
+          pageName: page.name,
+          prop: definition.field,
+          propLabel: definition.label,
+          category: 'spacing',
+          subType: 'FLOAT',
+          tokenKind: definition.tokenKind,
+          rawValue: value,
+          formattedValue: formatNumericTokenValue(value, definition)
+        });
+      }
+
+      // 5. Effect Styles
       if ('effects' in node && Array.isArray(node.effects) && node.effects.length > 0) {
         const hasStyle = node.effectStyleId && node.effectStyleId !== figma.mixed && node.effectStyleId !== '';
         if (!hasStyle) {
@@ -658,14 +906,6 @@ function scanDetachedElements() {
         }
       }
 
-      if ('children' in node && node.children) {
-        for (let i = 0; i < node.children.length; i++) {
-          walk(node.children[i]);
-        }
-      }
-    }
-
-    walk(page);
   }
 
   return detached;
@@ -673,7 +913,21 @@ function scanDetachedElements() {
 
 // --- APPLY FIX HELPER ---
 
-async function applyFixToNode(node, fix) {
+function getCachedVariable(variableId, cache) {
+  if (!cache) return figma.variables.getVariableByIdAsync(variableId);
+  if (!cache.has(variableId)) {
+    cache.set(variableId, figma.variables.getVariableByIdAsync(variableId));
+  }
+  return cache.get(variableId);
+}
+
+function getCachedStyle(styleId, cache) {
+  if (!cache) return figma.getStyleByIdAsync(styleId);
+  if (!cache.has(styleId)) cache.set(styleId, figma.getStyleByIdAsync(styleId));
+  return cache.get(styleId);
+}
+
+async function applyFixToNode(node, fix, caches) {
   let changed = false;
   const { prop, targetTokenId, source, paintIndex } = fix;
 
@@ -682,7 +936,7 @@ async function applyFixToNode(node, fix) {
       node.fillStyleId = targetTokenId;
       changed = true;
     } else {
-      const targetVar = await figma.variables.getVariableByIdAsync(targetTokenId);
+      const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
       if (targetVar && Array.isArray(node.fills)) {
         const newFills = node.fills.map((paint, idx) => {
           if (paint.type === 'SOLID') {
@@ -701,7 +955,7 @@ async function applyFixToNode(node, fix) {
       node.strokeStyleId = targetTokenId;
       changed = true;
     } else {
-      const targetVar = await figma.variables.getVariableByIdAsync(targetTokenId);
+      const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
       if (targetVar && Array.isArray(node.strokes)) {
         const newStrokes = node.strokes.map((paint, idx) => {
           if (paint.type === 'SOLID') {
@@ -717,7 +971,8 @@ async function applyFixToNode(node, fix) {
     }
   } else if (prop === 'text') {
     if (source === 'style' && node.type === 'TEXT') {
-      await prepareTextNodeForStyleChange(node, targetTokenId);
+      const targetStyle = await getCachedStyle(targetTokenId, caches && caches.styles);
+      await prepareTextNodeForStyleChange(node, targetTokenId, targetStyle);
       node.textStyleId = targetTokenId;
       changed = true;
     }
@@ -726,19 +981,53 @@ async function applyFixToNode(node, fix) {
       node.effectStyleId = targetTokenId;
       changed = true;
     }
+  } else if (NUMERIC_TOKEN_FIELD_NAMES.has(prop)) {
+    // Numeric design tokens (padding, spacing, radius, border weight, etc.)
+    // are FLOAT variables. `setBoundVariable` preserves the current value
+    // while replacing the raw number with a real variable binding.
+    const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
+    if (targetVar && targetVar.resolvedType === 'FLOAT') {
+      try {
+        node.setBoundVariable(prop, targetVar);
+        changed = true;
+      } catch (e) {
+        console.error(`Erro ao vincular variável FLOAT à propriedade ${prop} no nó ${node.id}:`, e);
+      }
+    }
   }
 
   return changed;
+}
+
+async function applyFixes(fixes) {
+  let appliedCount = 0;
+  const nodesById = new Map();
+  const caches = { variables: new Map(), styles: new Map() };
+
+  for (const fix of fixes) {
+    try {
+      if (!nodesById.has(fix.nodeId)) {
+        nodesById.set(fix.nodeId, figma.getNodeById ? figma.getNodeById(fix.nodeId) : null);
+      }
+      const node = nodesById.get(fix.nodeId);
+      if (node && await applyFixToNode(node, fix, caches)) appliedCount++;
+    } catch (e) {
+      console.error("Erro ao aplicar correção no nó:", e);
+    }
+  }
+  return appliedCount;
 }
 
 // --- ANALYSIS CONTROLLER ---
 
 function performAnalysis() {
   figma.ui.postMessage({ type: "status", text: "Analisando documento..." });
-  const counts = scanUsages();
-  const tokens = getSerializedTokens(counts);
+  const context = createAnalysisContext();
+  context.nodes = collectDocumentNodes();
+  const counts = scanUsages(context);
+  const tokens = getSerializedTokens(counts, context);
   const duplicates = findDuplicates(tokens);
-  const detached = scanDetachedElements();
+  const detached = scanDetachedElements(context);
 
   figma.ui.postMessage({
     type: "analysis-result",
@@ -818,24 +1107,22 @@ figma.ui.onmessage = async (msg) => {
           if (node.type === "TEXT") {
             if (node.textStyleId === figma.mixed) {
               try {
-                const len = node.characters.length;
-                for (let i = 0; i < len; i++) {
-                  if (node.getRangeTextStyleId(i, i + 1) === id) {
+                forEachTextStyleRange(node, (start, end) => node.getRangeTextStyleId(start, end), styleId => {
+                  if (styleId === id) {
                     found = true;
-                    break;
+                    return false;
                   }
-                }
+                });
               } catch (e) {}
             }
             if (node.fillStyleId === figma.mixed) {
               try {
-                const len = node.characters.length;
-                for (let i = 0; i < len; i++) {
-                  if (node.getRangeFillStyleId(i, i + 1) === id) {
+                forEachTextStyleRange(node, (start, end) => node.getRangeFillStyleId(start, end), styleId => {
+                  if (styleId === id) {
                     found = true;
-                    break;
+                    return false;
                   }
-                }
+                });
               } catch (e) {}
             }
           }
@@ -1007,13 +1294,14 @@ figma.ui.onmessage = async (msg) => {
       figma.ui.postMessage({ type: "status", text: "Substituindo tokens no documento..." });
 
       if (source === 'style') {
+        const targetStyle = await figma.getStyleByIdAsync(newTokenId);
         async function walk(node) {
           let changed = false;
 
           if (node.type === "TEXT") {
             const isTargetStyleText = (oldTokenId === node.textStyleId) || (node.textStyleId === figma.mixed);
             if (isTargetStyleText) {
-              await prepareTextNodeForStyleChange(node, newTokenId);
+              await prepareTextNodeForStyleChange(node, newTokenId, targetStyle);
             }
           }
 
@@ -1042,30 +1330,22 @@ figma.ui.onmessage = async (msg) => {
           if (node.type === "TEXT") {
             if (node.textStyleId === figma.mixed) {
               try {
-                let start = 0;
-                const len = node.characters.length;
-                while (start < len) {
-                  const styleId = node.getRangeTextStyleId(start, start + 1);
+                forEachTextStyleRange(node, (start, end) => node.getRangeTextStyleId(start, end), (styleId, start, end) => {
                   if (styleId === oldTokenId) {
-                    node.setRangeTextStyleId(start, start + 1, newTokenId);
+                    node.setRangeTextStyleId(start, end, newTokenId);
                     changed = true;
                   }
-                  start++;
-                }
+                });
               } catch (e) {}
             }
             if (node.fillStyleId === figma.mixed) {
               try {
-                let start = 0;
-                const len = node.characters.length;
-                while (start < len) {
-                  const styleId = node.getRangeFillStyleId(start, start + 1);
+                forEachTextStyleRange(node, (start, end) => node.getRangeFillStyleId(start, end), (styleId, start, end) => {
                   if (styleId === oldTokenId) {
-                    node.setRangeFillStyleId(start, start + 1, newTokenId);
+                    node.setRangeFillStyleId(start, end, newTokenId);
                     changed = true;
                   }
-                  start++;
-                }
+                });
               } catch (e) {}
             }
           }
@@ -1107,33 +1387,35 @@ figma.ui.onmessage = async (msg) => {
       figma.ui.postMessage({ type: "status", text: "Consolidando duplicados..." });
 
       if (source === 'style') {
+        const duplicateIdSet = new Set(duplicateIds);
+        const targetStyle = await figma.getStyleByIdAsync(canonicalId);
         async function walk(node) {
           let changed = false;
 
           if (node.type === "TEXT") {
-            const isTargetStyleText = duplicateIds.includes(node.textStyleId) || (node.textStyleId === figma.mixed);
+            const isTargetStyleText = duplicateIdSet.has(node.textStyleId) || (node.textStyleId === figma.mixed);
             if (isTargetStyleText) {
-              await prepareTextNodeForStyleChange(node, canonicalId);
+              await prepareTextNodeForStyleChange(node, canonicalId, targetStyle);
             }
           }
 
-          if ('fillStyleId' in node && duplicateIds.includes(node.fillStyleId)) {
+          if ('fillStyleId' in node && duplicateIdSet.has(node.fillStyleId)) {
             node.fillStyleId = canonicalId;
             changed = true;
           }
-          if ('strokeStyleId' in node && duplicateIds.includes(node.strokeStyleId)) {
+          if ('strokeStyleId' in node && duplicateIdSet.has(node.strokeStyleId)) {
             node.strokeStyleId = canonicalId;
             changed = true;
           }
-          if ('textStyleId' in node && duplicateIds.includes(node.textStyleId)) {
+          if ('textStyleId' in node && duplicateIdSet.has(node.textStyleId)) {
             node.textStyleId = canonicalId;
             changed = true;
           }
-          if ('effectStyleId' in node && duplicateIds.includes(node.effectStyleId)) {
+          if ('effectStyleId' in node && duplicateIdSet.has(node.effectStyleId)) {
             node.effectStyleId = canonicalId;
             changed = true;
           }
-          if ('gridStyleId' in node && duplicateIds.includes(node.gridStyleId)) {
+          if ('gridStyleId' in node && duplicateIdSet.has(node.gridStyleId)) {
             node.gridStyleId = canonicalId;
             changed = true;
           }
@@ -1142,30 +1424,22 @@ figma.ui.onmessage = async (msg) => {
           if (node.type === "TEXT") {
             if (node.textStyleId === figma.mixed) {
               try {
-                let start = 0;
-                const len = node.characters.length;
-                while (start < len) {
-                  const styleId = node.getRangeTextStyleId(start, start + 1);
-                  if (duplicateIds.includes(styleId)) {
-                    node.setRangeTextStyleId(start, start + 1, canonicalId);
+                forEachTextStyleRange(node, (start, end) => node.getRangeTextStyleId(start, end), (styleId, start, end) => {
+                  if (duplicateIdSet.has(styleId)) {
+                    node.setRangeTextStyleId(start, end, canonicalId);
                     changed = true;
                   }
-                  start++;
-                }
+                });
               } catch (e) {}
             }
             if (node.fillStyleId === figma.mixed) {
               try {
-                let start = 0;
-                const len = node.characters.length;
-                while (start < len) {
-                  const styleId = node.getRangeFillStyleId(start, start + 1);
-                  if (duplicateIds.includes(styleId)) {
-                    node.setRangeFillStyleId(start, start + 1, canonicalId);
+                forEachTextStyleRange(node, (start, end) => node.getRangeFillStyleId(start, end), (styleId, start, end) => {
+                  if (duplicateIdSet.has(styleId)) {
+                    node.setRangeFillStyleId(start, end, canonicalId);
                     changed = true;
                   }
-                  start++;
-                }
+                });
               } catch (e) {}
             }
           }
@@ -1188,9 +1462,10 @@ figma.ui.onmessage = async (msg) => {
       } else {
         const canonicalVar = await figma.variables.getVariableByIdAsync(canonicalId);
         if (canonicalVar) {
+          const duplicateIdSet = new Set(duplicateIds);
           function walk(node) {
             let nodeChanged = false;
-            duplicateIds.forEach(dupId => {
+            duplicateIdSet.forEach(dupId => {
               if (replaceVariableInNode(node, dupId, canonicalVar)) {
                 nodeChanged = true;
               }
@@ -1219,20 +1494,8 @@ figma.ui.onmessage = async (msg) => {
 
     if (msg.type === "fix-detached") {
       const { fixes } = msg;
-      let appliedCount = 0;
       figma.ui.postMessage({ type: "status", text: "Aplicando tokens aos elementos..." });
-
-      for (const fix of fixes) {
-        try {
-          const node = figma.getNodeById ? figma.getNodeById(fix.nodeId) : null;
-          if (node) {
-            const changed = await applyFixToNode(node, fix);
-            if (changed) appliedCount++;
-          }
-        } catch (e) {
-          console.error("Erro ao aplicar correção no nó:", e);
-        }
-      }
+      const appliedCount = await applyFixes(fixes);
 
       figma.notify(`${appliedCount} elemento(s) corrigido(s) com sucesso.`);
       performAnalysis();
@@ -1240,20 +1503,8 @@ figma.ui.onmessage = async (msg) => {
 
     if (msg.type === "auto-fix-all") {
       const { fixes } = msg;
-      let appliedCount = 0;
       figma.ui.postMessage({ type: "status", text: "Executando Auto Fix em lote..." });
-
-      for (const fix of fixes) {
-        try {
-          const node = figma.getNodeById ? figma.getNodeById(fix.nodeId) : null;
-          if (node) {
-            const changed = await applyFixToNode(node, fix);
-            if (changed) appliedCount++;
-          }
-        } catch (e) {
-          console.error("Erro no Auto Fix do nó:", e);
-        }
-      }
+      const appliedCount = await applyFixes(fixes);
 
       figma.notify(`Auto Fix concluído! ${appliedCount} elemento(s) vinculados a tokens.`);
       performAnalysis();
