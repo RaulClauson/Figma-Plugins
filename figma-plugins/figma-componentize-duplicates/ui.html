@@ -365,10 +365,11 @@
         <select class="similar-mode" id="create-components-mode" style="max-width:none; flex:1; padding:7px 8px; font-size:11px;">
           <option value="each">Criar um componente por elemento</option>
           <option value="single">Criar componente compartilhado (instância em cada contêiner)</option>
+          <option value="shared-each">Criar componente compartilhado (instância em cada elemento)</option>
         </select>
         <button class="primary" id="create-components" disabled>🧩 Criar componentes</button>
       </div>
-      <p style="font-size:10px; margin-top:4px;">Ao selecionar elementos correspondentes em componentes diferentes, será criado um único mestre e uma instância dele dentro de cada componente pai. Textos, variantes e propriedades dos componentes filhos podem ser preservados como overrides. Dentro de uma instância, selecione o componente mestre ou desanexe a instância para criar algo exclusivo.</p>
+      <p style="font-size:10px; margin-top:4px;">“Em cada contêiner” agrupa a seleção de cada pai e exige a mesma estrutura. Para casos como HeaderRight com quantidades diferentes de botões, use “Em cada elemento”: será criado um único mestre de botão e uma instância para cada botão selecionado. Textos, variantes e propriedades dos componentes filhos podem ser preservados como overrides.</p>
       <div class="similar-compatibility">
         <span class="similar-compatibility-title">Considerar incompatível quando houver diferença em:</span>
         <div class="similar-compatibility-options">
@@ -1372,7 +1373,11 @@
     byId('create-components').onclick = () => {
       if (!selectionNodeIds.length) return;
       const mode = byId('create-components-mode').value;
-      const modeLabel = mode === 'single' ? 'um componente mestre compartilhado e uma instância em cada contêiner' : 'um componente por elemento';
+      const modeLabel = mode === 'single'
+        ? 'um componente mestre compartilhado e uma instância em cada contêiner'
+        : (mode === 'shared-each'
+          ? 'um componente mestre compartilhado e uma instância em cada elemento'
+          : 'um componente por elemento');
       if (!confirm('Criar ' + modeLabel + ' a partir da seleção atual?')) return;
       byId('create-components').disabled = true;
       byId('explore-status').textContent = 'Criando componentes a partir da seleção...';
@@ -2196,7 +2201,7 @@
         return;
       }
       if (msg.type === 'create-components-done') {
-        const modeLabel = msg.mode === 'single'
+        const modeLabel = msg.mode === 'single' || msg.mode === 'shared-each'
           ? 'mestre compartilhado criado e ' + (msg.instances || 0) + ' instância(s) inserida(s)'
           : 'componente(s) criado(s)';
         let message = '✓ ' + msg.created + ' ' + modeLabel + '.';

@@ -1986,6 +1986,24 @@ async function applyParentInstanceOverrides(migrations, sharedComponent) {
   }
 }
 
+// No modo "um por elemento", cada botão mantém seu próprio caminho dentro do
+// componente pai. Isso evita aplicar o override de todos os botões na primeira
+// instância encontrada dentro do HeaderRight.
+async function applyParentInstanceOverridesForElement(migrations, sharedComponent) {
+  for (var i = 0; i < migrations.length; i++) {
+    var migration = migrations[i];
+    var target = nodeAtPath(migration.instance, migration.targetPath || []);
+    if (!target || target.type !== "INSTANCE") continue;
+    try {
+      if (target.mainComponent && target.mainComponent.id === sharedComponent.id) {
+        await applyOverrideSnapshot(target, migration.snapshot, function (text) {
+          figma.ui.postMessage({ type: "log", text: text });
+        });
+      }
+    } catch (error) {}
+  }
+}
+
 async function applyOverrideSnapshot(instance, snapshot, log) {
   if (!snapshot || !snapshot.items || snapshot.items.length === 0) return;
   await loadOverrideFonts(snapshot.fonts, log);
@@ -3378,6 +3396,56 @@ async function createComponentsFromSelection(mode) {
 
   var created = [];
   var errors = [];
+  if (mode === "shared-each") {
+    var sharedComponentPerElement;
+    try {
+      sharedComponentPerElement = createSharedComponentFromNodeGroup([candidates[0]]);
+    } catch (error) {
+      throw new Error("Não foi possível criar o componente compartilhado: " + error.message);
+    }
+
+    var instancesCreatedPerElement = 0;
+    for (var e = 0; e < candidates.length; e++) {
+      var candidate = candidates[e];
+      var parentComponentForElement = owningComponent(candidate.parent);
+      var elementMigrations = captureParentInstanceOverrides(parentComponentForElement, [candidate]);
+      var candidatePath = parentComponentForElement
+        ? indexPathFromAncestor(candidate, parentComponentForElement)
+        : null;
+      for (var m = 0; m < elementMigrations.length; m++) {
+        elementMigrations[m].targetPath = candidatePath || [];
+      }
+      try {
+        await replaceNodeGroupWithSharedInstance(
+          [candidate],
+          sharedComponentPerElement,
+          e > 0,
+          sharedComponentPerElement
+        );
+        await applyParentInstanceOverridesForElement(elementMigrations, sharedComponentPerElement);
+        instancesCreatedPerElement++;
+      } catch (error) {
+        errors.push(candidate.name + ": " + error.message);
+      }
+    }
+    if (!instancesCreatedPerElement) {
+      try { sharedComponentPerElement.remove(); } catch (cleanupError) {}
+      throw new Error("Nenhuma instância foi inserida. " + errors.join(" "));
+    }
+    created.push(sharedComponentPerElement);
+    figma.currentPage.selection = [sharedComponentPerElement];
+    figma.viewport.scrollAndZoomIntoView([sharedComponentPerElement]);
+    figma.ui.postMessage({
+      type: "create-components-done",
+      created: 1,
+      instances: instancesCreatedPerElement,
+      skipped: skipped,
+      errors: errors,
+      mode: mode
+    });
+    figma.notify("Componente compartilhado criado com " + instancesCreatedPerElement + " instância(s) inserida(s).");
+    return;
+  }
   if (mode === "single") {
     var parentGroups = groupNodesByParent(candidates);
     var templateGroup = parentGroups[0];
