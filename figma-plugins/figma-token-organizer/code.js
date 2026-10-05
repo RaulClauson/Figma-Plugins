@@ -89,17 +89,26 @@ function getTokenKind(name, collectionOrFolder, resolvedType) {
     .replace(/[\s_\-/]+/g, ' ')
     .trim();
   if (/\bopacity\b/.test(path)) return 'opacity';
+  if (/\beffect\s*radius\b/.test(path)) return 'effect-radius';
+  if (/\beffect\s*spread\b/.test(path)) return 'effect-spread';
+  if (/\beffect\s*(offset\s*x|x)\b/.test(path)) return 'effect-offset-x';
+  if (/\beffect\s*(offset\s*y|y)\b/.test(path)) return 'effect-offset-y';
   if (/\bradius\b/.test(path)) return 'radius';
   if (/\bstroke\b/.test(path)) return 'stroke';
   if (/\bfont\s*size\b/.test(path)) return 'font-size';
   if (/\bfont\s*weight\b/.test(path)) return 'font-weight';
   if (/\bfont\s*(family|familly)\b/.test(path)) return 'font-family';
-  if (/\bspacing\b/.test(path)) return 'spacing';
+  if (/\bfont\s*style\b/.test(path)) return 'font-style';
+  if (/\bline\s*height\b/.test(path)) return /percent|%/.test(path) ? 'line-height-percent' : 'line-height-pixels';
+  if (/\bletter\s*spacing\b/.test(path)) return /percent|%/.test(path) ? 'letter-spacing-percent' : 'letter-spacing-pixels';
+  if (/\bpadding\b/.test(path)) return 'spacing';
+  if (/\b(spacing|gap)\b/.test(path)) return 'spacing';
   return 'unclassified';
 }
 
 function createAnalysisContext() {
   const variables = figma.variables.getLocalVariables();
+  const variableCollections = figma.variables.getLocalVariableCollections();
   const paintStyles = figma.getLocalPaintStyles();
   const textStyles = figma.getLocalTextStyles();
   const effectStyles = figma.getLocalEffectStyles();
@@ -116,11 +125,11 @@ function createAnalysisContext() {
     const opacity = paint.opacity !== undefined ? paint.opacity : 1;
     const key = paintColorKey(paint.color.r, paint.color.g, paint.color.b, opacity);
     if (!paintStylesByColor.has(key)) paintStylesByColor.set(key, []);
-    paintStylesByColor.get(key).push(paint);
+    paintStylesByColor.get(key).push({ paint, styleContext: getPaintStyleContext(style.name) });
   });
 
   return {
-    variables, paintStyles, textStyles, effectStyles, gridStyles,
+    variables, variableCollections, paintStyles, textStyles, effectStyles, gridStyles,
     variablesById, collectionsById, paintStylesByColor
   };
 }
@@ -146,7 +155,23 @@ function paintColorKey(r, g, b, a) {
   return [r, g, b, a].map(value => Math.floor(value * 10000)).join(':');
 }
 
-function hasEquivalentPaintStyle(paint, paintStylesByColor) {
+function getPaintStyleContext(styleName) {
+  const folders = String(styleName || '').split('/').map(folder => folder.trim().toLowerCase());
+  // New generated color styles use Color Styles/{Texts|Backgrounds|Strokes}.
+  // Keep recognizing the previous nested and legacy top-level names too.
+  const stylesFolderIndex = folders.lastIndexOf('styles');
+  const folder = folders[0] === 'color styles' && folders[1]
+    ? folders[1]
+    : stylesFolderIndex >= 0 && folders[stylesFolderIndex + 1]
+      ? folders[stylesFolderIndex + 1]
+      : folders[0];
+  if (folder === 'text' || folder === 'texts' || folder === 'text color' || folder === 'text colors') return 'text-fill';
+  if (folder === 'fill' || folder === 'fills' || folder === 'background' || folder === 'backgrounds') return 'fill';
+  if (folder === 'stroke' || folder === 'strokes') return 'stroke';
+  return null;
+}
+
+function hasEquivalentPaintStyle(paint, paintStylesByColor, variableId, styleContext) {
   if (!paint || paint.type !== 'SOLID') return false;
   const opacity = paint.opacity !== undefined ? paint.opacity : 1;
   const values = [paint.color.r, paint.color.g, paint.color.b, opacity];
@@ -160,9 +185,13 @@ function hasEquivalentPaintStyle(paint, paintStylesByColor) {
           const matches = paintStylesByColor.get([
             buckets[0] + dr, buckets[1] + dg, buckets[2] + db, buckets[3] + da
           ].join(':'));
-          if (matches && matches.some(stylePaint => {
+          if (matches && matches.some(styleEntry => {
+            const stylePaint = styleEntry.paint;
             const styleOpacity = stylePaint.opacity !== undefined ? stylePaint.opacity : 1;
-            return Math.abs(stylePaint.color.r - paint.color.r) < 0.0001 &&
+            const styleBinding = stylePaint.boundVariables && stylePaint.boundVariables.color;
+            return (!styleEntry.styleContext || !styleContext || styleEntry.styleContext === styleContext) &&
+              (!variableId || (isVariableBinding(styleBinding) && styleBinding.id === variableId)) &&
+              Math.abs(stylePaint.color.r - paint.color.r) < 0.0001 &&
               Math.abs(stylePaint.color.g - paint.color.g) < 0.0001 &&
               Math.abs(stylePaint.color.b - paint.color.b) < 0.0001 &&
               Math.abs(styleOpacity - opacity) < 0.0001;
@@ -204,6 +233,19 @@ function hasBoundVariable(node, field) {
     const binding = node.boundVariables[candidateField];
     return Array.isArray(binding) ? binding.some(isVariableBinding) : isVariableBinding(binding);
   });
+}
+
+function getBoundVariableId(bindings, field) {
+  const binding = bindings && bindings[field];
+  if (Array.isArray(binding)) {
+    const found = binding.find(isVariableBinding);
+    return found ? (found.id || found.variableId || null) : null;
+  }
+  return isVariableBinding(binding) ? (binding.id || binding.variableId || null) : null;
+}
+
+function getTextVariableId(node, field) {
+  return getBoundVariableId(node && node.boundVariables, field);
 }
 
 function safeReadNumber(node, field) {
@@ -320,7 +362,7 @@ function scanUsages(context) {
 
   const { variables, paintStyles, textStyles, effectStyles, gridStyles } = context;
   variables.forEach(v => {
-    tokenMap[v.id] = { id: v.id, type: 'variable', resolvedType: v.resolvedType, name: v.name, count: 0 };
+    tokenMap[v.id] = { id: v.id, type: 'variable', resolvedType: v.resolvedType, name: v.name, count: 0, elementCount: 0, styleCount: 0 };
   });
 
   // Get local styles
@@ -341,36 +383,36 @@ function scanUsages(context) {
   });
 
   function inspect(node) {
+    const countedOnNode = new Set();
+    const addNodeUsage = (id, amount = 1) => {
+      if (!id || !tokenMap[id]) return;
+      tokenMap[id].count += amount;
+      if (!countedOnNode.has(id)) {
+        tokenMap[id].elementCount = (tokenMap[id].elementCount || 0) + 1;
+        countedOnNode.add(id);
+      }
+    };
+
     // 1. Style properties
     if ('fillStyleId' in node && node.fillStyleId) {
       const id = node.fillStyleId;
-      if (id !== figma.mixed && tokenMap[id]) {
-        tokenMap[id].count++;
-      }
+      if (id !== figma.mixed) addNodeUsage(id);
     }
     if ('strokeStyleId' in node && node.strokeStyleId) {
       const id = node.strokeStyleId;
-      if (id !== figma.mixed && tokenMap[id]) {
-        tokenMap[id].count++;
-      }
+      if (id !== figma.mixed) addNodeUsage(id);
     }
     if ('textStyleId' in node && node.textStyleId) {
       const id = node.textStyleId;
-      if (id !== figma.mixed && tokenMap[id]) {
-        tokenMap[id].count++;
-      }
+      if (id !== figma.mixed) addNodeUsage(id);
     }
     if ('effectStyleId' in node && node.effectStyleId) {
       const id = node.effectStyleId;
-      if (id !== figma.mixed && tokenMap[id]) {
-        tokenMap[id].count++;
-      }
+      if (id !== figma.mixed) addNodeUsage(id);
     }
     if ('gridStyleId' in node && node.gridStyleId) {
       const id = node.gridStyleId;
-      if (id !== figma.mixed && tokenMap[id]) {
-        tokenMap[id].count++;
-      }
+      if (id !== figma.mixed) addNodeUsage(id);
     }
 
     // 2. Bound variables
@@ -380,12 +422,10 @@ function scanUsages(context) {
         if (!val) continue;
         if (Array.isArray(val)) {
           val.forEach(item => {
-            if (item && item.type === 'VARIABLE_ALIAS' && tokenMap[item.id]) {
-              tokenMap[item.id].count++;
-            }
+            if (item && item.type === 'VARIABLE_ALIAS') addNodeUsage(item.id);
           });
-        } else if (val.type === 'VARIABLE_ALIAS' && tokenMap[val.id]) {
-          tokenMap[val.id].count++;
+        } else if (val.type === 'VARIABLE_ALIAS') {
+          addNodeUsage(val.id);
         }
       }
     }
@@ -395,18 +435,14 @@ function scanUsages(context) {
       if (node.textStyleId === figma.mixed) {
         try {
           forEachTextStyleRange(node, (start, end) => node.getRangeTextStyleId(start, end), (styleId, start, end) => {
-            if (styleId && tokenMap[styleId]) {
-              tokenMap[styleId].count += end - start;
-            }
+            if (styleId) addNodeUsage(styleId, end - start);
           });
         } catch (e) {}
       }
       if (node.fillStyleId === figma.mixed) {
         try {
           forEachTextStyleRange(node, (start, end) => node.getRangeFillStyleId(start, end), (styleId, start, end) => {
-            if (styleId && tokenMap[styleId]) {
-              tokenMap[styleId].count += end - start;
-            }
+            if (styleId) addNodeUsage(styleId, end - start);
           });
         } catch (e) {}
       }
@@ -427,6 +463,46 @@ function scanUsages(context) {
 
   if (context.nodes) context.nodes.forEach(entry => inspect(entry.node));
   else walk(figma.root);
+
+  // Variable bindings stored inside local styles are also real consumers.
+  // Count each variable once per style, even if the same variable is bound
+  // to multiple fields or appears in both a top-level and nested binding map.
+  const countStyleVariableBindings = (style, bindingSources) => {
+    const variableIds = new Set();
+    const visited = new Set();
+    const collectAliases = value => {
+      if (!value || typeof value !== 'object' || visited.has(value)) return;
+      visited.add(value);
+      if (value.type === 'VARIABLE_ALIAS' && (value.id || value.variableId)) {
+        variableIds.add(value.id || value.variableId);
+        return;
+      }
+      if (Array.isArray(value)) value.forEach(collectAliases);
+      else Object.keys(value).forEach(key => collectAliases(value[key]));
+    };
+    (bindingSources || []).forEach(collectAliases);
+    variableIds.forEach(id => {
+      const usage = tokenMap[id];
+      if (!usage || usage.type !== 'variable') return;
+      usage.count++;
+      usage.styleCount++;
+    });
+  };
+
+  paintStyles.forEach(style => countStyleVariableBindings(style, [
+    style.boundVariables,
+    (style.paints || []).map(paint => paint && paint.boundVariables)
+  ]));
+  textStyles.forEach(style => countStyleVariableBindings(style, [style.boundVariables]));
+  effectStyles.forEach(style => countStyleVariableBindings(style, [
+    style.boundVariables,
+    (style.effects || []).map(effect => effect && effect.boundVariables)
+  ]));
+  gridStyles.forEach(style => countStyleVariableBindings(style, [
+    style.boundVariables,
+    (style.layoutGrids || []).map(grid => grid && grid.boundVariables)
+  ]));
+
   return tokenMap;
 }
 
@@ -488,6 +564,8 @@ function getSerializedTokens(tokenCounts, context) {
       collectionOrFolder: collectionName,
       description: v.description || "",
       count: (tokenCounts[v.id] && tokenCounts[v.id].count) || 0,
+      elementCount: (tokenCounts[v.id] && tokenCounts[v.id].elementCount) || 0,
+      styleCount: (tokenCounts[v.id] && tokenCounts[v.id].styleCount) || 0,
       rawValue: rawValue,
       propertiesText: formattedValue
     });
@@ -533,6 +611,11 @@ function getSerializedTokens(tokenCounts, context) {
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
       rawValue: rawValue,
       paintType: paintType,
+      variableId: s.paints && s.paints[0] && s.paints[0].boundVariables && s.paints[0].boundVariables.color
+        ? s.paints[0].boundVariables.color.id || null
+        : null,
+      styleContext: getPaintStyleContext(s.name),
+      hasBoundVariables: !!(s.paints || []).some(paint => paint && paint.boundVariables && Object.keys(paint.boundVariables).length > 0),
       propertiesText: formattedValue
     });
   });
@@ -563,6 +646,7 @@ function getSerializedTokens(tokenCounts, context) {
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
+      hasBoundVariables: !!(s.boundVariables && Object.keys(s.boundVariables).length > 0),
       rawValue: {
         fontName: fontName,
         fontSize: fontSize,
@@ -588,6 +672,7 @@ function getSerializedTokens(tokenCounts, context) {
       collectionOrFolder: getFolderFromName(s.name),
       description: s.description || "",
       count: (tokenCounts[s.id] && tokenCounts[s.id].count) || 0,
+      hasBoundVariables: !!(s.effects || []).some(effect => effect && effect.boundVariables && Object.keys(effect.boundVariables).length > 0),
       rawValue: s.effects,
       propertiesText: propertiesText
     });
@@ -621,6 +706,20 @@ function getSerializedTokens(tokenCounts, context) {
 function findDuplicates(tokens) {
   const groups = {};
 
+  const getNumericOrganization = token => {
+    const tokenKind = token.tokenKind || 'spacing';
+    if (tokenKind !== 'spacing') return tokenKind;
+    const path = `${token.collectionOrFolder || ''}/${token.name || ''}`
+      .toLowerCase()
+      .replace(/[\s_\-/]+/g, ' ')
+      .trim();
+    return /\bpadding\b/.test(path) ? 'padding' : 'spacing';
+  };
+
+  const getColorOrganization = token => token.source === 'style'
+    ? `style-${token.styleContext || 'unclassified'}`
+    : `${token.source || 'unknown'}-token`;
+
   tokens.forEach(t => {
     let key = null;
 
@@ -630,12 +729,13 @@ function findDuplicates(tokens) {
         const g = Math.round(t.rawValue.g * 255);
         const b = Math.round(t.rawValue.b * 255);
         const a = t.rawValue.a !== undefined ? Math.round(t.rawValue.a * 100) : 100;
-        // Group by value and source to prevent swapping variables with styles unless desired
-        key = `${t.source}-color-${r}-${g}-${b}-${a}`;
+        // Keep variable tokens separate from styles, and keep generated text,
+        // background and stroke styles in their own semantic folders.
+        key = `${getColorOrganization(t)}-color-${r}-${g}-${b}-${a}`;
       }
     } else if (t.category === 'spacing' && t.subType === 'FLOAT') {
       if (t.rawValue !== null && typeof t.rawValue === 'number') {
-        key = `spacing-${t.rawValue}`;
+        key = `${t.source}-${getNumericOrganization(t)}-${t.rawValue}`;
       }
     } else if (t.category === 'text' && t.subType === 'text') {
       const rv = t.rawValue;
@@ -732,14 +832,23 @@ function replaceVariableInNode(node, oldVarId, newVar) {
 function scanDetachedElements(context) {
   const detached = [];
 
-  // A variable-bound paint is not detached, but it can still be using the
-  // raw token where an equivalent Paint Style already exists.
+  // Include variable-bound paint in the scan so Styles can create contextual
+  // Paint Styles. Corrections only accept a matching style that preserves the
+  // existing variable binding.
   function hasPaintVariable(node, paint, property, paintIndex) {
     const nodeBinding = node.boundVariables && node.boundVariables[property];
     return !!(
       (paint && paint.boundVariables && paint.boundVariables.color) ||
       (Array.isArray(nodeBinding) ? nodeBinding[paintIndex] : nodeBinding)
     );
+  }
+
+  function getPaintVariableId(node, paint, property, paintIndex) {
+    const nodeBinding = node.boundVariables && node.boundVariables[property];
+    const binding = paint && paint.boundVariables && paint.boundVariables.color
+      ? paint.boundVariables.color
+      : (Array.isArray(nodeBinding) ? nodeBinding[paintIndex] : nodeBinding);
+    return isVariableBinding(binding) ? binding.id || null : null;
   }
 
   const entries = context.nodes || collectDocumentNodes();
@@ -750,12 +859,12 @@ function scanDetachedElements(context) {
       // 1. Fills (Colors)
       if ('fills' in node && Array.isArray(node.fills) && node.fills.length > 0) {
         const hasStyle = node.fillStyleId && node.fillStyleId !== figma.mixed && node.fillStyleId !== '';
-        if (!hasStyle) {
+        if (!hasStyle && node.fillStyleId !== figma.mixed) {
           node.fills.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
               const hasVar = hasPaintVariable(node, paint, 'fills', pIdx);
-              if (!hasVar || hasEquivalentPaintStyle(paint, context.paintStylesByColor)) {
-                const r = paint.color.r;
+              const variableId = getPaintVariableId(node, paint, 'fills', pIdx);
+              const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
                 const a = paint.opacity !== undefined ? paint.opacity : 1;
@@ -770,14 +879,17 @@ function scanDetachedElements(context) {
                   pageId: page.id,
                   pageName: page.name,
                   prop: 'fill',
+                  styleContext: node.type === 'TEXT' ? 'text-fill' : 'fill',
                   category: 'color',
                   paintIndex: pIdx,
+                  paintCount: node.fills.length,
                   rawValue: { r, g, b, a },
                   formattedValue: formatted,
                   hasVariable: hasVar,
-                  preferStyle: hasVar
+                  preferStyle: hasVar,
+                  variableId,
+                  correctionEligible: !hasVar || (!!variableId && hasEquivalentPaintStyle(paint, context.paintStylesByColor, variableId, node.type === 'TEXT' ? 'text-fill' : 'fill'))
                 });
-              }
             }
           });
         }
@@ -786,12 +898,12 @@ function scanDetachedElements(context) {
       // 2. Strokes (Colors)
       if ('strokes' in node && Array.isArray(node.strokes) && node.strokes.length > 0) {
         const hasStyle = node.strokeStyleId && node.strokeStyleId !== figma.mixed && node.strokeStyleId !== '';
-        if (!hasStyle) {
+        if (!hasStyle && node.strokeStyleId !== figma.mixed) {
           node.strokes.forEach((paint, pIdx) => {
             if (paint.type === 'SOLID' && paint.visible !== false) {
               const hasVar = hasPaintVariable(node, paint, 'strokes', pIdx);
-              if (!hasVar || hasEquivalentPaintStyle(paint, context.paintStylesByColor)) {
-                const r = paint.color.r;
+              const variableId = getPaintVariableId(node, paint, 'strokes', pIdx);
+              const r = paint.color.r;
                 const g = paint.color.g;
                 const b = paint.color.b;
                 const a = paint.opacity !== undefined ? paint.opacity : 1;
@@ -806,14 +918,17 @@ function scanDetachedElements(context) {
                   pageId: page.id,
                   pageName: page.name,
                   prop: 'stroke',
+                  styleContext: 'stroke',
                   category: 'color',
                   paintIndex: pIdx,
+                  paintCount: node.strokes.length,
                   rawValue: { r, g, b, a },
                   formattedValue: formatted,
                   hasVariable: hasVar,
-                  preferStyle: hasVar
+                  preferStyle: hasVar,
+                  variableId,
+                  correctionEligible: !hasVar || (!!variableId && hasEquivalentPaintStyle(paint, context.paintStylesByColor, variableId, 'stroke'))
                 });
-              }
             }
           });
         }
@@ -821,10 +936,58 @@ function scanDetachedElements(context) {
 
       // 3. Text Styles
       if (node.type === 'TEXT') {
+        const fontName = node.fontName && node.fontName !== figma.mixed ? node.fontName : null;
+        const fontWeight = safeReadNumber(node, 'fontWeight');
+        const lineHeightValue = node.lineHeight && node.lineHeight !== figma.mixed ? node.lineHeight : null;
+        const letterSpacingValue = node.letterSpacing && node.letterSpacing !== figma.mixed ? node.letterSpacing : null;
+        const pushTextVariableCandidate = (field, tokenKind, variableType, rawValue, formattedValue, measureUnit) => {
+          if (rawValue === null || rawValue === undefined || hasBoundVariable(node, field)) return;
+          detached.push({
+            nodeId: node.id,
+            nodeName: node.name || 'Texto',
+            nodeType: node.type,
+            pageId: page.id,
+            pageName: page.name,
+            prop: field,
+            category: 'text-variable',
+            tokenKind,
+            variableType,
+            rawValue,
+            measureUnit: measureUnit || null,
+            formattedValue,
+            correctionEligible: false
+          });
+        };
+
+        if (fontName) {
+          pushTextVariableCandidate('fontFamily', 'font-family', 'STRING', fontName.family, fontName.family);
+        }
+        if (node.fontSize !== figma.mixed && typeof node.fontSize === 'number') {
+          pushTextVariableCandidate('fontSize', 'font-size', 'FLOAT', node.fontSize, `${node.fontSize}px`);
+        }
+        if (fontWeight !== null) {
+          pushTextVariableCandidate('fontWeight', 'font-weight', 'FLOAT', fontWeight, String(fontWeight));
+        }
+        if (lineHeightValue && (lineHeightValue.unit === 'PIXELS' || lineHeightValue.unit === 'PERCENT') &&
+            typeof lineHeightValue.value === 'number') {
+          const unit = lineHeightValue.unit;
+          pushTextVariableCandidate('lineHeight', `line-height-${unit === 'PERCENT' ? 'percent' : 'pixels'}`, 'FLOAT',
+            lineHeightValue.value, `${lineHeightValue.value}${unit === 'PERCENT' ? '%' : 'px'}`, unit);
+        }
+        if (letterSpacingValue && (letterSpacingValue.unit === 'PIXELS' || letterSpacingValue.unit === 'PERCENT') &&
+            typeof letterSpacingValue.value === 'number') {
+          const unit = letterSpacingValue.unit;
+          pushTextVariableCandidate('letterSpacing', `letter-spacing-${unit === 'PERCENT' ? 'percent' : 'pixels'}`, 'FLOAT',
+            letterSpacingValue.value, `${letterSpacingValue.value}${unit === 'PERCENT' ? '%' : 'px'}`, unit);
+        }
+
         const hasStyle = node.textStyleId && node.textStyleId !== figma.mixed && node.textStyleId !== '';
-        if (!hasStyle) {
-          if (node.fontName && node.fontName !== figma.mixed) {
-            const fontName = node.fontName;
+        // A style candidate is separate from its variables. Existing aliases
+        // are retained in the candidate so the new Text Style can reuse them.
+        if (!hasStyle && node.textStyleId !== figma.mixed) {
+          if (fontName &&
+              node.fontSize !== figma.mixed && node.lineHeight !== figma.mixed &&
+              node.letterSpacing !== figma.mixed) {
             const fontSize = node.fontSize !== figma.mixed ? node.fontSize : 16;
             const lineHeight = node.lineHeight !== figma.mixed ? node.lineHeight : { unit: 'AUTO' };
             const letterSpacing = node.letterSpacing !== figma.mixed ? node.letterSpacing : { unit: 'PERCENT', value: 0 };
@@ -844,8 +1007,16 @@ function scanDetachedElements(context) {
               rawValue: {
                 fontName: fontName,
                 fontSize: fontSize,
+                fontWeight: fontWeight,
                 lineHeight: lineHeight,
                 letterSpacing: letterSpacing
+              },
+              styleVariableIds: {
+                fontFamily: getTextVariableId(node, 'fontFamily'),
+                fontSize: getTextVariableId(node, 'fontSize'),
+                fontWeight: getTextVariableId(node, 'fontWeight'),
+                lineHeight: getTextVariableId(node, 'lineHeight'),
+                letterSpacing: getTextVariableId(node, 'letterSpacing')
               },
               formattedValue: `${fontName.family} ${fontName.style}, ${fontSize}px / ${lhText}`
             });
@@ -887,8 +1058,39 @@ function scanDetachedElements(context) {
 
       // 5. Effect Styles
       if ('effects' in node && Array.isArray(node.effects) && node.effects.length > 0) {
+        node.effects.forEach((effect, effectIndex) => {
+          if (!effect || effect.visible === false) return;
+          const effectBindings = effect.boundVariables || {};
+          const effectColor = effect.color;
+          if (effectColor && !isVariableBinding(effectBindings.color)) {
+            detached.push({
+              nodeId: node.id, nodeName: node.name || 'Elemento', nodeType: node.type,
+              pageId: page.id, pageName: page.name, prop: 'effect-color',
+              styleContext: 'effect', category: 'color', effectIndex,
+              rawValue: { r: effectColor.r, g: effectColor.g, b: effectColor.b, a: effectColor.a === undefined ? 1 : effectColor.a },
+              formattedValue: rgbToHex(effectColor.r, effectColor.g, effectColor.b),
+              hasVariable: false, correctionEligible: false
+            });
+          }
+          ['radius', 'spread', 'offsetX', 'offsetY'].forEach(field => {
+            const value = field === 'offsetX'
+              ? effect.offset && effect.offset.x
+              : field === 'offsetY'
+                ? effect.offset && effect.offset.y
+                : effect[field];
+            if (typeof value !== 'number' || !Number.isFinite(value) || isVariableBinding(effectBindings[field])) return;
+            const suffix = field === 'radius' ? 'radius' : field === 'spread' ? 'spread' : field === 'offsetX' ? 'offset-x' : 'offset-y';
+            detached.push({
+              nodeId: node.id, nodeName: node.name || 'Elemento', nodeType: node.type,
+              pageId: page.id, pageName: page.name, prop: `effect-${field}`,
+              category: 'effect-variable', tokenKind: `effect-${suffix}`, variableType: 'FLOAT',
+              effectIndex, rawValue: value, formattedValue: `${value}px`, correctionEligible: false
+            });
+          });
+        });
+
         const hasStyle = node.effectStyleId && node.effectStyleId !== figma.mixed && node.effectStyleId !== '';
-        if (!hasStyle) {
+        if (!hasStyle && node.effectStyleId !== figma.mixed) {
           const visibleEffects = node.effects.filter(e => e.visible !== false);
           if (visibleEffects.length > 0) {
             detached.push({
@@ -929,11 +1131,12 @@ function getCachedStyle(styleId, cache) {
 
 async function applyFixToNode(node, fix, caches) {
   let changed = false;
-  const { prop, targetTokenId, source, paintIndex } = fix;
+  const { prop, targetTokenId, source, paintIndex, effectIndex } = fix;
 
   if (prop === 'fill') {
     if (source === 'style') {
-      node.fillStyleId = targetTokenId;
+      if (typeof node.setFillStyleIdAsync === 'function') await node.setFillStyleIdAsync(targetTokenId);
+      else node.fillStyleId = targetTokenId;
       changed = true;
     } else {
       const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
@@ -952,7 +1155,8 @@ async function applyFixToNode(node, fix, caches) {
     }
   } else if (prop === 'stroke') {
     if (source === 'style') {
-      node.strokeStyleId = targetTokenId;
+      if (typeof node.setStrokeStyleIdAsync === 'function') await node.setStrokeStyleIdAsync(targetTokenId);
+      else node.strokeStyleId = targetTokenId;
       changed = true;
     } else {
       const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
@@ -973,12 +1177,45 @@ async function applyFixToNode(node, fix, caches) {
     if (source === 'style' && node.type === 'TEXT') {
       const targetStyle = await getCachedStyle(targetTokenId, caches && caches.styles);
       await prepareTextNodeForStyleChange(node, targetTokenId, targetStyle);
-      node.textStyleId = targetTokenId;
+      if (typeof node.setTextStyleIdAsync === 'function') await node.setTextStyleIdAsync(targetTokenId);
+      else node.textStyleId = targetTokenId;
       changed = true;
     }
   } else if (prop === 'effect') {
     if (source === 'style') {
-      node.effectStyleId = targetTokenId;
+      if (typeof node.setEffectStyleIdAsync === 'function') await node.setEffectStyleIdAsync(targetTokenId);
+      else node.effectStyleId = targetTokenId;
+      changed = true;
+    }
+  } else if (prop === 'effect-color') {
+    const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
+    const effects = Array.isArray(node.effects) ? node.effects : null;
+    const effect = effects && Number.isInteger(effectIndex) ? effects[effectIndex] : null;
+    if (targetVar && targetVar.resolvedType === 'COLOR' && effect && effect.color &&
+        !isVariableBinding(effect.boundVariables && effect.boundVariables.color)) {
+      const updatedEffect = figma.variables.setBoundVariableForEffect(effect, 'color', targetVar);
+      const updatedEffects = effects.slice();
+      updatedEffects[effectIndex] = updatedEffect;
+      node.effects = updatedEffects;
+      changed = true;
+    }
+  } else if (prop.indexOf('effect-') === 0) {
+    const effectFields = {
+      'effect-radius': 'radius',
+      'effect-spread': 'spread',
+      'effect-offset-x': 'offsetX',
+      'effect-offset-y': 'offsetY'
+    };
+    const field = effectFields[prop];
+    const targetVar = await getCachedVariable(targetTokenId, caches && caches.variables);
+    const effects = Array.isArray(node.effects) ? node.effects : null;
+    const effect = effects && Number.isInteger(effectIndex) ? effects[effectIndex] : null;
+    if (field && targetVar && targetVar.resolvedType === 'FLOAT' && effect &&
+        !isVariableBinding(effect.boundVariables && effect.boundVariables[field])) {
+      const updatedEffect = figma.variables.setBoundVariableForEffect(effect, field, targetVar);
+      const updatedEffects = effects.slice();
+      updatedEffects[effectIndex] = updatedEffect;
+      node.effects = updatedEffects;
       changed = true;
     }
   } else if (NUMERIC_TOKEN_FIELD_NAMES.has(prop)) {
@@ -1032,9 +1269,541 @@ function performAnalysis() {
   figma.ui.postMessage({
     type: "analysis-result",
     tokens: tokens,
+    variableCollections: context.variableCollections.map(collection => ({
+      id: collection.id,
+      name: collection.name,
+      modes: collection.modes.map(mode => ({ id: mode.modeId, name: mode.name }))
+    })),
     duplicates: duplicates,
     detached: detached
   });
+}
+
+function tokenNameExists(name, source, collectionId, category) {
+  if (source === 'variable') {
+    return figma.variables.getLocalVariables().some(variable =>
+      variable.name === name && variable.variableCollectionId === collectionId
+    );
+  }
+  const styles = category === 'color' ? figma.getLocalPaintStyles()
+    : category === 'text' ? figma.getLocalTextStyles()
+    : category === 'other' ? figma.getLocalEffectStyles()
+    : [];
+  return styles.some(style => style.name === name);
+}
+
+function numericValueKey(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? String(Math.round(value * 10000) / 10000)
+    : '';
+}
+
+function colorValueKey(value) {
+  if (!value || typeof value.r !== 'number') return '';
+  const alpha = value.a === undefined ? 1 : value.a;
+  return `${Math.round(value.r * 255)}-${Math.round(value.g * 255)}-${Math.round(value.b * 255)}-${Math.round(alpha * 100)}`;
+}
+
+function textMeasureKey(measure, defaultUnit) {
+  if (!measure) return `${defaultUnit}:0`;
+  const unit = measure.unit || defaultUnit;
+  const value = typeof measure.value === 'number' ? measure.value : 0;
+  return `${unit}:${numericValueKey(value)}`;
+}
+
+function textCandidateKey(value) {
+  if (!value || !value.fontName) return '';
+  const font = value.fontName;
+  return [
+    (font.family || '').toLowerCase(),
+    (font.style || '').toLowerCase(),
+    stableSerializeValue(font.variationSettings || {}),
+    numericValueKey(value.fontSize),
+    numericValueKey(value.fontWeight),
+    textMeasureKey(value.lineHeight, 'AUTO'),
+    textMeasureKey(value.letterSpacing, 'PIXELS')
+  ].join('|');
+}
+
+function stableSerializeValue(value) {
+  if (value === null || value === undefined) return String(value);
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerializeValue).join(',')}]`;
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerializeValue(value[key])}`).join(',')}}`;
+}
+
+function effectCandidateKey(effects) {
+  const visibleEffects = Array.isArray(effects)
+    ? effects.filter(effect => effect && effect.visible !== false)
+    : [];
+  return stableSerializeValue(visibleEffects.map(effect => {
+    const normalized = {};
+    Object.keys(effect).sort().forEach(key => {
+      if (key !== 'visible' && effect[key] !== undefined) normalized[key] = effect[key];
+    });
+    return normalized;
+  }));
+}
+
+function candidateTargetStillMatches(node, target, candidate) {
+  if (!node || !target || !candidate) return false;
+
+  if (candidate.category === 'color') {
+    if (target.prop === 'effect-color') {
+      const effect = Array.isArray(node.effects) && Number.isInteger(target.effectIndex)
+        ? node.effects[target.effectIndex]
+        : null;
+      if (!effect || effect.visible === false || !effect.color ||
+          isVariableBinding(effect.boundVariables && effect.boundVariables.color)) return false;
+      const expectedColor = target.rawValue || candidate.rawValue;
+      return colorValueKey(effect.color) === colorValueKey(expectedColor) &&
+        colorValueKey(candidate.rawValue) === colorValueKey(expectedColor);
+    }
+    if (target.prop !== 'fill' && target.prop !== 'stroke') return false;
+    const styleId = target.prop === 'fill' ? node.fillStyleId : node.strokeStyleId;
+    const paints = target.prop === 'fill' ? node.fills : node.strokes;
+    if (styleId) return false;
+    if (!Array.isArray(paints) || !paints[target.paintIndex]) return false;
+    const paint = paints[target.paintIndex];
+    if (!paint || paint.type !== 'SOLID' || paint.visible === false) return false;
+    const bindings = node.boundVariables && node.boundVariables[target.prop === 'fill' ? 'fills' : 'strokes'];
+    const binding = Array.isArray(bindings) ? bindings[target.paintIndex] : bindings;
+    const paintBinding = paint.boundVariables && paint.boundVariables.color;
+    const currentVariableId = isVariableBinding(paintBinding) ? paintBinding.id : isVariableBinding(binding) ? binding.id : null;
+    const hasPaintBinding = isVariableBinding(paintBinding) || !!paintBinding || isVariableBinding(binding);
+    if (candidate.source === 'style') {
+      if (hasPaintBinding && (!candidate.variableId || currentVariableId !== candidate.variableId)) return false;
+    } else if (hasPaintBinding) {
+      return false;
+    }
+    return colorValueKey({
+      r: paint.color.r,
+      g: paint.color.g,
+      b: paint.color.b,
+      a: paint.opacity === undefined ? 1 : paint.opacity
+    }) === colorValueKey(candidate.rawValue);
+  }
+
+  if (candidate.category === 'spacing') {
+    if (!NUMERIC_TOKEN_FIELD_NAMES.has(target.prop) || hasBoundVariable(node, target.prop)) return false;
+    const currentValue = numericValueKey(safeReadNumber(node, target.prop));
+    const acceptedValues = Array.isArray(candidate.sourceValues) && candidate.sourceValues.length
+      ? candidate.sourceValues
+      : [candidate.rawValue];
+    return acceptedValues.some(value => numericValueKey(value) === currentValue);
+  }
+
+  if (candidate.category === 'effect-variable') {
+    const effectFields = {
+      'effect-radius': 'radius',
+      'effect-spread': 'spread',
+      'effect-offset-x': 'offsetX',
+      'effect-offset-y': 'offsetY'
+    };
+    const field = effectFields[target.prop];
+    const effect = Array.isArray(node.effects) && Number.isInteger(target.effectIndex)
+      ? node.effects[target.effectIndex]
+      : null;
+    if (!field || !effect || effect.visible === false ||
+        isVariableBinding(effect.boundVariables && effect.boundVariables[field])) return false;
+    const currentValue = field === 'offsetX'
+      ? effect.offset && effect.offset.x
+      : field === 'offsetY'
+        ? effect.offset && effect.offset.y
+        : effect[field];
+    if (typeof currentValue !== 'number' || !Number.isFinite(currentValue)) return false;
+    const acceptedValues = Array.isArray(candidate.sourceValues) && candidate.sourceValues.length
+      ? candidate.sourceValues
+      : [target.rawValue !== undefined ? target.rawValue : candidate.rawValue];
+    const expectedValue = target.rawValue !== undefined ? target.rawValue : currentValue;
+    return numericValueKey(currentValue) === numericValueKey(expectedValue) &&
+      acceptedValues.some(value => numericValueKey(value) === numericValueKey(currentValue));
+  }
+
+  if (candidate.category === 'text') {
+    if (node.type !== 'TEXT' || node.textStyleId) return false;
+    if (!node.fontName || node.fontName === figma.mixed || node.fontSize === figma.mixed ||
+        node.lineHeight === figma.mixed || node.letterSpacing === figma.mixed) return false;
+    return textCandidateKey({
+      fontName: node.fontName,
+      fontSize: node.fontSize,
+      fontWeight: safeReadNumber(node, 'fontWeight'),
+      lineHeight: node.lineHeight,
+      letterSpacing: node.letterSpacing
+    }) === textCandidateKey(candidate.rawValue);
+  }
+
+  if (candidate.category === 'other' && target.prop === 'effect') {
+    if (node.effectStyleId) return false;
+    return effectCandidateKey(node.effects) === effectCandidateKey(candidate.rawValue);
+  }
+
+  return false;
+}
+
+function getSuggestionCollection(candidate, collectionCache) {
+  const cacheKey = candidate.collectionId || '__default__';
+  let collection = collectionCache.get(cacheKey);
+  if (!collection && candidate.collectionId) {
+    collection = figma.variables.getLocalVariableCollections()
+      .find(item => item.id === candidate.collectionId) || null;
+  }
+  if (!collection) collection = figma.variables.createVariableCollection('Tokens');
+  collectionCache.set(cacheKey, collection);
+  collectionCache.set(collection.id, collection);
+  return collection;
+}
+
+function getCandidateFixes(candidate, targetTokenId) {
+  const fixes = [];
+  const nodesById = new Map();
+  for (const target of candidate.nodes || []) {
+    let node = nodesById.get(target.nodeId);
+    if (node === undefined) {
+      node = figma.getNodeById ? figma.getNodeById(target.nodeId) : null;
+      nodesById.set(target.nodeId, node);
+    }
+    if (node && candidate.category === 'color' && candidate.source === 'style') {
+      const paints = target.prop === 'fill' ? node.fills : node.strokes;
+      if (!Array.isArray(paints) || paints.length !== 1 || target.paintIndex !== 0) {
+        throw new Error('Paint Styles substituem todos os fills ou strokes. Escolha uma variável de cor para preservar as outras pinturas.');
+      }
+    }
+    if (!candidateTargetStillMatches(node, target, candidate)) continue;
+    fixes.push({
+      nodeId: target.nodeId,
+      prop: target.prop,
+      paintIndex: target.paintIndex,
+      effectIndex: target.effectIndex,
+      targetTokenId,
+      source: candidate.source
+    });
+  }
+  if (fixes.length === 0) {
+    throw new Error('Os elementos mudaram desde a análise; atualize as sugestões e tente novamente.');
+  }
+  return fixes;
+}
+
+async function getStyleVariable(id, expectedType) {
+  if (!id) throw new Error('A style precisa de um token compatÃ­vel. Crie os tokens primeiro e atualize a anÃ¡lise.');
+  const variable = await figma.variables.getVariableByIdAsync(id);
+  if (!variable || variable.resolvedType !== expectedType) {
+    throw new Error('Um token usado por este style nÃ£o estÃ¡ mais disponÃ­vel. Atualize a anÃ¡lise.');
+  }
+  return variable;
+}
+
+async function createSuggestionToken(candidate, collectionCache) {
+  const { name, source, category, tokenKind, rawValue } = candidate;
+  if (!name || !name.trim()) throw new Error('Digite um nome para o item.');
+  if (!Array.isArray(candidate.nodes) || candidate.nodes.length === 0) {
+    throw new Error('A sugestÃ£o nÃ£o possui ocorrÃªncias de origem.');
+  }
+
+  let createdToken = null;
+  let fixes = [];
+  try {
+    if (source === 'variable') {
+      const collection = getSuggestionCollection(candidate, collectionCache);
+      const variableType = candidate.variableType || (category === 'color' ? 'COLOR' : 'FLOAT');
+      const variable = figma.variables.createVariable(name.trim(), collection, variableType);
+      createdToken = variable;
+      const value = variableType === 'COLOR'
+        ? { r: rawValue.r, g: rawValue.g, b: rawValue.b, a: rawValue.a === undefined ? 1 : rawValue.a }
+        : variableType === 'STRING' ? String(rawValue) : Number(rawValue);
+      collection.modes.forEach(mode => variable.setValueForMode(mode.modeId, value));
+      // Layout tokens have no equivalent Style type, so bind them directly to
+      // their source fields. Composite styles use their variables separately.
+      if (category === 'color' || category === 'spacing' || category === 'effect-variable') {
+        fixes = getCandidateFixes(candidate, variable.id);
+      }
+      return { token: variable, fixes, tokenKind: tokenKind || null };
+    }
+
+    if (source !== 'style') throw new Error('Escolha uma variÃ¡vel ou um style para criar.');
+    fixes = getCandidateFixes(candidate, null);
+
+    if (category === 'color') {
+      const variable = await getStyleVariable(candidate.variableId, 'COLOR');
+      const style = figma.createPaintStyle();
+      createdToken = style;
+      style.name = name.trim();
+      style.paints = [figma.variables.setBoundVariableForPaint({
+        type: 'SOLID', color: { r: rawValue.r, g: rawValue.g, b: rawValue.b },
+        opacity: rawValue.a === undefined ? 1 : rawValue.a
+      }, 'color', variable)];
+    } else if (category === 'text') {
+      const requiredTextFields = ['fontFamily', 'fontSize', 'fontWeight'];
+      if (rawValue.lineHeight && (rawValue.lineHeight.unit === 'PIXELS' || rawValue.lineHeight.unit === 'PERCENT')) {
+        requiredTextFields.push('lineHeight');
+      }
+      if (rawValue.letterSpacing && (rawValue.letterSpacing.unit === 'PIXELS' || rawValue.letterSpacing.unit === 'PERCENT')) {
+        requiredTextFields.push('letterSpacing');
+      }
+      if (requiredTextFields.some(field => !candidate.styleVariableIds || !candidate.styleVariableIds[field])) {
+        throw new Error('Este Text Style precisa de um token para cada propriedade tipográfica suportada. Crie os tokens e atualize a análise.');
+      }
+      await figma.loadFontAsync(rawValue.fontName);
+      const style = figma.createTextStyle();
+      createdToken = style;
+      style.name = name.trim();
+      style.fontName = rawValue.fontName;
+      style.fontSize = rawValue.fontSize;
+      if (rawValue.lineHeight) style.lineHeight = rawValue.lineHeight;
+      if (rawValue.letterSpacing) style.letterSpacing = rawValue.letterSpacing;
+      const fieldTypes = {
+        fontFamily: 'STRING', fontSize: 'FLOAT',
+        fontWeight: 'FLOAT', lineHeight: 'FLOAT', letterSpacing: 'FLOAT'
+      };
+      for (const field of Object.keys(candidate.styleVariableIds || {})) {
+        style.setBoundVariable(field, await getStyleVariable(candidate.styleVariableIds[field], fieldTypes[field]));
+      }
+    } else if (category === 'other' && candidate.prop === 'effect') {
+      const style = figma.createEffectStyle();
+      createdToken = style;
+      style.name = name.trim();
+      const effects = [];
+      for (let index = 0; index < (rawValue || []).length; index++) {
+        const effect = rawValue[index];
+        let nextEffect = Object.assign({}, effect);
+        const aliases = (candidate.styleVariableIds || [])[index] || {};
+        if (effect.color) {
+          nextEffect = figma.variables.setBoundVariableForEffect(nextEffect, 'color', await getStyleVariable(aliases.color, 'COLOR'));
+        }
+        for (const field of ['radius', 'spread', 'offsetX', 'offsetY']) {
+          const fieldValue = field === 'offsetX'
+            ? effect.offset && effect.offset.x
+            : field === 'offsetY'
+              ? effect.offset && effect.offset.y
+              : effect[field];
+          if (typeof fieldValue !== 'number') continue;
+          nextEffect = figma.variables.setBoundVariableForEffect(nextEffect, field, await getStyleVariable(aliases[field], 'FLOAT'));
+        }
+        effects.push(nextEffect);
+      }
+      style.effects = effects;
+    } else {
+      throw new Error('Este tipo de style ainda nÃ£o pode ser criado.');
+    }
+  } catch (error) {
+    if (createdToken) {
+      try { createdToken.remove(); } catch (removeError) {}
+    }
+    throw error;
+  }
+
+  try {
+    fixes = getCandidateFixes(candidate, createdToken.id);
+  } catch (error) {
+    try { createdToken.remove(); } catch (removeError) {}
+    throw error;
+  }
+  return { token: createdToken, fixes, tokenKind: tokenKind || null };
+}
+
+function variableRequirementKey(requirement) {
+  if (!requirement) return "";
+  const type = requirement.variableType || "FLOAT";
+  const value = type === "COLOR"
+    ? colorValueKey(requirement.rawValue)
+    : type === "STRING"
+      ? String(requirement.rawValue).toLowerCase()
+      : numericValueKey(Number(requirement.rawValue));
+  return [
+    requirement.collectionId || "",
+    type,
+    requirement.tokenKind || "",
+    requirement.measureUnit || "",
+    value
+  ].join("|");
+}
+
+function suggestionVariableValue(requirement) {
+  const type = requirement.variableType || "FLOAT";
+  if (type === "COLOR") {
+    const value = requirement.rawValue || {};
+    return { r: value.r, g: value.g, b: value.b, a: value.a === undefined ? 1 : value.a };
+  }
+  return type === "STRING" ? String(requirement.rawValue) : Number(requirement.rawValue);
+}
+
+async function createStyleDependencyVariable(requirement, collectionCache, dependencyVariables) {
+  if (!requirement || !requirement.variableType || requirement.rawValue === undefined) {
+    throw new Error("Nao foi possivel determinar um dos tokens necessarios para este style.");
+  }
+  const signature = variableRequirementKey(requirement);
+  if (dependencyVariables.has(signature)) return dependencyVariables.get(signature);
+
+  const collection = getSuggestionCollection({
+    collectionId: requirement.collectionId || "",
+    name: requirement.name
+  }, collectionCache);
+  const name = String(requirement.name || "").trim();
+  if (!name) throw new Error("Um token necessario para este style esta sem nome.");
+  if (tokenNameExists(name, "variable", collection.id, requirement.variableType === "COLOR" ? "color" : "spacing")) {
+    throw new Error("Ja existe uma variavel chamada \"" + name + "\" na colecao escolhida.");
+  }
+
+  const variable = figma.variables.createVariable(name, collection, requirement.variableType);
+  try {
+    const value = suggestionVariableValue(requirement);
+    collection.modes.forEach(mode => variable.setValueForMode(mode.modeId, value));
+  } catch (error) {
+    try { variable.remove(); } catch (removeError) {}
+    throw error;
+  }
+  dependencyVariables.set(signature, variable);
+  return variable;
+}
+
+async function resolveStyleVariableRequirement(requirement, context) {
+  if (!requirement) throw new Error("Este style nao informa todos os tokens necessarios.");
+  if (requirement.id) return getStyleVariable(requirement.id, requirement.variableType || "FLOAT");
+
+  if (requirement.candidateKey) {
+    const createdCandidate = context.variablesByCandidateKey.get(requirement.candidateKey);
+    if (createdCandidate && createdCandidate.token) return createdCandidate.token;
+    if (context.availableCandidateKeys.has(requirement.candidateKey)) {
+      throw new Error("Um token necessario nao pode ser criado. Confira as falhas na lista.");
+    }
+  }
+
+  return createStyleDependencyVariable(requirement, context.collectionCache, context.dependencyVariables);
+}
+
+async function prepareStyleVariableBindings(candidate, context) {
+  const requirements = candidate.styleVariableRequirements || {};
+  const fieldTypes = {
+    fontFamily: "STRING", fontSize: "FLOAT",
+    fontWeight: "FLOAT", lineHeight: "FLOAT", letterSpacing: "FLOAT"
+  };
+
+  if (candidate.category === "color") {
+    const variable = await resolveStyleVariableRequirement(requirements.color, context);
+    candidate.variableId = variable.id;
+    return;
+  }
+
+  if (candidate.category === "text") {
+    const ids = {};
+    for (const [field, requirement] of Object.entries(requirements.text || {})) {
+      const variable = await resolveStyleVariableRequirement(requirement, context);
+      if (variable.resolvedType !== fieldTypes[field]) {
+        throw new Error("O token de " + field + " tem um tipo incompativel com este Text Style.");
+      }
+      ids[field] = variable.id;
+    }
+    const requiredFields = ["fontFamily", "fontSize", "fontWeight"];
+    if (candidate.rawValue.lineHeight &&
+        (candidate.rawValue.lineHeight.unit === "PIXELS" || candidate.rawValue.lineHeight.unit === "PERCENT")) {
+      requiredFields.push("lineHeight");
+    }
+    if (candidate.rawValue.letterSpacing &&
+        (candidate.rawValue.letterSpacing.unit === "PIXELS" || candidate.rawValue.letterSpacing.unit === "PERCENT")) {
+      requiredFields.push("letterSpacing");
+    }
+    if (requiredFields.some(field => !ids[field])) {
+      throw new Error("Este Text Style precisa de um token para cada propriedade tipografica suportada.");
+    }
+    candidate.styleVariableIds = ids;
+    return;
+  }
+
+  if (candidate.category === "other" && candidate.prop === "effect") {
+    const effects = [];
+    for (const aliases of requirements.effects || []) {
+      const fields = {};
+      for (const [field, requirement] of Object.entries(aliases || {})) {
+        const variable = await resolveStyleVariableRequirement(requirement, context);
+        const expectedType = field === "color" ? "COLOR" : "FLOAT";
+        if (variable.resolvedType !== expectedType) {
+          throw new Error("O token de " + field + " tem um tipo incompativel com este Effect Style.");
+        }
+        fields[field] = variable.id;
+      }
+      effects.push(fields);
+    }
+    candidate.styleVariableIds = effects;
+  }
+}
+
+async function createSuggestionTokens(plan) {
+  const tokenCandidates = Array.isArray(plan) ? plan.filter(candidate => candidate.source === "variable") : (plan.tokens || []);
+  const styleCandidates = Array.isArray(plan) ? plan.filter(candidate => candidate.source === "style") : (plan.styles || []);
+  const results = [];
+  const collectionCache = new Map();
+  const variableCache = new Map();
+  const variablesByCandidateKey = new Map();
+  const availableCandidateKeys = new Set(tokenCandidates.map(candidate => candidate.key));
+  const dependencyVariables = new Map();
+  const createdVariableIds = new Set();
+  const createdStyleIds = new Set();
+  const fixes = [];
+  const context = { collectionCache, variablesByCandidateKey, availableCandidateKeys, dependencyVariables };
+
+  for (const candidate of tokenCandidates) {
+    try {
+      if (!candidate.name || !candidate.name.trim()) throw new Error("Digite um nome para o token.");
+      let created = null;
+      if (candidate.key && variablesByCandidateKey.has(candidate.key)) {
+        created = variablesByCandidateKey.get(candidate.key);
+      } else if (candidate.existingTokenId) {
+        const existing = await getCachedVariable(candidate.existingTokenId, variableCache);
+        const expectedType = candidate.variableType || (candidate.category === 'color' ? 'COLOR' : 'FLOAT');
+        if (!existing || existing.resolvedType !== expectedType) {
+          throw new Error('O token existente não está mais disponível ou tem um tipo incompatível. Atualize a análise.');
+        }
+        created = {
+          token: null,
+          fixes: getCandidateFixes(candidate, existing.id),
+          tokenKind: candidate.tokenKind || null
+        };
+      } else {
+        if (tokenNameExists(candidate.name.trim(), "variable", candidate.collectionId, candidate.category)) {
+          throw new Error("Ja existe uma variavel chamada \"" + candidate.name.trim() + "\".");
+        }
+        created = await createSuggestionToken(candidate, collectionCache);
+        if (created.token && created.token.id) createdVariableIds.add(created.token.id);
+      }
+      if (candidate.key) variablesByCandidateKey.set(candidate.key, created);
+      fixes.push(...(created.fixes || []));
+      results.push({ name: candidate.name, success: true, kind: "token", applied: (created.fixes || []).length });
+    } catch (error) {
+      results.push({ name: candidate && candidate.name || "", success: false, kind: "token", error: error.message });
+    }
+  }
+
+  for (const candidate of styleCandidates) {
+    try {
+      if (!candidate.name || !candidate.name.trim()) throw new Error("Digite um nome para o style.");
+      await prepareStyleVariableBindings(candidate, context);
+      if (tokenNameExists(candidate.name.trim(), "style", candidate.collectionId, candidate.category)) {
+        throw new Error("Ja existe um style chamado \"" + candidate.name.trim() + "\".");
+      }
+      const created = await createSuggestionToken(candidate, collectionCache);
+      if (created.token && created.token.id) createdStyleIds.add(created.token.id);
+      fixes.push(...(created.fixes || []));
+      results.push({ name: candidate.name, success: true, kind: "style", applied: (created.fixes || []).length });
+    } catch (error) {
+      results.push({ name: candidate && candidate.name || "", success: false, kind: "style", error: error.message });
+    }
+  }
+
+  const appliedCount = await applyFixes(fixes);
+  const tokenCount = createdVariableIds.size + dependencyVariables.size;
+  const styleCount = createdStyleIds.size;
+  const createdCount = tokenCount + styleCount;
+  figma.ui.postMessage({
+    type: "create-suggestions-result",
+    createdCount,
+    tokenCount,
+    styleCount,
+    appliedCount,
+    results
+  });
+  figma.notify(tokenCount + " token(s) e " + styleCount + " style(s) criados; " + appliedCount + " camada(s) vinculada(s).");
+  performAnalysis();
 }
 
 // --- MESSAGE HANDLER ---
@@ -1240,8 +2009,16 @@ figma.ui.onmessage = async (msg) => {
       performAnalysis();
     }
 
+    if (msg.type === "create-suggestion-plan") {
+      await createSuggestionTokens(msg.plan || {});
+    }
+
+    if (msg.type === "create-suggestion-tokens") {
+      await createSuggestionTokens(msg.candidates || []);
+    }
+
     if (msg.type === "update-token") {
-      const { id, source, name, value } = msg;
+      const { id, source, name, value, preserveBoundValues } = msg;
 
       if (source === 'variable') {
         const v = await figma.variables.getVariableByIdAsync(id);
@@ -1266,7 +2043,9 @@ figma.ui.onmessage = async (msg) => {
         const s = await figma.getStyleByIdAsync(id);
         if (s) {
           s.name = name;
-          if (s.type === 'PAINT') {
+          if (preserveBoundValues) {
+            figma.notify("Style renamed; bound variable values were preserved.");
+          } else if (s.type === 'PAINT') {
             const rgba = hexToRgba(value);
             s.paints = [{ type: 'SOLID', color: { r: rgba.r, g: rgba.g, b: rgba.b }, opacity: rgba.a }];
           } else if (s.type === 'TEXT') {
@@ -1281,7 +2060,7 @@ figma.ui.onmessage = async (msg) => {
               }
             }
           }
-          figma.notify("Estilo atualizado.");
+          if (!preserveBoundValues) figma.notify("Estilo atualizado.");
         }
       }
       performAnalysis();

@@ -185,18 +185,26 @@ function canSafelyConvertToAutoLayout(child) {
 
 function getTargetNodes(scope) {
   var nodes = [];
+  var seen = {};
+
+  function addNode(node) {
+    if (!node || seen[node.id]) return;
+    seen[node.id] = true;
+    nodes.push(node);
+  }
+
   if (scope === "selection") {
     var sel = figma.currentPage.selection;
     if (!sel || sel.length === 0) {
       return [];
     }
     for (var i = 0; i < sel.length; i++) {
-      nodes.push(sel[i]);
+      addNode(sel[i]);
       if ("findAll" in sel[i]) {
         var descendants = sel[i].findAll(function () {
           return true;
         });
-        nodes = nodes.concat(descendants);
+        for (var d = 0; d < descendants.length; d++) addNode(descendants[d]);
       }
     }
   } else {
@@ -493,6 +501,280 @@ function analyzeGroups(nodes) {
   return results;
 }
 
+// --- Análise de Auto Layout ---
+
+function getAutoLayoutSettings(frame) {
+  try {
+    if (typeof frame.inferredAutoLayout === "undefined") return null;
+    var inferred = frame.inferredAutoLayout;
+    if (!inferred || !inferred.layoutMode || inferred.layoutMode === "NONE") return null;
+
+    return {
+      layoutMode: inferred.layoutMode,
+      layoutWrap: inferred.layoutWrap || "NO_WRAP",
+      primaryAxisSizingMode: inferred.primaryAxisSizingMode || "AUTO",
+      counterAxisSizingMode: inferred.counterAxisSizingMode || "AUTO",
+      primaryAxisAlignItems: inferred.primaryAxisAlignItems || "MIN",
+      counterAxisAlignItems: inferred.counterAxisAlignItems || "MIN",
+      paddingLeft: typeof inferred.paddingLeft === "number" ? inferred.paddingLeft : 0,
+      paddingRight: typeof inferred.paddingRight === "number" ? inferred.paddingRight : 0,
+      paddingTop: typeof inferred.paddingTop === "number" ? inferred.paddingTop : 0,
+      paddingBottom: typeof inferred.paddingBottom === "number" ? inferred.paddingBottom : 0,
+      itemSpacing: typeof inferred.itemSpacing === "number" ? inferred.itemSpacing : 0,
+      counterAxisSpacing: typeof inferred.counterAxisSpacing === "number" ? inferred.counterAxisSpacing : null,
+      strokesIncludedInLayout: typeof inferred.strokesIncludedInLayout === "boolean" ? inferred.strokesIncludedInLayout : null,
+      itemReverseZIndex: typeof inferred.itemReverseZIndex === "boolean" ? inferred.itemReverseZIndex : null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function getAutoLayoutFlowLabel(layoutMode) {
+  if (layoutMode === "HORIZONTAL") return "Horizontal";
+  if (layoutMode === "VERTICAL") return "Vertical";
+  if (layoutMode === "GRID") return "Grade";
+  return "Desconhecido";
+}
+
+function getAutoLayoutGapLabel(settings) {
+  if (settings.primaryAxisAlignItems === "SPACE_BETWEEN") return "Auto · Entre";
+  if (settings.primaryAxisAlignItems === "SPACE_EVENLY") return "Auto · Uniforme";
+  if (settings.primaryAxisAlignItems === "SPACE_AROUND") return "Auto · Ao redor";
+  return settings.itemSpacing + " px";
+}
+
+function matchesInferredCrossAlignment(children, settings, horizontal) {
+  var alignment = settings.counterAxisAlignItems;
+  if (alignment === "BASELINE") return false;
+
+  var positions = [];
+  for (var i = 0; i < children.length; i++) {
+    var child = children[i];
+    if (horizontal) {
+      if (alignment === "CENTER") positions.push(child.y + child.height / 2);
+      else if (alignment === "MAX") positions.push(child.y + child.height);
+      else positions.push(child.y);
+    } else {
+      if (alignment === "CENTER") positions.push(child.x + child.width / 2);
+      else if (alignment === "MAX") positions.push(child.x + child.width);
+      else positions.push(child.x);
+    }
+  }
+
+  return Math.max.apply(Math, positions) - Math.min.apply(Math, positions) <= 1.5;
+}
+
+function analyzeAutoLayoutRisk(frame, settings) {
+  var reasons = [];
+  var classification = "secured";
+
+  if (frame.locked) {
+    return { classification: "incompatible", reasons: ["Frame bloqueado"] };
+  }
+
+  if (settings.layoutMode === "GRID") {
+    return { classification: "incompatible", reasons: ["A inferência sugere Auto Layout em grade, ainda não suportado"] };
+  }
+
+  if (settings.layoutMode !== "HORIZONTAL" && settings.layoutMode !== "VERTICAL") {
+    return { classification: "incompatible", reasons: ["Fluxo inferido não suportado"] };
+  }
+
+  var children = frame.children ? [].slice.call(frame.children) : [];
+  if (children.length < 2) {
+    return { classification: "incompatible", reasons: ["São necessários pelo menos dois filhos para inferir um fluxo"] };
+  }
+
+  var horizontal = settings.layoutMode === "HORIZONTAL";
+  var orderedChildren = children.slice().sort(function (a, b) {
+    var aMain = horizontal ? a.x : a.y;
+    var bMain = horizontal ? b.x : b.y;
+    if (Math.abs(aMain - bMain) > 0.5) return aMain - bMain;
+    var aCross = horizontal ? a.y : a.x;
+    var bCross = horizontal ? b.y : b.x;
+    return aCross - bCross;
+  });
+
+  var orderMatches = true;
+  for (var i = 0; i < children.length; i++) {
+    if (children[i].id !== orderedChildren[i].id) {
+      orderMatches = false;
+      break;
+    }
+  }
+
+  var hasOverlap = false;
+  for (var aIdx = 0; aIdx < children.length; aIdx++) {
+    for (var bIdx = aIdx + 1; bIdx < children.length; bIdx++) {
+      var aChild = children[aIdx];
+      var bChild = children[bIdx];
+      var overlapX = Math.min(aChild.x + aChild.width, bChild.x + bChild.width) - Math.max(aChild.x, bChild.x);
+      var overlapY = Math.min(aChild.y + aChild.height, bChild.y + bChild.height) - Math.max(aChild.y, bChild.y);
+      if (overlapX > 0.5 && overlapY > 0.5) hasOverlap = true;
+    }
+  }
+
+  var gaps = [];
+  for (var g = 1; g < orderedChildren.length; g++) {
+    var previous = orderedChildren[g - 1];
+    var current = orderedChildren[g];
+    var gap = horizontal
+      ? current.x - (previous.x + previous.width)
+      : current.y - (previous.y + previous.height);
+    gaps.push(gap);
+  }
+
+  var minGap = Math.min.apply(Math, gaps);
+  var maxGap = Math.max.apply(Math, gaps);
+  var gapsConsistent = maxGap - minGap <= Math.max(1, Math.abs(maxGap) * 0.05);
+  var alignmentMatches = matchesInferredCrossAlignment(children, settings, horizontal);
+  var hasMask = !!frame.isMask;
+  var hasRotation = false;
+  for (var c = 0; c < children.length; c++) {
+    if (children[c].isMask) hasMask = true;
+    if (typeof children[c].rotation === "number" && Math.abs(children[c].rotation) > 0.5) hasRotation = true;
+  }
+
+  if (settings.layoutWrap === "WRAP") {
+    classification = "high-risk";
+    reasons.push("Fluxo com quebra de linha pode reorganizar os filhos");
+  }
+  if (hasOverlap) {
+    classification = "high-risk";
+    reasons.push("Há elementos sobrepostos; eles podem precisar de posição absoluta");
+  }
+  if (!orderMatches) {
+    classification = "high-risk";
+    reasons.push("A ordem visual difere da ordem das camadas");
+  }
+  if (minGap < -0.5) {
+    classification = "high-risk";
+    reasons.push("Há sobreposição no eixo principal do fluxo");
+  }
+  if (hasMask) {
+    classification = "high-risk";
+    reasons.push("O frame ou um filho usa máscara");
+  }
+  if (hasRotation && classification === "secured") {
+    classification = "low-risk";
+    reasons.push("Há elementos rotacionados; confira o resultado visual");
+  }
+  if (!gapsConsistent && classification === "secured") {
+    classification = "low-risk";
+    reasons.push("Os espaçamentos atuais variam; será aplicado o valor inferido pelo Figma");
+  }
+  if (!alignmentMatches && classification === "secured") {
+    classification = "low-risk";
+    reasons.push("O alinhamento transversal pode mudar; confira a prévia no Figma");
+  }
+
+  if (classification === "secured") {
+    reasons.push("Fluxo " + getAutoLayoutFlowLabel(settings.layoutMode).toLowerCase() + " claro, ordem preservada e espaçamento regular");
+  }
+
+  return { classification: classification, reasons: reasons };
+}
+
+function analyzeAutoLayoutFrames(nodes) {
+  var results = [];
+  var seen = {};
+
+  for (var i = 0; i < nodes.length; i++) {
+    var frame = nodes[i];
+    if (!frame || frame.type !== "FRAME" || seen[frame.id]) continue;
+    seen[frame.id] = true;
+    if (frame.layoutMode && frame.layoutMode !== "NONE") continue;
+    if (!frame.children || frame.children.length < 2) continue;
+    if (isInsideInstance(frame)) continue;
+
+    var settings = getAutoLayoutSettings(frame);
+    if (!settings) continue;
+
+    var risk = analyzeAutoLayoutRisk(frame, settings);
+    results.push({
+      id: frame.id,
+      name: frame.name,
+      path: nodePath(frame),
+      depth: getNodeDepth(frame),
+      classification: risk.classification,
+      reasons: risk.reasons,
+      settings: settings,
+      selected: risk.classification === "secured",
+    });
+  }
+
+  return results;
+}
+
+function supportsAutoLayoutInference(nodes) {
+  var foundFrame = false;
+  for (var i = 0; i < nodes.length; i++) {
+    if (!nodes[i] || nodes[i].type !== "FRAME") continue;
+    foundFrame = true;
+    try {
+      if (typeof nodes[i].inferredAutoLayout !== "undefined") return true;
+    } catch (e) {}
+  }
+  return foundFrame ? false : null;
+}
+
+function executeAutoLayout(frame, dryRun, log) {
+  try {
+    if (!frame || frame.removed || frame.type !== "FRAME") {
+      return { success: false, error: "Camada não é um frame válido" };
+    }
+    if (frame.locked || isInsideInstance(frame)) {
+      return { success: false, error: "Frame bloqueado ou dentro de uma instância" };
+    }
+    if (frame.layoutMode && frame.layoutMode !== "NONE") {
+      return { success: false, error: "Frame já possui Auto Layout" };
+    }
+
+    var settings = getAutoLayoutSettings(frame);
+    if (!settings || (settings.layoutMode !== "HORIZONTAL" && settings.layoutMode !== "VERTICAL")) {
+      return { success: false, error: "O Figma não inferiu um fluxo horizontal ou vertical compatível" };
+    }
+
+    if (dryRun) {
+      log(
+        "  SIMULAÇÃO: '" + frame.name + "' → " + getAutoLayoutFlowLabel(settings.layoutMode) +
+          ", alinhamento " + settings.primaryAxisAlignItems + "/" + settings.counterAxisAlignItems +
+          ", gap " + getAutoLayoutGapLabel(settings) +
+          ", padding T/R/B/L " + settings.paddingTop + "/" + settings.paddingRight + "/" + settings.paddingBottom + "/" + settings.paddingLeft + "."
+      );
+      return { success: true };
+    }
+
+    // Definir o fluxo primeiro; as demais propriedades só se aplicam com Auto Layout ativo.
+    frame.layoutMode = settings.layoutMode;
+    frame.primaryAxisSizingMode = settings.primaryAxisSizingMode;
+    frame.counterAxisSizingMode = settings.counterAxisSizingMode;
+    frame.layoutWrap = settings.layoutWrap;
+    frame.paddingTop = settings.paddingTop;
+    frame.paddingRight = settings.paddingRight;
+    frame.paddingBottom = settings.paddingBottom;
+    frame.paddingLeft = settings.paddingLeft;
+    frame.itemSpacing = settings.itemSpacing;
+    if (settings.layoutWrap === "WRAP" && typeof settings.counterAxisSpacing === "number") {
+      frame.counterAxisSpacing = settings.counterAxisSpacing;
+    }
+    frame.primaryAxisAlignItems = settings.primaryAxisAlignItems;
+    frame.counterAxisAlignItems = settings.counterAxisAlignItems;
+    if (typeof settings.strokesIncludedInLayout === "boolean") {
+      frame.strokesIncludedInLayout = settings.strokesIncludedInLayout;
+    }
+    if (typeof settings.itemReverseZIndex === "boolean") {
+      frame.itemReverseZIndex = settings.itemReverseZIndex;
+    }
+
+    return { success: true };
+  } catch (e) {
+    log("  ERRO ao aplicar Auto Layout em '" + (frame ? frame.name : "frame") + "': " + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // --- Execução: Remover/Mesclar Frame Redundante ---
 
 function executeRedundantFrame(parent, child, dryRun, log) {
@@ -733,26 +1015,48 @@ function executeEmptyFrame(node, dryRun, log) {
 // --- Execução: Converter Grupo em Frame ---
 
 function executeGroupToFrame(group, dryRun, log) {
+  var groupName = "grupo";
   try {
     if (dryRun) {
       return { success: true };
     }
 
+    if (!group || group.removed) {
+      return { success: false, error: "Grupo removido ou indisponível" };
+    }
+
+    // Guardar valores antes de mover filhos: grupos mudam de posição/tamanho e
+    // são removidos automaticamente quando ficam vazios.
+    groupName = group.name;
+    var groupX = typeof group.x === "number" ? group.x : 0;
+    var groupY = typeof group.y === "number" ? group.y : 0;
+    var groupWidth = typeof group.width === "number" ? group.width : 1;
+    var groupHeight = typeof group.height === "number" ? group.height : 1;
+    var childrenToMove = group.children ? [].slice.call(group.children) : [];
+    var childPositions = [];
+    for (var c = 0; c < childrenToMove.length; c++) {
+      childPositions.push({
+        node: childrenToMove[c],
+        x: childrenToMove[c].x - groupX,
+        y: childrenToMove[c].y - groupY,
+      });
+    }
+
     var parent = group.parent;
     if (!parent) {
-      log("  ERRO: Grupo sem pai.");
-      return { success: false };
+      log("  ERRO: Grupo '" + groupName + "' sem pai.");
+      return { success: false, error: "Grupo sem pai" };
     }
 
     var index = parent.children.indexOf(group);
     var frame = figma.createFrame();
 
-    frame.name = group.name;
-    frame.x = group.x;
-    frame.y = group.y;
+    frame.name = groupName;
+    frame.x = groupX;
+    frame.y = groupY;
     frame.resize(
-      Math.max(1, typeof group.width === "number" ? group.width : 1),
-      Math.max(1, typeof group.height === "number" ? group.height : 1)
+      Math.max(1, groupWidth),
+      Math.max(1, groupHeight)
     );
     if (typeof group.rotation === "number") frame.rotation = group.rotation;
     if (typeof group.opacity === "number") frame.opacity = group.opacity;
@@ -764,20 +1068,17 @@ function executeGroupToFrame(group, dryRun, log) {
     parent.insertChild(index, frame);
 
     // Mover filhos preservando posições relativas
-    var children = group.children ? [].slice.call(group.children) : [];
-    for (var i = 0; i < children.length; i++) {
-      var child = children[i];
-      var relX = child.x - group.x;
-      var relY = child.y - group.y;
+    for (var i = 0; i < childPositions.length; i++) {
+      var child = childPositions[i].node;
       frame.appendChild(child);
-      child.x = relX;
-      child.y = relY;
+      child.x = childPositions[i].x;
+      child.y = childPositions[i].y;
     }
 
-    group.remove();
+    // Figma remove automaticamente o GroupNode quando o último filho sai.
     return { success: true };
   } catch (e) {
-    log("  ERRO ao converter grupo '" + group.name + "': " + e.message);
+    log("  ERRO ao converter grupo '" + groupName + "': " + e.message);
     return { success: false, error: e.message };
   }
 }
@@ -810,6 +1111,8 @@ figma.ui.onmessage = function (msg) {
         redundant: [],
         empty: [],
         groups: [],
+        autoLayout: [],
+        autoLayoutInferenceSupported: null,
         totalNodes: 0,
       });
       return;
@@ -818,14 +1121,18 @@ figma.ui.onmessage = function (msg) {
     var redundant = analyzeRedundantFrames(targetNodes);
     var empty = analyzeEmptyFrames(targetNodes, msg.emptyRules || {});
     var groups = analyzeGroups(targetNodes);
+    var autoLayout = analyzeAutoLayoutFrames(targetNodes);
+    var autoLayoutInferenceSupported = supportsAutoLayoutInference(targetNodes);
 
-    log("Análise concluída: " + redundant.length + " redundantes, " + empty.length + " vazios, " + groups.length + " grupos.");
+    log("Análise concluída: " + redundant.length + " redundantes, " + empty.length + " vazios, " + groups.length + " grupos, " + autoLayout.length + " sugestões de Auto Layout.");
 
     figma.ui.postMessage({
       type: "analysis-result",
       redundant: redundant,
       empty: empty,
       groups: groups,
+      autoLayout: autoLayout,
+      autoLayoutInferenceSupported: autoLayoutInferenceSupported,
       totalNodes: targetNodes.length,
     });
   } else if (msg.type === "execute") {
@@ -833,6 +1140,7 @@ figma.ui.onmessage = function (msg) {
     var redundantIds = msg.redundantIds || [];
     var emptyIds = msg.emptyIds || [];
     var groupIds = msg.groupIds || [];
+    var autoLayoutIds = msg.autoLayoutIds || [];
 
     log("=========================================");
     log((dryRun ? "INICIANDO SIMULAÇÃO (DRY RUN)" : "INICIANDO APLICAÇÃO REAL") + "...");
@@ -842,6 +1150,7 @@ figma.ui.onmessage = function (msg) {
       redundantProcessed: 0,
       emptyProcessed: 0,
       groupsProcessed: 0,
+      autoLayoutProcessed: 0,
       errors: 0,
     };
 
@@ -905,6 +1214,36 @@ figma.ui.onmessage = function (msg) {
       }
     }
 
+    // 4. Aplicar Auto Layout (ordenado bottom-up para estabilizar frames aninhados)
+    if (autoLayoutIds.length > 0) {
+      log("Processando " + autoLayoutIds.length + " sugestão(ões) de Auto Layout...");
+
+      var autoLayoutNodes = [];
+      for (var a = 0; a < autoLayoutIds.length; a++) {
+        var autoLayoutNode = figma.getNodeById(autoLayoutIds[a]);
+        if (autoLayoutNode) {
+          autoLayoutNodes.push({
+            node: autoLayoutNode,
+            depth: getNodeDepth(autoLayoutNode),
+          });
+        }
+      }
+
+      autoLayoutNodes.sort(function (a, b) {
+        return b.depth - a.depth;
+      });
+
+      for (var aIdx = 0; aIdx < autoLayoutNodes.length; aIdx++) {
+        var aNode = autoLayoutNodes[aIdx].node;
+        var aRes = executeAutoLayout(aNode, dryRun, log);
+        if (aRes.success) stats.autoLayoutProcessed++;
+        else {
+          stats.errors++;
+          log("  Ignorado '" + aNode.name + "': " + aRes.error);
+        }
+      }
+    }
+
     log("-----------------------------------------");
     log(
       (dryRun ? "Simulação finalizada!" : "Aplicação finalizada com sucesso!") +
@@ -914,6 +1253,8 @@ figma.ui.onmessage = function (msg) {
         stats.emptyProcessed +
         ", Grupos: " +
         stats.groupsProcessed +
+        ", Auto Layout: " +
+        stats.autoLayoutProcessed +
         ", Falhas: " +
         stats.errors
     );
@@ -921,7 +1262,7 @@ figma.ui.onmessage = function (msg) {
 
     figma.notify(
       (dryRun ? "Simulação concluída: " : "Limpeza concluída: ") +
-        (stats.redundantProcessed + stats.emptyProcessed + stats.groupsProcessed) +
+        (stats.redundantProcessed + stats.emptyProcessed + stats.groupsProcessed + stats.autoLayoutProcessed) +
         " itens processados."
     );
 
@@ -931,7 +1272,7 @@ figma.ui.onmessage = function (msg) {
       stats: stats,
     });
   } else if (msg.type === "execute-single") {
-    var action = msg.action; // 'redundant' | 'empty' | 'group'
+    var action = msg.action; // 'redundant' | 'empty' | 'group' | 'auto-layout'
     var singleNode = figma.getNodeById(msg.id);
     if (!singleNode) {
       figma.notify("Camada não encontrada.");
@@ -945,8 +1286,11 @@ figma.ui.onmessage = function (msg) {
       executeEmptyFrame(singleNode, false, log);
       figma.notify("Frame vazio removido.");
     } else if (action === "group" && singleNode.type === "GROUP") {
-      executeGroupToFrame(singleNode, false, log);
-      figma.notify("Grupo convertido em Frame.");
+      var groupResult = executeGroupToFrame(singleNode, false, log);
+      figma.notify(groupResult.success ? "Grupo convertido em Frame." : "Falha ao converter grupo: " + groupResult.error);
+    } else if (action === "auto-layout" && singleNode.type === "FRAME") {
+      var autoLayoutResult = executeAutoLayout(singleNode, false, log);
+      figma.notify(autoLayoutResult.success ? "Auto Layout aplicado." : "Não foi possível aplicar Auto Layout.");
     }
 
     figma.ui.postMessage({

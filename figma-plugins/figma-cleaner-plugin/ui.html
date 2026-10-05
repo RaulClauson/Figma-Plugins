@@ -308,6 +308,20 @@
       text-overflow: ellipsis;
     }
 
+    .auto-layout-details {
+      font-size: 10px;
+      line-height: 1.4;
+      color: #334155;
+      white-space: normal;
+    }
+
+    .auto-layout-reasons {
+      font-size: 10px;
+      line-height: 1.35;
+      color: #64748b;
+      white-space: normal;
+    }
+
     .tag {
       font-size: 9px;
       font-weight: 700;
@@ -526,6 +540,9 @@
     <button class="tab-btn" id="tab-btn-groups" onclick="switchTab('groups')">
       📦 Grupos <span class="tab-badge" id="badge-groups">0</span>
     </button>
+    <button class="tab-btn" id="tab-btn-autolayout" onclick="switchTab('autolayout')">
+      ↔️ Auto Layout <span class="tab-badge" id="badge-autolayout">0</span>
+    </button>
   </div>
 
   <!-- Content Area -->
@@ -647,6 +664,44 @@
       </div>
     </div>
 
+    <!-- Tab 4: Auto Layout suggestions -->
+    <div class="tab-content" id="tab-content-autolayout">
+      <div class="card">
+        <div class="card-title">Sugestões baseadas na inferência do Figma</div>
+        <div class="auto-layout-reasons">A prévia mostra fluxo, alinhamento, padding e gap inferidos. Apenas itens classificados como Seguro são pré-selecionados.</div>
+      </div>
+
+      <div class="filter-pills">
+        <button class="pill-btn active" id="pill-auto-all" onclick="filterAutoLayout('all')">
+          Todos <span class="pill-count" id="count-auto-all">0</span>
+        </button>
+        <button class="pill-btn" id="pill-auto-secured" onclick="filterAutoLayout('secured')">
+          🟢 Seguros <span class="pill-count" id="count-auto-secured">0</span>
+        </button>
+        <button class="pill-btn" id="pill-auto-low-risk" onclick="filterAutoLayout('low-risk')">
+          🟡 Baixo Risco <span class="pill-count" id="count-auto-low-risk">0</span>
+        </button>
+        <button class="pill-btn" id="pill-auto-high-risk" onclick="filterAutoLayout('high-risk')">
+          🟠 Alto Risco <span class="pill-count" id="count-auto-high-risk">0</span>
+        </button>
+        <button class="pill-btn" id="pill-auto-incompatible" onclick="filterAutoLayout('incompatible')">
+          🔴 Incompatíveis <span class="pill-count" id="count-auto-incompatible">0</span>
+        </button>
+      </div>
+
+      <div class="list-header">
+        <label class="select-all-label">
+          <input type="checkbox" id="check-all-autolayout" onchange="toggleSelectAllAutoLayout(this.checked)" />
+          Selecionar todos elegíveis visíveis
+        </label>
+        <span id="autolayout-selected-count">0 selecionados</span>
+      </div>
+
+      <div class="items-container" id="list-autolayout">
+        <div class="empty-state">Clique em “Analisar” para encontrar frames compatíveis.</div>
+      </div>
+    </div>
+
     <!-- Logs Box -->
     <div class="logs-card">
       <div class="logs-header">
@@ -677,10 +732,13 @@
     let activeTab = 'redundant';
     let redundantFilter = 'all';
     let emptyFilter = 'all';
+    let autoLayoutFilter = 'all';
 
     let redundantItems = [];
     let emptyItems = [];
     let groupItems = [];
+    let autoLayoutItems = [];
+    let autoLayoutInferenceSupported = null;
 
     // --- UI Controls ---
 
@@ -712,6 +770,13 @@
       document.querySelectorAll('#tab-content-empty .pill-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`pill-empty-${filter}`).classList.add('active');
       renderEmptyList();
+    }
+
+    function filterAutoLayout(filter) {
+      autoLayoutFilter = filter;
+      document.querySelectorAll('#tab-content-autolayout .pill-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`pill-auto-${filter}`).classList.add('active');
+      renderAutoLayoutList();
     }
 
     function addLog(text) {
@@ -754,6 +819,7 @@
       let selectedRedundant = [];
       let selectedEmpty = [];
       let selectedGroups = [];
+      let selectedAutoLayout = [];
 
       if (activeTab === 'redundant') {
         selectedRedundant = redundantItems
@@ -779,6 +845,14 @@
           addLog('Nenhum grupo selecionado para execução.');
           return;
         }
+      } else if (activeTab === 'autolayout') {
+        selectedAutoLayout = autoLayoutItems
+          .filter(item => item.selected && item.classification !== 'incompatible')
+          .map(item => item.id);
+        if (selectedAutoLayout.length === 0) {
+          addLog('Nenhuma sugestão de Auto Layout selecionada para execução.');
+          return;
+        }
       }
 
       parent.postMessage({
@@ -788,6 +862,7 @@
           redundantIds: selectedRedundant,
           emptyIds: selectedEmpty,
           groupIds: selectedGroups,
+          autoLayoutIds: selectedAutoLayout,
         }
       }, '*');
     }
@@ -798,6 +873,32 @@
 
     function cleanSingle(id, action) {
       parent.postMessage({ pluginMessage: { type: 'execute-single', id: id, action: action } }, '*');
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+      });
+    }
+
+    function formatLayoutNumber(value) {
+      const number = Number(value) || 0;
+      return Number.isInteger(number) ? String(number) : String(Number(number.toFixed(1)));
+    }
+
+    function describeAlignment(value) {
+      const labels = { MIN: 'início', CENTER: 'centro', MAX: 'fim', BASELINE: 'linha base' };
+      return labels[value] || value || 'início';
+    }
+
+    function describeAutoGap(settings) {
+      const labels = {
+        SPACE_BETWEEN: 'Auto · Entre',
+        SPACE_EVENLY: 'Auto · Uniforme',
+        SPACE_AROUND: 'Auto · Ao redor',
+      };
+      if (labels[settings.primaryAxisAlignItems]) return labels[settings.primaryAxisAlignItems];
+      return formatLayoutNumber(settings.itemSpacing) + ' px';
     }
 
     // --- Rendering ---
@@ -948,6 +1049,83 @@
       }).join('');
     }
 
+    function renderAutoLayoutList() {
+      const container = document.getElementById('list-autolayout');
+      const filtered = autoLayoutItems.filter(item => {
+        if (autoLayoutFilter === 'all') return true;
+        return item.classification === autoLayoutFilter;
+      });
+
+      document.getElementById('count-auto-all').textContent = autoLayoutItems.length;
+      document.getElementById('count-auto-secured').textContent = autoLayoutItems.filter(i => i.classification === 'secured').length;
+      document.getElementById('count-auto-low-risk').textContent = autoLayoutItems.filter(i => i.classification === 'low-risk').length;
+      document.getElementById('count-auto-high-risk').textContent = autoLayoutItems.filter(i => i.classification === 'high-risk').length;
+      document.getElementById('count-auto-incompatible').textContent = autoLayoutItems.filter(i => i.classification === 'incompatible').length;
+      document.getElementById('badge-autolayout').textContent = autoLayoutItems.length;
+
+      const eligible = filtered.filter(i => i.classification !== 'incompatible');
+      const selectedCount = eligible.filter(i => i.selected).length;
+      document.getElementById('autolayout-selected-count').textContent = `${selectedCount} de ${eligible.length} selecionados`;
+      const checkAll = document.getElementById('check-all-autolayout');
+      if (checkAll) checkAll.checked = eligible.length > 0 && selectedCount === eligible.length;
+
+      if (filtered.length === 0) {
+        let emptyText = 'Nenhuma sugestão de Auto Layout encontrada nesta categoria.';
+        if (autoLayoutItems.length === 0) {
+          emptyText = autoLayoutInferenceSupported === false
+            ? 'A API do Figma disponível nesta execução não expõe a inferência de Auto Layout para frames.'
+            : 'Nenhum frame com inferência de Auto Layout disponível foi encontrado no escopo atual.';
+        }
+        container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+        return;
+      }
+
+      const classificationLabels = {
+        secured: '🟢 Seguro',
+        'low-risk': '🟡 Baixo Risco',
+        'high-risk': '🟠 Alto Risco',
+        incompatible: '🔴 Incompatível',
+      };
+
+      container.innerHTML = filtered.map(item => {
+        const settings = item.settings || {};
+        const flow = settings.layoutMode === 'HORIZONTAL' ? 'Horizontal' : settings.layoutMode === 'VERTICAL' ? 'Vertical' : 'Grade';
+        const gap = describeAutoGap(settings);
+        const wrappedGapLabel = settings.layoutMode === 'HORIZONTAL' ? 'entre linhas' : 'entre colunas';
+        const wrapGap = settings.layoutWrap === 'WRAP' && settings.counterAxisSpacing != null
+          ? ` · ${wrappedGapLabel} ${formatLayoutNumber(settings.counterAxisSpacing)} px`
+          : '';
+        const padding = [settings.paddingTop, settings.paddingRight, settings.paddingBottom, settings.paddingLeft]
+          .map(formatLayoutNumber).join(' / ');
+        const alignment = `primário ${describeAlignment(settings.primaryAxisAlignItems)} · transversal ${describeAlignment(settings.counterAxisAlignItems)}`;
+        const explanation = (item.reasons || []).map(escapeHtml).join(' · ');
+        const tagLabel = classificationLabels[item.classification] || 'Incompatível';
+        const disabled = item.classification === 'incompatible';
+        const safeId = escapeHtml(item.id);
+
+        return `
+          <div class="item-row ${escapeHtml(item.classification)}">
+            <div class="item-left">
+              <input type="checkbox" ${item.selected ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleItemSelect('autolayout', '${safeId}', this.checked)" />
+              <div class="item-info">
+                <div class="item-title">
+                  <span>${escapeHtml(item.name)}</span>
+                  <span class="tag tag-${escapeHtml(item.classification)}">${tagLabel}</span>
+                </div>
+                <div class="auto-layout-details">${flow} · alinhamento ${alignment} · gap ${gap}${wrapGap} · padding T/R/B/L ${padding}</div>
+                <div class="auto-layout-reasons">${explanation || 'Inferência do Figma disponível.'}</div>
+                <div class="item-sub">${escapeHtml(item.path)}</div>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon" title="Ver no Figma" onclick="selectInFigma('${safeId}')">🔍</button>
+              <button class="btn-small-action" ${disabled ? 'disabled' : ''} onclick="cleanSingle('${safeId}', 'auto-layout')">Aplicar</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function toggleItemSelect(type, id, checked) {
       if (type === 'redundant') {
         const item = redundantItems.find(i => i.id === id);
@@ -961,6 +1139,10 @@
         const item = groupItems.find(i => i.id === id);
         if (item) item.selected = checked;
         renderGroupsList();
+      } else if (type === 'autolayout') {
+        const item = autoLayoutItems.find(i => i.id === id);
+        if (item && item.classification !== 'incompatible') item.selected = checked;
+        renderAutoLayoutList();
       }
     }
 
@@ -995,6 +1177,16 @@
       renderGroupsList();
     }
 
+    function toggleSelectAllAutoLayout(checked) {
+      autoLayoutItems.forEach(item => {
+        if (item.classification === 'incompatible') return;
+        if (autoLayoutFilter === 'all' || item.classification === autoLayoutFilter) {
+          item.selected = checked;
+        }
+      });
+      renderAutoLayoutList();
+    }
+
     // --- Message Listener ---
 
     window.onmessage = function (event) {
@@ -1007,10 +1199,15 @@
         redundantItems = msg.redundant || [];
         emptyItems = msg.empty || [];
         groupItems = msg.groups || [];
+        autoLayoutItems = msg.autoLayout || [];
+        autoLayoutInferenceSupported = typeof msg.autoLayoutInferenceSupported === 'boolean'
+          ? msg.autoLayoutInferenceSupported
+          : null;
 
         renderRedundantList();
         renderEmptyList();
         renderGroupsList();
+        renderAutoLayoutList();
       } else if (msg.type === 'execution-complete' || msg.type === 'single-complete') {
         // Re-analyze after modifications
         runAnalysis();

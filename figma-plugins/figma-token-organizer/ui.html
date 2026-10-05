@@ -90,6 +90,105 @@
       gap: 8px;
     }
 
+    .header-tolerance-control {
+      position: relative;
+    }
+
+    .header-tolerance-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 300;
+      width: min(370px, calc(100vw - 24px));
+      max-height: min(72vh, 620px);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .header-common-values-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      position: sticky;
+      top: -14px;
+      z-index: 1;
+      padding: 2px 0 8px;
+      background: var(--bg-secondary);
+    }
+
+    .header-common-values-reset {
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: rgba(139, 92, 246, 0.12);
+      color: var(--accent-hover);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .header-common-values-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header-common-values-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .header-common-values-section {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding-top: 7px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .header-common-values-section-title {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .header-common-value-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--text-main);
+      font-size: 11px;
+    }
+
+    .header-tolerance-values-input {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-main);
+      font: inherit;
+      font-size: 11px;
+    }
+
+    .header-tolerance-values-input:focus {
+      outline: 1px solid var(--accent);
+      border-color: var(--accent);
+    }
+    .header-tolerance-caption {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
     button {
       font-family: 'Outfit', sans-serif;
       cursor: pointer;
@@ -262,6 +361,25 @@
       background: rgba(139, 92, 246, 0.1);
       border-color: var(--accent);
       color: var(--accent-hover);
+    }
+    #typography-token-subfilters {
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+    #typography-token-subfilters .filter-pill {
+      padding: 4px 9px;
+      font-size: 10px;
+    }
+    .category-subfilters {
+      flex-wrap: wrap;
+      overflow: visible;
+      margin: -4px 0 12px 12px;
+      padding-left: 10px;
+      border-left: 2px solid var(--border-color);
+    }
+    .category-subfilters .filter-pill {
+      padding: 4px 9px;
+      font-size: 10px;
     }
 
     /* Content Area */
@@ -830,6 +948,99 @@
       min-width: 28px;
       text-align: right;
     }
+    .tolerance-row input[type="range"]:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .auto-detection-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .auto-detection-toggle input {
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .style-creation-guidance {
+      margin-bottom: 12px;
+      padding: 9px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-muted);
+      background: rgba(139, 92, 246, 0.07);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .creation-color-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 2px;
+    }
+    .creation-color-tolerance {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex: 1 1 230px;
+      min-width: 200px;
+    }
+    .creation-color-tolerance input[type="range"] { flex: 1; min-width: 70px; }
+    .creation-color-ignore-opacity {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .creation-color-ignore-opacity input { margin: 0; accent-color: var(--accent); }
+    .suggestion-section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 12px 0 7px;
+      padding: 6px 8px;
+      border-left: 2px solid var(--accent);
+      border-radius: 0 5px 5px 0;
+      background: rgba(139, 92, 246, 0.08);
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .suggestion-section-heading:first-child { margin-top: 0; }
+    .suggestion-section-count { color: var(--text-muted); font-size: 10px; font-weight: 400; }
+    .suggestion-subsection-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 0 6px 10px;
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .suggestion-color-cluster {
+      margin: 0 0 8px 8px;
+      padding: 7px 7px 1px;
+      border-left: 2px solid rgba(139, 92, 246, 0.45);
+      border-radius: 0 6px 6px 0;
+      background: rgba(139, 92, 246, 0.035);
+    }
+    .suggestion-color-cluster-label {
+      margin: 0 0 6px 2px;
+      color: var(--text-muted);
+      font-size: 10px;
+    }
     .text-props-grid {
       display: flex;
       flex-wrap: wrap;
@@ -1099,10 +1310,26 @@
       <p>Gerencie estilos e variáveis locais</p>
     </div>
     <div class="header-actions">
+      <div class="header-tolerance-control" id="header-tolerance-control">
+        <button class="btn-icon" id="header-tolerance-button" onclick="toggleToleranceSettings(event)" title="Valores comuns por categoria" aria-label="Valores comuns por categoria" aria-controls="header-tolerance-panel" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
+        </button>
+        <div id="header-tolerance-panel" class="header-tolerance-popover hidden" role="dialog" aria-label="Valores comuns por categoria">
+          <div class="header-common-values-top">
+            <strong class="section-label">Valores comuns por categoria</strong>
+            <div class="header-common-values-actions">
+              <button type="button" class="header-common-values-reset" onclick="resetPreferredTokenValues()">Restaurar padrões</button>
+              <button type="button" class="header-common-values-reset" onclick="clearPreferredTokenValues()">Limpar tudo</button>
+            </div>
+          </div>
+          <div id="common-token-values-settings" class="header-common-values-settings"></div>
+          <div class="header-tolerance-caption">Ajuste cada escala. Os valores iniciais seguem sistemas de design web e mobile; a tolerância continua nas telas de criação e correções.</div>
+        </div>
+      </div>
       <button class="btn-icon" onclick="analyzeDocument()" title="Atualizar dados">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
       </button>
-      <button class="btn-primary" onclick="openAddModal()">
+      <button id="header-add-token-btn" class="btn-primary" onclick="openAddModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         Novo Token
       </button>
@@ -1113,6 +1340,7 @@
   <div class="tabs-nav">
     <button id="tab-all-btn" class="tab-btn active" onclick="switchTab('all')">Todos os Tokens</button>
     <button id="tab-dup-btn" class="tab-btn" onclick="switchTab('duplicates')">Tokens Duplicados</button>
+    <button id="tab-create-btn" class="tab-btn" onclick="switchTab('create')">Criar Tokens + Styles</button>
     <button id="tab-fixes-btn" class="tab-btn" onclick="switchTab('fixes')">Correções <span id="fixes-badge-count" class="tab-badge hidden">0</span></button>
   </div>
 
@@ -1122,12 +1350,28 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="text" id="search-input" placeholder="Buscar token..." oninput="handleSearch(this.value)">
     </div>
-    <div class="filters-row">
-      <button class="filter-pill active" onclick="setFilter('all')">Todos</button>
-      <button class="filter-pill" onclick="setFilter('color')">Cores</button>
-      <button class="filter-pill" onclick="setFilter('text')">Textos</button>
-      <button class="filter-pill" onclick="setFilter('spacing')">Espaçamentos</button>
-      <button class="filter-pill" onclick="setFilter('other')">Outros</button>
+    <div class="filters-row" id="all-token-filters">
+      <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">Todos</button>
+      <button class="filter-pill" data-filter="color" onclick="setFilter('color')">Cores</button>
+      <button class="filter-pill" data-filter="padding" onclick="setFilter('padding')">Padding</button>
+      <button class="filter-pill" data-filter="spacing" onclick="setFilter('spacing')">Espaçamentos</button>
+      <button class="filter-pill" data-filter="radius" onclick="setFilter('radius')">Raios</button>
+      <button class="filter-pill" data-filter="stroke" onclick="setFilter('stroke')">Bordas</button>
+      <button class="filter-pill" data-filter="opacity" onclick="setFilter('opacity')">Opacidade</button>
+      <button class="filter-pill" data-filter="typography" onclick="setFilter('typography')">Tipografia</button>
+      <button class="filter-pill" data-filter="effect" onclick="setFilter('effect')">Efeitos</button>
+      <button class="filter-pill" data-filter="other" onclick="setFilter('other')">Outros</button>
+    </div>
+    <div class="filters-row category-subfilters hidden" id="all-token-typography-subfilters" aria-label="Subcategorias de tipografia">
+      <button class="filter-pill active" data-filter="all" onclick="setTypographyTokenSubFilter('all')">Todas</button>
+      <button class="filter-pill" data-filter="font-family" onclick="setTypographyTokenSubFilter('font-family')">Família da fonte</button>
+      <button class="filter-pill" data-filter="font-style" onclick="setTypographyTokenSubFilter('font-style')">Estilo da fonte</button>
+      <button class="filter-pill" data-filter="font-size" onclick="setTypographyTokenSubFilter('font-size')">Tamanho da fonte</button>
+      <button class="filter-pill" data-filter="font-weight" onclick="setTypographyTokenSubFilter('font-weight')">Peso da fonte</button>
+      <button class="filter-pill" data-filter="line-height-pixels" onclick="setTypographyTokenSubFilter('line-height-pixels')">Altura da linha (px)</button>
+      <button class="filter-pill" data-filter="line-height-percent" onclick="setTypographyTokenSubFilter('line-height-percent')">Altura da linha (%)</button>
+      <button class="filter-pill" data-filter="letter-spacing-pixels" onclick="setTypographyTokenSubFilter('letter-spacing-pixels')">Espaçamento entre letras (px)</button>
+      <button class="filter-pill" data-filter="letter-spacing-percent" onclick="setTypographyTokenSubFilter('letter-spacing-percent')">Espaçamento entre letras (%)</button>
     </div>
   </div>
 
@@ -1157,12 +1401,29 @@
       </h4>
 
       <div class="dup-config-section">
-        <label class="section-label">Filtrar por Tipo</label>
-        <div class="dup-type-filters">
-          <button class="filter-pill active" onclick="setDupFilter('all')">Todos</button>
-          <button class="filter-pill" onclick="setDupFilter('color')">Cores</button>
-          <button class="filter-pill" onclick="setDupFilter('text')">Textos</button>
-          <button class="filter-pill" onclick="setDupFilter('spacing')">Espaçamentos</button>
+        <label class="section-label">Filtrar por categoria</label>
+        <div class="dup-type-filters" id="duplicate-category-filters">
+          <button class="filter-pill active" data-filter="all" onclick="setDupFilter('all')">Todos</button>
+          <button class="filter-pill" data-filter="color" onclick="setDupFilter('color')">Cores</button>
+          <button class="filter-pill" data-filter="padding" onclick="setDupFilter('padding')">Padding</button>
+          <button class="filter-pill" data-filter="spacing" onclick="setDupFilter('spacing')">Espaçamentos</button>
+          <button class="filter-pill" data-filter="radius" onclick="setDupFilter('radius')">Raios</button>
+          <button class="filter-pill" data-filter="stroke" onclick="setDupFilter('stroke')">Bordas</button>
+          <button class="filter-pill" data-filter="opacity" onclick="setDupFilter('opacity')">Opacidade</button>
+          <button class="filter-pill" data-filter="typography" onclick="setDupFilter('typography')">Tipografia</button>
+          <button class="filter-pill" data-filter="effect" onclick="setDupFilter('effect')">Efeitos</button>
+          <button class="filter-pill" data-filter="other" onclick="setDupFilter('other')">Outros</button>
+        </div>
+        <div class="filters-row category-subfilters hidden" id="duplicate-typography-subfilters" aria-label="Subcategorias de tipografia">
+          <button class="filter-pill active" data-filter="all" onclick="setDupTypographySubFilter('all')">Todas</button>
+          <button class="filter-pill" data-filter="font-family" onclick="setDupTypographySubFilter('font-family')">Família da fonte</button>
+          <button class="filter-pill" data-filter="font-style" onclick="setDupTypographySubFilter('font-style')">Estilo da fonte</button>
+          <button class="filter-pill" data-filter="font-size" onclick="setDupTypographySubFilter('font-size')">Tamanho da fonte</button>
+          <button class="filter-pill" data-filter="font-weight" onclick="setDupTypographySubFilter('font-weight')">Peso da fonte</button>
+          <button class="filter-pill" data-filter="line-height-pixels" onclick="setDupTypographySubFilter('line-height-pixels')">Altura da linha (px)</button>
+          <button class="filter-pill" data-filter="line-height-percent" onclick="setDupTypographySubFilter('line-height-percent')">Altura da linha (%)</button>
+          <button class="filter-pill" data-filter="letter-spacing-pixels" onclick="setDupTypographySubFilter('letter-spacing-pixels')">Espaçamento entre letras (px)</button>
+          <button class="filter-pill" data-filter="letter-spacing-percent" onclick="setDupTypographySubFilter('letter-spacing-percent')">Espaçamento entre letras (%)</button>
         </div>
       </div>
 
@@ -1174,7 +1435,7 @@
         </div>
         <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">0 = exato | 5 = sutil | 10 = parecido | 20+ = amplo</p>
         <label class="text-prop-checkbox" onclick="toggleCheckboxStyle(this)" style="margin-top: 8px;">
-          <input type="checkbox" id="dup-color-ignore-opacity"> Ignorar opacidade
+          <input type="checkbox" id="dup-color-ignore-opacity" onchange="handleDuplicateOpacityChange()"> Ignorar opacidade
         </label>
       </div>
 
@@ -1209,7 +1470,7 @@
       </div>
 
       <div class="dup-config-actions">
-        <button class="btn-secondary btn-small" onclick="runSmartDetection()" title="Identifica cores por famílias (vermelho, azul, cinza...) e agrupa tamanhos próximos">
+        <button class="btn-secondary btn-small" onclick="runSmartDetection()" title="Agrupa cores por família e valores numéricos pela escala comum configurada para cada categoria">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
           Detecção Inteligente
         </button>
@@ -1242,7 +1503,7 @@
       <div class="fixes-summary-info">
         <h4 style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-          Elementos sem Token (Detached)
+          Correções disponíveis
         </h4>
         <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px;">
           <span class="stat-chip" id="fixes-stat-total">Total: <strong>0 elementos</strong></span>
@@ -1261,56 +1522,125 @@
       </button>
     </div>
 
-    <div class="fixes-subtabs">
-      <button id="fixes-subtab-corrections" class="fixes-subtab active" onclick="switchFixesSubtab('corrections')">Correções</button>
-      <button id="fixes-subtab-suggestions" class="fixes-subtab" onclick="switchFixesSubtab('suggestions')">Sugestões <span id="fixes-suggestions-count">0</span></button>
-    </div>
-
     <!-- Search and Filters for Fixes -->
-    <div id="fixes-corrections-view">
     <div class="search-filter-section" style="padding: 0; background: transparent; border: none; margin-bottom: 12px;">
       <div class="search-container" style="margin-bottom: 8px;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <input type="text" id="fixes-search-input" placeholder="Buscar por valor (#hex, fonte) ou elemento..." oninput="handleFixesSearch(this.value)">
       </div>
-      <div class="filters-row" style="margin-bottom: 6px;">
-        <button class="filter-pill active" onclick="setFixesFilter('all')">Todas as Propriedades</button>
-        <button class="filter-pill" onclick="setFixesFilter('fill')">Preenchimentos (Fills)</button>
-        <button class="filter-pill" onclick="setFixesFilter('stroke')">Contornos (Strokes)</button>
-        <button class="filter-pill" onclick="setFixesFilter('text')">Textos</button>
-        <button class="filter-pill" onclick="setFixesFilter('spacing')">Layout / Espaçamentos</button>
-        <button class="filter-pill" onclick="setFixesFilter('other')">Efeitos / Outros</button>
+      <div class="filters-row" id="fixes-property-filters" style="margin-bottom: 6px;">
+        <button class="filter-pill active" data-filter="all" onclick="setFixesFilter('all')">Todas</button>
+        <button class="filter-pill" data-filter="color" onclick="setFixesFilter('color')">Cores</button>
+        <button class="filter-pill" data-filter="padding" onclick="setFixesFilter('padding')">Padding</button>
+        <button class="filter-pill" data-filter="spacing" onclick="setFixesFilter('spacing')">Espaçamentos</button>
+        <button class="filter-pill" data-filter="radius" onclick="setFixesFilter('radius')">Raios</button>
+        <button class="filter-pill" data-filter="stroke" onclick="setFixesFilter('stroke')">Bordas</button>
+        <button class="filter-pill" data-filter="opacity" onclick="setFixesFilter('opacity')">Opacidade</button>
+        <button class="filter-pill" data-filter="typography" onclick="setFixesFilter('typography')">Tipografia</button>
+        <button class="filter-pill" data-filter="effect" onclick="setFixesFilter('effect')">Efeitos</button>
+        <button class="filter-pill" data-filter="other" onclick="setFixesFilter('other')">Outros</button>
       </div>
-      <div class="filters-row">
-        <button class="filter-pill active" onclick="setFixesStatusFilter('all')">Todos os Status</button>
-        <button class="filter-pill" onclick="setFixesStatusFilter('exact')">🟢 Match Exato</button>
-        <button class="filter-pill" onclick="setFixesStatusFilter('fuzzy')">🟡 Sugestão Próxima</button>
-        <button class="filter-pill" onclick="setFixesStatusFilter('none')">⚪ Sem Correspondência</button>
+      <div class="filters-row category-subfilters hidden" id="fixes-color-subfilters" aria-label="Subcategorias de cores" style="margin-bottom: 6px;">
+        <button class="filter-pill active" data-filter="all" onclick="setFixesColorSubFilter('all')">Todas as cores</button>
+        <button class="filter-pill" data-filter="fill" onclick="setFixesColorSubFilter('fill')">Fills</button>
+        <button class="filter-pill" data-filter="text-color" onclick="setFixesColorSubFilter('text-color')">Cores de texto</button>
+        <button class="filter-pill" data-filter="stroke-color" onclick="setFixesColorSubFilter('stroke-color')">Contornos</button>
       </div>
-    </div>
-
-    <!-- Fixes container -->
-    <div id="fixes-container">
-      <!-- Generated dynamically -->
-    </div>
-    </div>
-
-    <div id="fixes-suggestions-view" class="hidden">
-      <div class="filters-row" id="suggestions-filters" style="margin-bottom: 12px;">
-        <button class="filter-pill active" data-filter="all" onclick="setSuggestionsFilter('all')">Todos</button>
-        <button class="filter-pill" data-filter="padding" onclick="setSuggestionsFilter('padding')">Padding</button>
-        <button class="filter-pill" data-filter="spacing" onclick="setSuggestionsFilter('spacing')">Espaçamentos</button>
-        <button class="filter-pill" data-filter="radius" onclick="setSuggestionsFilter('radius')">Raios</button>
-        <button class="filter-pill" data-filter="stroke" onclick="setSuggestionsFilter('stroke')">Bordas</button>
-        <button class="filter-pill" data-filter="opacity" onclick="setSuggestionsFilter('opacity')">Opacidade</button>
-        <button class="filter-pill" data-filter="effect" onclick="setSuggestionsFilter('effect')">Efeitos</button>
-        <button class="filter-pill" data-filter="color" onclick="setSuggestionsFilter('color')">Cores</button>
-        <button class="filter-pill" data-filter="text" onclick="setSuggestionsFilter('text')">Textos</button>
+      <div class="filters-row category-subfilters hidden" id="fixes-typography-subfilters" aria-label="Subcategorias de tipografia" style="margin-bottom: 6px;">
+        <button class="filter-pill active" data-filter="all" onclick="setFixesTypographySubFilter('all')">Todas</button>
+        <button class="filter-pill" data-filter="font-family" onclick="setFixesTypographySubFilter('font-family')">Família da fonte</button>
+        <button class="filter-pill" data-filter="font-style" onclick="setFixesTypographySubFilter('font-style')">Estilo da fonte</button>
+        <button class="filter-pill" data-filter="font-size" onclick="setFixesTypographySubFilter('font-size')">Tamanho da fonte</button>
+        <button class="filter-pill" data-filter="font-weight" onclick="setFixesTypographySubFilter('font-weight')">Peso da fonte</button>
+        <button class="filter-pill" data-filter="line-height-pixels" onclick="setFixesTypographySubFilter('line-height-pixels')">Altura da linha (px)</button>
+        <button class="filter-pill" data-filter="line-height-percent" onclick="setFixesTypographySubFilter('line-height-percent')">Altura da linha (%)</button>
+        <button class="filter-pill" data-filter="letter-spacing-pixels" onclick="setFixesTypographySubFilter('letter-spacing-pixels')">Espaçamento entre letras (px)</button>
+        <button class="filter-pill" data-filter="letter-spacing-percent" onclick="setFixesTypographySubFilter('letter-spacing-percent')">Espaçamento entre letras (%)</button>
       </div>
-      <div id="fixes-suggestions-container"></div>
+      <div class="filters-row" id="fixes-status-filters">
+        <button class="filter-pill active" data-filter="all" onclick="setFixesStatusFilter('all')">Todos os Status</button>
+        <button class="filter-pill" data-filter="exact" onclick="setFixesStatusFilter('exact')">🟢 Match Exato</button>
+        <button class="filter-pill" data-filter="fuzzy" onclick="setFixesStatusFilter('fuzzy')">🟡 Sugestão Próxima</button>
+      </div>
+      <div id="fixes-filtered-counter" class="token-counter-text" style="margin-top: 8px; font-size: 11px;">0 grupos de correção</div>
     </div>
+    <div id="fixes-container"></div>
   </div>
 
+  <!-- Tab Contents: Create Variables and Styles -->
+  <div id="tab-create-content" class="tab-content hidden">
+    <div class="suggestions-toolbar" style="display: grid; gap: 8px; margin-bottom: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);">
+      <div id="token-collection-row" style="display: flex; align-items: center; gap: 8px;">
+        <label for="suggestion-collection" style="font-size: 11px; color: var(--text-muted); white-space: nowrap;">Coleção de variáveis</label>
+        <select id="suggestion-collection" style="flex: 1; min-width: 0;" title="Novas variáveis receberão o mesmo valor em todos os modos desta coleção."></select>
+      </div>
+      <div id="token-radius-tolerance-row" class="tolerance-row" style="max-width: 390px;">
+        <label class="section-label" for="create-radius-tolerance" style="min-width: 108px; margin: 0;">Tolerância em px</label>
+        <input type="range" id="create-radius-tolerance" min="0" max="10" value="4" step="0.5" oninput="updateRadiusTolerance(this.value)" title="Agrupa valores numéricos próximos em px, separados por tipo de token">
+        <span class="tolerance-value" id="create-radius-tolerance-label">4 px</span>
+        <label class="auto-detection-toggle" for="create-auto-detection" title="Para tokens numéricos, recomenda somente valores comuns da categoria e agrupa cada detecção pelo mais próximo, sem usar a tolerância em px">
+          <input type="checkbox" id="create-auto-detection" onchange="updateAutoTokenDetection(this.checked)">
+          <span>Auto</span>
+        </label>
+      </div>
+      <div id="create-color-settings" class="creation-color-controls" aria-label="Agrupamento de cores">
+        <label class="section-label" for="create-color-tolerance" style="margin: 0; white-space: nowrap;">Tolerância de cor (Delta E)</label>
+        <div class="creation-color-tolerance">
+          <input type="range" id="create-color-tolerance" min="0" max="30" value="0" step="1" oninput="updateCreateColorTolerance(this.value)">
+          <span class="tolerance-value" id="create-color-tolerance-label">0</span>
+        </div>
+        <label class="auto-detection-toggle" for="create-smart-color-detection" title="Agrupa as sugestões por família de cor: vermelho, azul, branco, preto e cinza">
+          <input type="checkbox" id="create-smart-color-detection" onchange="updateCreateSmartColorDetection(this.checked)">
+          <span>Inteligente</span>
+        </label>
+        <label class="creation-color-ignore-opacity" title="Ao agrupar cores próximas, desconsidera diferenças de opacidade">
+          <input type="checkbox" id="create-color-ignore-opacity" onchange="renderCreationList()">
+          <span>Ignorar opacidade</span>
+        </label>
+      </div>
+      <div id="create-color-settings-help" style="color: var(--text-muted); font-size: 10px;">O agrupamento organiza sugestões; cada cor e cada style continuam com valor e criação próprios.</div>
+      <div style="display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;">
+        <button class="btn-secondary btn-small" onclick="toggleSelectAllSuggestions()">Selecionar visíveis</button>
+        <button id="create-selected-suggestions-btn" class="btn-secondary btn-small" onclick="createSelectedSuggestions()" disabled>Criar selecionados (0)</button>
+        <button id="create-all-suggestions-btn" class="btn-primary btn-small" onclick="createAllSuggestions()" disabled>Criar tokens + styles (0)</button>
+      </div>
+    </div>
+    <div id="creation-plan-summary" class="token-counter-text" style="margin: 0 0 10px; font-size: 11px;"> 0 tokens - 0 styles - 0 camadas</div>
+    <div class="suggestion-section-heading"><span>Tokens</span><span class="suggestion-section-count" id="token-candidate-count">0</span></div>
+    <div class="filters-row" id="token-creation-filters" style="margin-bottom: 12px;">
+      <button class="filter-pill active" data-filter="all" onclick="setCreationFilter('tokens', 'all')">Todos</button>
+      <button class="filter-pill" data-filter="color" onclick="setCreationFilter('tokens', 'color')">Cores</button>
+      <button class="filter-pill" data-filter="padding" onclick="setCreationFilter('tokens', 'padding')">Padding</button>
+      <button class="filter-pill" data-filter="spacing" onclick="setCreationFilter('tokens', 'spacing')">Espaçamentos</button>
+      <button class="filter-pill" data-filter="radius" onclick="setCreationFilter('tokens', 'radius')">Raios</button>
+      <button class="filter-pill" data-filter="stroke" onclick="setCreationFilter('tokens', 'stroke')">Bordas</button>
+      <button class="filter-pill" data-filter="opacity" onclick="setCreationFilter('tokens', 'opacity')">Opacidade</button>
+      <button class="filter-pill" data-filter="typography" onclick="setCreationFilter('tokens', 'typography')">Tipografia</button>
+      <button class="filter-pill" data-filter="effect" onclick="setCreationFilter('tokens', 'effect')">Efeitos</button>
+    </div>
+    <div class="filters-row hidden" id="typography-token-subfilters" aria-label="Subcategorias de tipografia" style="margin: -4px 0 12px 12px; padding-left: 10px; border-left: 2px solid var(--border-color);">
+      <button class="filter-pill active" data-filter="all" onclick="setTypographyCreationSubFilter('all')">Todas</button>
+      <button class="filter-pill" data-filter="font-family" onclick="setTypographyCreationSubFilter('font-family')">Família da fonte</button>
+      <button class="filter-pill" data-filter="font-size" onclick="setTypographyCreationSubFilter('font-size')">Tamanho da fonte</button>
+      <button class="filter-pill" data-filter="font-weight" onclick="setTypographyCreationSubFilter('font-weight')">Peso da fonte</button>
+      <button class="filter-pill" data-filter="line-height-pixels" onclick="setTypographyCreationSubFilter('line-height-pixels')">Altura da linha (px)</button>
+      <button class="filter-pill" data-filter="line-height-percent" onclick="setTypographyCreationSubFilter('line-height-percent')">Altura da linha (%)</button>
+      <button class="filter-pill" data-filter="letter-spacing-pixels" onclick="setTypographyCreationSubFilter('letter-spacing-pixels')">Espaçamento entre letras (px)</button>
+      <button class="filter-pill" data-filter="letter-spacing-percent" onclick="setTypographyCreationSubFilter('letter-spacing-percent')">Espaçamento entre letras (%)</button>
+    </div>
+    <div id="token-candidates-container"></div>
+    <div class="suggestion-section-heading"><span>Styles</span><span class="suggestion-section-count" id="style-candidate-count">0</span></div>
+    <div class="filters-row" id="style-creation-filters" style="margin-bottom: 12px;">
+      <button class="filter-pill active" data-filter="all" onclick="setCreationFilter('styles', 'all')">Todos</button>
+      <button class="filter-pill" data-filter="fill" onclick="setCreationFilter('styles', 'fill')">Backgrounds</button>
+      <button class="filter-pill" data-filter="text-color" onclick="setCreationFilter('styles', 'text-color')">Texts</button>
+      <button class="filter-pill" data-filter="stroke" onclick="setCreationFilter('styles', 'stroke')">Strokes</button>
+      <button class="filter-pill" data-filter="text" onclick="setCreationFilter('styles', 'text')">Text Styles</button>
+      <button class="filter-pill" data-filter="effect" onclick="setCreationFilter('styles', 'effect')">Efeitos</button>
+    </div>
+    <div id="styles-creation-guidance" class="style-creation-guidance">Styles reutilizam tokens existentes ou criam os tokens necessarios no mesmo fluxo. Text styles podem usar varios tokens; styles de cor ficam separados por contexto, compartilhando o mesmo token de cor.</div>
+    <div id="style-candidates-container"></div>
+  </div>
   <!-- Modal: Add New Token -->
   <div id="add-modal" class="modal-overlay hidden">
     <div class="modal-container">
@@ -1329,7 +1659,6 @@
           <label for="add-source">Origem do Token</label>
           <select id="add-source" onchange="adjustAddModalValueType()">
             <option value="variable">Variável (Variable)</option>
-            <option value="style">Estilo (Style)</option>
           </select>
         </div>
         <div class="form-group">
@@ -1362,29 +1691,58 @@
 
   <script>
     let tokens = [];
+    let variableCollections = [];
     let duplicates = [];
     let detachedElements = [];
     let groupedDetached = [];
+    const selectedSuggestionKeys = new Set();
+    const suggestionNames = new Map();
+    let styleDependencyTokenCandidatesCache = null;
     let activeTab = 'all';
+    let createColorTolerance = 0;
+    let createSmartColorDetection = false;
+    let tokenCreationFilter = 'all';
+    let typographyCreationSubFilter = 'all';
+    let styleCreationFilter = 'all';
     let activeFilter = 'all';
+    let allTokenTypographySubFilter = 'all';
     let searchQuery = '';
     let expandedTokenId = null;
     let dupFilter = 'all';
+    let dupTypographySubFilter = 'all';
     let computedDuplicates = [];
     let bulkConsolidationQueue = [];
     let bulkConsolidationInProgress = false;
     let isSmartMode = false;
     let selectedTokenIds = new Set();
     let fixesFilter = 'all';
+    let fixesColorSubFilter = 'all';
+    let fixesTypographySubFilter = 'all';
     let fixesStatusFilter = 'all';
     let fixesSearchQuery = '';
     let expandedFixKeys = new Set();
-    let fixesSubtab = 'corrections';
-    let suggestionsFilter = 'all';
     let searchRenderTimer = null;
     let fixesSearchRenderTimer = null;
-    let radiusToleranceRenderTimer = null;
     const numericMatchThresholds = { spacing: 4, radius: 4, stroke: 1, opacity: 0.1 };
+    const COMMON_TOKEN_VALUES_STORAGE_KEY = 'figma-token-organizer.common-values-by-category';
+    const LEGACY_COMMON_TOKEN_VALUES_STORAGE_KEY = 'figma-token-organizer.preferred-pixel-values';
+    const AUTO_TOKEN_DETECTION_STORAGE_KEY = 'figma-token-organizer.auto-common-values-detection';
+    const COMMON_TOKEN_VALUE_CATEGORIES = [
+      { key: 'gap', section: 'Espaçamento', label: 'Gap / entre itens', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 48, 52, 56] },
+      { key: 'padding', section: 'Espaçamento', label: 'Padding', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 48, 52, 56] },
+      { key: 'radius', section: 'Forma e borda', label: 'Raio', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 16, 20, 24, 32] },
+      { key: 'stroke', section: 'Forma e borda', label: 'Stroke', unit: 'px', legacyPixelScale: true, defaults: [0, 0.5, 1, 2, 3, 4, 6] },
+      { key: 'fontSize', section: 'Tipografia', label: 'Font size', unit: 'px', legacyPixelScale: true, defaults: [10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 34, 36, 40, 45, 57, 60, 68] },
+      { key: 'fontWeight', section: 'Tipografia', label: 'Font weight', unit: '', legacyPixelScale: false, defaults: [400, 500, 600, 700, 800, 900] },
+      { key: 'lineHeight', section: 'Tipografia', label: 'Line height', unit: 'px', legacyPixelScale: true, defaults: [14, 16, 18, 20, 22, 24, 25, 26, 28, 32, 34, 36, 40, 41, 44, 52, 64, 70, 72, 92] },
+      { key: 'letterSpacing', section: 'Tipografia', label: 'Letter spacing', unit: 'px', legacyPixelScale: true, defaults: [0, 0.15, 0.25, 0.5] },
+      { key: 'opacity', section: 'Opacidade', label: 'Opacity (0–1)', unit: '', legacyPixelScale: false, defaults: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] },
+      { key: 'effectRadius', section: 'Efeitos', label: 'Blur / radius', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 16, 24, 32, 48] },
+      { key: 'effectSpread', section: 'Efeitos', label: 'Spread', unit: 'px', legacyPixelScale: true, defaults: [-8, -4, -2, 0, 2, 4, 8, 12, 16] },
+      { key: 'effectOffset', section: 'Efeitos', label: 'Offset X / Y', unit: 'px', legacyPixelScale: true, defaults: [-24, -16, -12, -8, -4, -2, 0, 2, 4, 8, 12, 16, 24, 32] }
+    ];
+    let preferredTokenValuesByCategory = {};
+    let autoTokenDetectionEnabled = false;
     let compatibleTokensByCategoryAndSource = new Map();
 
     function rebuildTokenIndexes() {
@@ -1403,6 +1761,15 @@
       if (typeof value !== 'object') return JSON.stringify(value);
       if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
       return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function effectSignature(effects) {
@@ -1447,6 +1814,28 @@
       }).join(' | ');
     }
 
+    function textMeasureKey(measure, defaultUnit) {
+      if (!measure) return `${defaultUnit}:0`;
+      const unit = measure.unit || defaultUnit;
+      const value = typeof measure.value === 'number' ? measure.value : 0;
+      return `${unit}:${Math.round(value * 10000) / 10000}`;
+    }
+
+    function textTypographyKey(raw) {
+      const font = raw && raw.fontName || {};
+      return [
+        (font.family || '').toLowerCase(),
+        (font.style || '').toLowerCase(),
+        stableSerialize(font.variationSettings || {}),
+        Math.round((Number(raw && raw.fontSize) || 0) * 10000) / 10000,
+        raw && typeof raw.fontWeight === 'number'
+          ? Math.round(raw.fontWeight * 10000) / 10000
+          : '',
+        textMeasureKey(raw && raw.lineHeight, 'AUTO'),
+        textMeasureKey(raw && raw.letterSpacing, 'PIXELS')
+      ].join('|');
+    }
+
     // Start loading on load
     window.onload = () => {
       analyzeDocument();
@@ -1471,6 +1860,7 @@
 
       if (msg.type === 'analysis-result') {
         tokens = msg.tokens || [];
+        variableCollections = msg.variableCollections || [];
         rebuildTokenIndexes();
         duplicates = msg.duplicates || [];
         detachedElements = msg.detached || [];
@@ -1487,9 +1877,20 @@
           redetectDuplicates();
         }
         processDetachedElements();
+        renderSuggestionCollectionSelect();
         render();
         processNextBulkConsolidation();
         updateSelectedCount();
+      }
+
+      if (msg.type === 'create-suggestions-result') {
+        showLoader(false);
+        const failures = (msg.results || []).filter(result => !result.success);
+        const failureText = failures.length
+          ? ` ${failures.length} falha(s): ${String(failures[0].error || 'erro desconhecido').slice(0, 90)}`
+          : '';
+        const resultSummary = `${msg.tokenCount || 0} token(s) e ${msg.styleCount || 0} style(s) criados; ${msg.appliedCount || 0} camada(s) vinculada(s).`;
+        showToast(resultSummary + failureText);
       }
 
       if (msg.type === 'select-done') {
@@ -1541,26 +1942,21 @@
     }
 
     function deleteUnusedTokens() {
-      const filtered = tokens.filter(t => {
-        if (activeFilter !== 'all' && t.category !== activeFilter) return false;
-        if (searchQuery) {
-          const matchName = t.name.toLowerCase().includes(searchQuery);
-          const matchProp = t.propertiesText.toLowerCase().includes(searchQuery);
-          const matchFolder = t.collectionOrFolder.toLowerCase().includes(searchQuery);
-          if (!matchName && !matchProp && !matchFolder) return false;
-        }
-        return true;
-      });
-
+      const filtered = getFilteredTokensList();
       const unused = filtered.filter(t => t.count === 0);
       if (unused.length === 0) {
         showToast("Nenhum token não utilizado nesta visualização.");
         return;
       }
 
+      const filterLabels = {
+        color: 'cores', padding: 'padding', spacing: 'espaçamentos', radius: 'raios',
+        stroke: 'bordas', opacity: 'opacidade', typography: 'tipografia', effect: 'efeitos', other: 'outros'
+      };
+      const filterLabel = filterLabels[activeFilter] || activeFilter;
       const msg = activeFilter === 'all'
         ? `Tem certeza de que deseja excluir todos os ${unused.length} tokens não utilizados?`
-        : `Tem certeza de que deseja excluir todos os ${unused.length} tokens de ${activeFilter} não utilizados?`;
+        : `Tem certeza de que deseja excluir todos os ${unused.length} tokens de ${filterLabel} não utilizados?`;
 
       if (confirm(msg)) {
         showLoader(true, "Excluindo tokens não utilizados...");
@@ -1573,9 +1969,9 @@
       }
     }
 
-    function updateToken(id, source, name, value) {
+    function updateToken(id, source, name, value, preserveBoundValues = false) {
       showLoader(true, "Salvando alterações...");
-      parent.postMessage({ pluginMessage: { type: 'update-token', id, source, name, value } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'update-token', id, source, name, value, preserveBoundValues } }, '*');
     }
 
     function replaceToken(oldTokenId, source, newTokenId) {
@@ -1618,18 +2014,27 @@
       } else if (activeTab === 'duplicates') {
         renderDuplicatesList();
       } else if (activeTab === 'fixes') {
-        if (fixesSubtab === 'suggestions') renderSuggestionsList();
-        else renderFixesList();
+        renderFixesList();
+      } else if (activeTab === 'create') {
+        renderCreationList();
       }
     }
 
-    function switchFixesSubtab(subtab) {
-      fixesSubtab = subtab;
-      document.getElementById('fixes-subtab-corrections').classList.toggle('active', subtab === 'corrections');
-      document.getElementById('fixes-subtab-suggestions').classList.toggle('active', subtab === 'suggestions');
-      document.getElementById('fixes-corrections-view').classList.toggle('hidden', subtab !== 'corrections');
-      document.getElementById('fixes-suggestions-view').classList.toggle('hidden', subtab !== 'suggestions');
-      render();
+    function updateCreateColorTolerance(value) {
+      createColorTolerance = Math.max(0, Number(value) || 0);
+      const label = document.getElementById('create-color-tolerance-label');
+      if (label) label.textContent = String(createColorTolerance);
+      renderCreationList();
+    }
+
+    function updateCreateSmartColorDetection(enabled) {
+      createSmartColorDetection = !!enabled;
+      renderCreationList();
+    }
+
+    function handleDuplicateOpacityChange() {
+      if (isSmartMode) runSmartDetection(false);
+      else redetectDuplicates();
     }
 
     function switchTab(tab) {
@@ -1637,39 +2042,93 @@
       
       const tabAllBtn = document.getElementById('tab-all-btn');
       const tabDupBtn = document.getElementById('tab-dup-btn');
+      const tabCreateBtn = document.getElementById('tab-create-btn');
       const tabFixesBtn = document.getElementById('tab-fixes-btn');
 
       const tabAllContent = document.getElementById('tab-all-content');
       const tabDupContent = document.getElementById('tab-duplicates-content');
+      const tabCreateContent = document.getElementById('tab-create-content');
       const tabFixesContent = document.getElementById('tab-fixes-content');
       const searchFilter = document.getElementById('search-filter-container');
+      const addTokenButton = document.getElementById('header-add-token-btn');
 
       tabAllBtn.classList.toggle('active', tab === 'all');
       tabDupBtn.classList.toggle('active', tab === 'duplicates');
+      tabCreateBtn.classList.toggle('active', tab === 'create');
       tabFixesBtn.classList.toggle('active', tab === 'fixes');
 
       tabAllContent.classList.toggle('hidden', tab !== 'all');
       tabDupContent.classList.toggle('hidden', tab !== 'duplicates');
+      tabCreateContent.classList.toggle('hidden', tab !== 'create');
       tabFixesContent.classList.toggle('hidden', tab !== 'fixes');
 
       searchFilter.classList.toggle('hidden', tab !== 'all');
+      addTokenButton.classList.toggle('hidden', tab === 'fixes');
 
       render();
     }
 
+    const TYPOGRAPHY_TOKEN_KINDS = new Set([
+      'font-family', 'font-style', 'font-size', 'font-weight',
+      'line-height-pixels', 'line-height-percent',
+      'letter-spacing-pixels', 'letter-spacing-percent'
+    ]);
+
+    function getTokenFilterCategory(token) {
+      if (!token) return 'other';
+      if (token.category === 'color') return 'color';
+      if (token.category === 'text') {
+        return token.subType === 'text' || TYPOGRAPHY_TOKEN_KINDS.has(token.tokenKind) ? 'typography' : 'other';
+      }
+      if (token.category === 'other') return token.tokenKind === 'effect' ? 'effect' : 'other';
+      if (token.category !== 'spacing') return 'other';
+
+      const kind = token.tokenKind || 'unclassified';
+      if (kind === 'radius' || kind === 'stroke' || kind === 'opacity') return kind;
+      if (kind.indexOf('effect-') === 0) return 'effect';
+      if (TYPOGRAPHY_TOKEN_KINDS.has(kind)) return 'typography';
+      if (kind === 'spacing') return isPaddingVariableToken(token) ? 'padding' : 'spacing';
+      return 'other';
+    }
+
+    function textValueHasTypographyProperty(rawValue, filter) {
+      const raw = rawValue || {};
+      const font = raw.fontName || {};
+      if (filter === 'font-family') return !!font.family;
+      if (filter === 'font-style') return !!font.style;
+      if (filter === 'font-size') return typeof raw.fontSize === 'number';
+      if (filter === 'font-weight') return typeof raw.fontWeight === 'number' || !!font.style;
+      if (filter === 'line-height-pixels') return !!raw.lineHeight && raw.lineHeight.unit === 'PIXELS';
+      if (filter === 'line-height-percent') return !!raw.lineHeight && raw.lineHeight.unit === 'PERCENT';
+      if (filter === 'letter-spacing-pixels') return !!raw.letterSpacing && raw.letterSpacing.unit === 'PIXELS';
+      if (filter === 'letter-spacing-percent') return !!raw.letterSpacing && raw.letterSpacing.unit === 'PERCENT';
+      return false;
+    }
+
+    function tokenMatchesTypographySubFilter(token, filter) {
+      if (filter === 'all') return true;
+      if (!token) return false;
+      if (token.tokenKind === filter) return true;
+      return token.subType === 'text' && textValueHasTypographyProperty(token.rawValue, filter);
+    }
+
+    function setActiveFilterPills(containerSelector, filter) {
+      document.querySelectorAll(containerSelector + ' .filter-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.filter === filter);
+      });
+    }
+
     function setFilter(filter) {
       activeFilter = filter;
-      document.querySelectorAll('.filter-pill').forEach(pill => {
-        pill.classList.remove('active');
-        if (pill.textContent.toLowerCase().includes(
-          filter === 'all' ? 'todos' : 
-          filter === 'color' ? 'cores' : 
-          filter === 'text' ? 'textos' : 
-          filter === 'spacing' ? 'espaçamentos' : 'outros'
-        )) {
-          pill.classList.add('active');
-        }
-      });
+      setActiveFilterPills('#all-token-filters', filter);
+      const typographyFilters = document.getElementById('all-token-typography-subfilters');
+      if (typographyFilters) typographyFilters.classList.toggle('hidden', filter !== 'typography');
+      renderTokensList();
+    }
+
+    function setTypographyTokenSubFilter(filter) {
+      allTokenTypographySubFilter = filter;
+      setActiveFilterPills('#all-token-typography-subfilters', filter);
       renderTokensList();
     }
 
@@ -1751,7 +2210,8 @@
 
     function getFilteredTokensList() {
       return tokens.filter(t => {
-        if (activeFilter !== 'all' && t.category !== activeFilter) return false;
+        if (activeFilter !== 'all' && getTokenFilterCategory(t) !== activeFilter) return false;
+        if (activeFilter === 'typography' && !tokenMatchesTypographySubFilter(t, allTokenTypographySubFilter)) return false;
         if (searchQuery) {
           const matchName = t.name.toLowerCase().includes(searchQuery);
           const matchProp = t.propertiesText.toLowerCase().includes(searchQuery);
@@ -1881,7 +2341,9 @@
 
         // Properties Input HTML based on category
         let propertiesEditHtml = '';
-        if (t.category === 'color') {
+        if (t.source === 'style' && t.hasBoundVariables) {
+          propertiesEditHtml = '<p style="grid-column: 1 / -1; font-size: 11px; color: var(--text-muted);">This style uses variable tokens for its values. Edit those variables to change the style values; you can still rename the style here.</p>';
+        } else if (t.category === 'color') {
           let hex = '';
           if (t.rawValue && t.rawValue.r !== undefined) {
             const hexDigit = c => Math.round(c * 255).toString(16).padStart(2, '0');
@@ -1935,7 +2397,16 @@
         }
 
         const usageClass = t.count > 0 ? 'used' : 'unused';
-        const usageText = t.count === 1 ? '1 elemento' : `${t.count} elementos`;
+        const elementCount = t.source === 'variable' && Number.isFinite(Number(t.elementCount))
+          ? Number(t.elementCount)
+          : t.count;
+        const styleCount = t.source === 'variable' ? Number(t.styleCount) || 0 : 0;
+        const usageParts = [];
+        if (elementCount > 0) usageParts.push(elementCount === 1 ? '1 elemento' : `${elementCount} elementos`);
+        if (styleCount > 0) usageParts.push(styleCount === 1 ? '1 style' : `${styleCount} styles`);
+        const usageText = usageParts.length > 0
+          ? usageParts.join(' · ')
+          : t.count === 1 ? '1 elemento' : `${t.count} elementos`;
 
         item.innerHTML = `
           <div class="token-summary" onclick="toggleTokenExpand('${t.id}')">
@@ -1972,7 +2443,7 @@
                 ${propertiesEditHtml}
               </div>
               <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
-                <button class="btn-primary" onclick="submitEdit('${t.id}', '${t.source}', '${t.category}', '${t.subType}')">Salvar Alterações</button>
+                <button class="btn-primary" onclick="submitEdit('${t.id}', '${t.source}', '${t.category}', '${t.subType}', ${t.hasBoundVariables === true})">Salvar Alterações</button>
               </div>
             </div>
 
@@ -2022,7 +2493,7 @@
       renderTokensList();
     }
 
-    function submitEdit(id, source, category, subType) {
+    function submitEdit(id, source, category, subType, preserveBoundValues = false) {
       const name = document.getElementById(`edit-name-${id}`).value.trim();
       let value = null;
 
@@ -2031,7 +2502,9 @@
         return;
       }
 
-      if (category === 'color') {
+      if (preserveBoundValues && source === 'style') {
+        value = null;
+      } else if (category === 'color') {
         value = document.getElementById(`edit-value-${id}`).value.trim();
       } else if (category === 'spacing' || (category === 'text' && subType === 'STRING')) {
         value = document.getElementById(`edit-value-${id}`).value.trim();
@@ -2048,7 +2521,7 @@
         };
       }
 
-      updateToken(id, source, name, value);
+      updateToken(id, source, name, value, preserveBoundValues);
     }
 
     function submitReplace(oldTokenId, source) {
@@ -2059,42 +2532,64 @@
 
     // --- DUPLICATE CONFIG HELPERS ---
 
+    function getDuplicateColorScope(token) {
+      const source = token && token.source || 'unknown';
+      const styleContext = token && token.source === 'style'
+        ? token.styleContext || 'unclassified'
+        : 'shared';
+      return `${source}|${styleContext}`;
+    }
+
+    function getDuplicateNumericScope(token) {
+      if (!token) return 'unclassified';
+      if ((token.tokenKind || 'spacing') !== 'spacing') return token.tokenKind;
+      return isPaddingVariableToken(token) ? 'padding' : 'spacing';
+    }
+
+    function getDuplicateFilterCategory(group) {
+      if (!group) return 'other';
+      if (group.type === 'color') return 'color';
+      if (group.type === 'text') return 'typography';
+      if (group.type === 'spacing') {
+        const token = group.tokens && group.tokens[0];
+        return getTokenFilterCategory(token || { category: 'spacing', tokenKind: group.tokenKind });
+      }
+      if (group.type === 'other' && group.tokens && group.tokens.some(token => token.tokenKind === 'effect')) return 'effect';
+      return 'other';
+    }
+
+    function duplicateGroupMatchesTypographySubFilter(group, filter) {
+      if (filter === 'all') return true;
+      return (group.tokens || []).some(token => tokenMatchesTypographySubFilter(token, filter));
+    }
+
+    function getFilteredDuplicateGroups() {
+      return computedDuplicates.filter(group => {
+        if (dupFilter !== 'all' && getDuplicateFilterCategory(group) !== dupFilter) return false;
+        if (dupFilter === 'typography' && !duplicateGroupMatchesTypographySubFilter(group, dupTypographySubFilter)) return false;
+        return true;
+      });
+    }
+
     function setDupFilter(filter) {
       dupFilter = filter;
-      const pills = document.querySelectorAll('.dup-type-filters .filter-pill');
-      pills.forEach(p => {
-        p.classList.remove('active');
-        const label = p.textContent.toLowerCase().trim();
-        if (
-          (filter === 'all' && label === 'todos') ||
-          (filter === 'color' && label === 'cores') ||
-          (filter === 'text' && label === 'textos') ||
-          (filter === 'spacing' && label === 'espaçamentos')
-        ) {
-          p.classList.add('active');
-        }
-      });
+      setActiveFilterPills('#duplicate-category-filters', filter);
 
       // Show/hide config sections based on filter
       const colorSection = document.getElementById('color-tolerance-section');
       const textSection = document.getElementById('text-props-section');
+      const typographyFilters = document.getElementById('duplicate-typography-subfilters');
 
-      if (filter === 'text') {
-        colorSection.classList.add('hidden');
-        textSection.classList.remove('hidden');
-      } else if (filter === 'color') {
-        colorSection.classList.remove('hidden');
-        textSection.classList.add('hidden');
-      } else {
-        colorSection.classList.remove('hidden');
-        textSection.classList.remove('hidden');
-      }
+      if (colorSection) colorSection.classList.toggle('hidden', filter !== 'all' && filter !== 'color');
+      if (textSection) textSection.classList.toggle('hidden', filter !== 'all' && filter !== 'typography');
+      if (typographyFilters) typographyFilters.classList.toggle('hidden', filter !== 'typography');
+      renderDuplicatesList();
+    }
 
-      if (isSmartMode) {
-        runSmartDetection();
-      } else {
-        renderDuplicatesList();
-      }
+    function setDupTypographySubFilter(filter) {
+      dupTypographySubFilter = filter;
+      setActiveFilterPills('#duplicate-typography-subfilters', filter);
+      renderDuplicatesList();
     }
 
     function updateToleranceLabel(val) {
@@ -2110,13 +2605,183 @@
       numericMatchThresholds.radius = value;
       const label = document.getElementById('radius-tolerance-label');
       if (label) label.textContent = `${value} px`;
-      clearTimeout(radiusToleranceRenderTimer);
-      radiusToleranceRenderTimer = setTimeout(() => {
-        processDetachedElements();
-        if (activeTab === 'fixes') render();
-      }, 120);
+      const createSlider = document.getElementById('create-radius-tolerance');
+      const createLabel = document.getElementById('create-radius-tolerance-label');
+      if (createSlider) createSlider.value = value;
+      if (createLabel) createLabel.textContent = autoTokenDetectionEnabled ? 'Auto' : String(value) + ' px';
+
+      // Rebuild both views from the new threshold synchronously. Rendering the
+      // creation list is safe while hidden and means its next visible state is
+      // already current regardless of which tab owns the slider.
+      processDetachedElements();
+      renderCreationList();
+      if (activeTab === 'fixes') renderFixesList();
     }
 
+    function updateAutoTokenDetection(enabled, persist = true) {
+      autoTokenDetectionEnabled = !!enabled;
+      const checkbox = document.getElementById('create-auto-detection');
+      const slider = document.getElementById('create-radius-tolerance');
+      if (checkbox) checkbox.checked = autoTokenDetectionEnabled;
+      if (slider) slider.disabled = autoTokenDetectionEnabled;
+      const toleranceLabel = document.getElementById('create-radius-tolerance-label');
+      if (toleranceLabel) {
+        toleranceLabel.textContent = autoTokenDetectionEnabled
+          ? 'Auto'
+          : String(numericMatchThresholds.radius) + ' px';
+      }
+      if (persist) {
+        try {
+          localStorage.setItem(AUTO_TOKEN_DETECTION_STORAGE_KEY, String(autoTokenDetectionEnabled));
+        } catch (error) {
+          // Auto mode remains available for the current session if storage is unavailable.
+        }
+      }
+      suggestionNames.clear();
+      selectedSuggestionKeys.clear();
+      renderCreationList();
+    }
+
+    function initializeAutoTokenDetection() {
+      let enabled = false;
+      try {
+        enabled = localStorage.getItem(AUTO_TOKEN_DETECTION_STORAGE_KEY) === 'true';
+      } catch (error) {
+        enabled = false;
+      }
+      updateAutoTokenDetection(enabled, false);
+    }
+
+    function toggleToleranceSettings(event) {
+      if (event) event.stopPropagation();
+      const panel = document.getElementById('header-tolerance-panel');
+      const button = document.getElementById('header-tolerance-button');
+      if (!panel || !button) return;
+      const willOpen = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', !willOpen);
+      button.setAttribute('aria-expanded', String(willOpen));
+    }
+
+    function closeToleranceSettings() {
+      const panel = document.getElementById('header-tolerance-panel');
+      const button = document.getElementById('header-tolerance-button');
+      if (panel) panel.classList.add('hidden');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    }
+
+    function parseCommonTokenValueList(rawValues) {
+      const values = Array.isArray(rawValues)
+        ? rawValues.map(value => String(value))
+        : String(rawValues || '').split(/[,;\s]+/);
+      return [...new Set(values
+        .map(value => value.trim())
+        .filter(value => value !== '')
+        .map(value => Number(value))
+        .filter(value => Number.isFinite(value)))]
+        .sort((a, b) => a - b);
+    }
+
+    function persistPreferredTokenValues() {
+      try {
+        localStorage.setItem(COMMON_TOKEN_VALUES_STORAGE_KEY, JSON.stringify(preferredTokenValuesByCategory));
+      } catch (error) {
+        // Settings remain available for the current session if storage is unavailable.
+      }
+    }
+
+    function renderCommonTokenValueSettings() {
+      const container = document.getElementById('common-token-values-settings');
+      if (!container) return;
+      container.textContent = '';
+      let currentSection = null;
+      let sectionElement = null;
+      COMMON_TOKEN_VALUE_CATEGORIES.forEach(category => {
+        if (category.section !== currentSection) {
+          currentSection = category.section;
+          sectionElement = document.createElement('div');
+          sectionElement.className = 'header-common-values-section';
+          const heading = document.createElement('div');
+          heading.className = 'header-common-values-section-title';
+          heading.textContent = category.section;
+          sectionElement.appendChild(heading);
+          container.appendChild(sectionElement);
+        }
+        const field = document.createElement('label');
+        field.className = 'header-common-value-field';
+        const label = document.createElement('span');
+        label.textContent = category.label + (category.unit ? ' (' + category.unit + ')' : '');
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'header-tolerance-values-input';
+        input.value = (preferredTokenValuesByCategory[category.key] || []).join(', ');
+        input.placeholder = category.defaults.join(', ');
+        input.setAttribute('aria-label', category.label + ' common values');
+        input.addEventListener('input', () => updatePreferredTokenValues(category.key, input.value));
+        field.appendChild(label);
+        field.appendChild(input);
+        sectionElement.appendChild(field);
+      });
+    }
+
+    function updatePreferredTokenValues(categoryKey, rawValues) {
+      if (!COMMON_TOKEN_VALUE_CATEGORIES.some(category => category.key === categoryKey)) return;
+      preferredTokenValuesByCategory[categoryKey] = parseCommonTokenValueList(rawValues);
+      persistPreferredTokenValues();
+      refreshCommonValueDependentViews();
+    }
+
+    function resetPreferredTokenValues() {
+      preferredTokenValuesByCategory = Object.fromEntries(
+        COMMON_TOKEN_VALUE_CATEGORIES.map(category => [category.key, category.defaults.slice()])
+      );
+      persistPreferredTokenValues();
+      renderCommonTokenValueSettings();
+      refreshCommonValueDependentViews();
+    }
+
+    function clearPreferredTokenValues() {
+      preferredTokenValuesByCategory = Object.fromEntries(
+        COMMON_TOKEN_VALUE_CATEGORIES.map(category => [category.key, []])
+      );
+      persistPreferredTokenValues();
+      renderCommonTokenValueSettings();
+      refreshCommonValueDependentViews();
+    }
+
+    function refreshCommonValueDependentViews() {
+      suggestionNames.clear();
+      selectedSuggestionKeys.clear();
+      if (isSmartMode) runSmartDetection(false);
+      processDetachedElements();
+      renderCreationList();
+      if (activeTab === 'fixes') renderFixesList();
+    }
+
+    function initializePreferredTokenValues() {
+      let savedValues = null;
+      let legacyValues = null;
+      try {
+        const savedJson = localStorage.getItem(COMMON_TOKEN_VALUES_STORAGE_KEY);
+        if (savedJson) savedValues = JSON.parse(savedJson);
+        legacyValues = localStorage.getItem(LEGACY_COMMON_TOKEN_VALUES_STORAGE_KEY);
+      } catch (error) {
+        savedValues = null;
+        legacyValues = null;
+      }
+
+      preferredTokenValuesByCategory = {};
+      COMMON_TOKEN_VALUE_CATEGORIES.forEach(category => {
+        if (savedValues && Array.isArray(savedValues[category.key])) {
+          preferredTokenValuesByCategory[category.key] = parseCommonTokenValueList(savedValues[category.key]);
+        } else if (!savedValues && legacyValues !== null && category.legacyPixelScale) {
+          preferredTokenValuesByCategory[category.key] = parseCommonTokenValueList(legacyValues);
+        } else {
+          preferredTokenValuesByCategory[category.key] = category.defaults.slice();
+        }
+      });
+      persistPreferredTokenValues();
+      renderCommonTokenValueSettings();
+    }
     function toggleCheckboxStyle(label) {
       setTimeout(() => {
         const cb = label.querySelector('input[type="checkbox"]');
@@ -2216,8 +2881,49 @@
       return "Outras Cores";
     }
 
+    function getCommonScaleCategoryForNumericToken(token) {
+      const kind = token && token.tokenKind;
+      if (kind === 'radius') return 'radius';
+      if (kind === 'stroke') return 'stroke';
+      if (kind === 'opacity') return 'opacity';
+      if (kind === 'spacing') return isPaddingVariableToken(token) ? 'padding' : 'gap';
+      if (kind === 'font-size' || (token && token.category === 'text' && token.subType === 'text')) return 'fontSize';
+      if (kind === 'font-weight') return 'fontWeight';
+      if (kind === 'line-height-pixels') return 'lineHeight';
+      if (kind === 'letter-spacing-pixels') return 'letterSpacing';
+      if (kind === 'effect-radius') return 'effectRadius';
+      if (kind === 'effect-spread') return 'effectSpread';
+      if (kind === 'effect-offset-x' || kind === 'effect-offset-y') return 'effectOffset';
+      return null;
+    }
+
+    function getNearestCommonTokenValue(value, category) {
+      const commonValues = preferredTokenValuesByCategory[category] || [];
+      if (!commonValues.length || !Number.isFinite(Number(value))) return null;
+      const numericValue = Number(value);
+      let nearest = commonValues[0];
+      let minDistance = Math.abs(numericValue - nearest);
+      commonValues.forEach(candidate => {
+        const distance = Math.abs(numericValue - candidate);
+        // The scale is sorted, so exact ties intentionally keep the lower value.
+        if (distance < minDistance) {
+          nearest = candidate;
+          minDistance = distance;
+        }
+      });
+      return nearest;
+    }
+
+    function getCommonScaleCategoryForCorrectionGroup(group) {
+      const category = getCorrectionFilterCategory(group);
+      if (category === 'padding') return 'padding';
+      if (category === 'spacing') return 'gap';
+      if (category === 'radius' || category === 'stroke' || category === 'opacity') return category;
+      return null;
+    }
+
     // Run Smart Detection algorithm
-    function runSmartDetection() {
+    function runSmartDetection(showNotification = true) {
       isSmartMode = true;
       const groups = {};
 
@@ -2225,8 +2931,9 @@
       const colorTokens = tokens.filter(t => t.category === 'color' && t.rawValue && t.rawValue.r !== undefined);
       colorTokens.forEach(t => {
         const family = getColorFamilyName(t.rawValue.r, t.rawValue.g, t.rawValue.b);
-        // Group by source and family to keep Variable-Variable and Style-Style structures
-        const key = `smart-color-${t.source}-${family.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        // Preserve variable/style separation and the semantic folders of
+        // color styles (texts, backgrounds and strokes).
+        const key = `smart-color-${getDuplicateColorScope(t)}-${family.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
         if (!groups[key]) {
           groups[key] = {
             name: `Coleta Inteligente: Cores - ${family}`,
@@ -2239,74 +2946,83 @@
         groups[key].tokens.push(t);
       });
 
-      // 2. Spacing clustering within a 4px range
-      const spacingTokens = tokens.filter(t => t.category === 'spacing' && t.subType === 'FLOAT' && typeof t.rawValue === 'number');
-      if (spacingTokens.length > 0) {
-        const sortedSpacing = [...spacingTokens].sort((a, b) => a.rawValue - b.rawValue);
-        const spacingGroups = [];
-        let currentGroup = [];
-        sortedSpacing.forEach(token => {
-          if (currentGroup.length > 0 && token.rawValue - currentGroup[currentGroup.length - 1].rawValue > 4) {
-            spacingGroups.push(currentGroup);
-            currentGroup = [];
-          }
-          currentGroup.push(token);
-        });
-        if (currentGroup.length > 0) spacingGroups.push(currentGroup);
-        spacingGroups.forEach((sorted, groupIndex) => {
-          if (sorted.length > 1) {
-            const minVal = sorted[0].rawValue;
-            const maxVal = sorted[sorted.length - 1].rawValue;
-            const key = `smart-spacing-${groupIndex}`;
-            groups[key] = {
-              name: `Coleta Inteligente: Espaçamentos Próximos (${minVal}px - ${maxVal}px)`,
-              type: 'spacing',
-              source: sorted[0].source,
-              propertiesText: `Valores entre ${minVal}px e ${maxVal}px`,
-              tokens: sorted
-            };
-          }
-        });
-      }
+      // 2. Numeric values are clustered by their nearest configured common
+      // value and semantic category. There is no hard-coded pixel window, and
+      // padding, gap, radius, stroke, opacity and typography stay separate.
+      const numericGroups = new Map();
+      tokens.filter(token => typeof token.rawValue === 'number' && Number.isFinite(token.rawValue)).forEach(token => {
+        const scaleCategory = getCommonScaleCategoryForNumericToken(token);
+        if (!scaleCategory) return;
+        const preferredValue = getNearestCommonTokenValue(token.rawValue, scaleCategory);
+        if (preferredValue === null) return;
+        const filterCategory = getTokenFilterCategory(token);
+        const kind = token.tokenKind || filterCategory;
+        const key = `${token.source}|${filterCategory}|${kind}|${preferredValue}`;
+        if (!numericGroups.has(key)) numericGroups.set(key, { preferredValue, filterCategory, tokens: [] });
+        numericGroups.get(key).tokens.push(token);
+      });
+      const categoryLabels = {
+        padding: 'Padding', spacing: 'Espaçamentos', radius: 'Raios', stroke: 'Bordas',
+        opacity: 'Opacidade', typography: 'Tipografia', effect: 'Efeitos'
+      };
+      numericGroups.forEach((entry, groupIndex) => {
+        if (entry.tokens.length < 2) return;
+        const values = entry.tokens.map(token => Number(token.rawValue));
+        const distinctValues = [...new Set(values)];
+        if (distinctValues.length < 2) return;
+        const minValue = values.reduce((min, value) => Math.min(min, value), Infinity);
+        const maxValue = values.reduce((max, value) => Math.max(max, value), -Infinity);
+        const unit = entry.filterCategory === 'opacity' || entry.filterCategory === 'typography' && entry.tokens[0].tokenKind === 'font-weight' ? '' : 'px';
+        const key = `smart-numeric-${groupIndex}`;
+        groups[key] = {
+          name: `Detecção Inteligente: ${categoryLabels[entry.filterCategory] || 'Valores'} (${minValue}${unit} – ${maxValue}${unit}; comum: ${entry.preferredValue}${unit})`,
+          type: 'spacing',
+          source: entry.tokens[0].source,
+          tokenKind: entry.tokens[0].tokenKind,
+          propertiesText: `Valores próximos de ${entry.preferredValue}${unit}`,
+          tokens: entry.tokens
+        };
+      });
 
-      // 3. Text clustering within a 3px font size difference
-      const textTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text' && t.rawValue && t.rawValue.fontName);
-      if (textTokens.length > 0) {
-        const byFamily = new Map();
-        textTokens.forEach(token => {
-          const family = token.rawValue.fontName.family;
-          if (!byFamily.has(family)) byFamily.set(family, []);
-          byFamily.get(family).push(token);
-        });
-        let textGroupIndex = 0;
-        byFamily.forEach(familyTokens => {
-          const sortedFamily = [...familyTokens].sort((a, b) => a.rawValue.fontSize - b.rawValue.fontSize);
-          let currentGroup = [];
-          const flushGroup = () => {
-            if (currentGroup.length <= 1) return;
-            const sorted = currentGroup;
-            const minSize = sorted[0].rawValue.fontSize;
-            const maxSize = sorted[sorted.length - 1].rawValue.fontSize;
-            const family = sorted[0].rawValue.fontName.family;
-            const key = `smart-text-${textGroupIndex++}`;
-            groups[key] = {
-              name: `Coleta Inteligente: Textos (${family} ${minSize}px - ${maxSize}px)`,
-              type: 'text',
-              source: sorted[0].source,
-              propertiesText: `${family} (${minSize}px a ${maxSize}px)`,
-              tokens: sorted
-            };
-          };
-          sortedFamily.forEach(token => {
-            if (currentGroup.length > 0 && token.rawValue.fontSize - currentGroup[currentGroup.length - 1].rawValue.fontSize > 3) {
-              flushGroup();
-              currentGroup = [];
-            }
-            currentGroup.push(token);
-          });
-          flushGroup();
-        });
-      }
+      // 3. Typography styles use the configured font-size scale. Different
+      // sources, families and font styles never enter the same group.
+      const textTokens = tokens.filter(token => token.category === 'text' && token.subType === 'text' && token.rawValue && token.rawValue.fontName);
+      const textGroups = new Map();
+      textTokens.forEach(token => {
+        const preferredSize = getNearestCommonTokenValue(Number(token.rawValue.fontSize), 'fontSize');
+        if (preferredSize === null) return;
+        const font = token.rawValue.fontName;
+        const key = [
+          token.source,
+          font.family || '',
+          font.style || '',
+          stableSerialize(font.variationSettings || {}),
+          textMeasureKey(token.rawValue.lineHeight, 'AUTO'),
+          textMeasureKey(token.rawValue.letterSpacing, 'PIXELS'),
+          Number(token.rawValue.fontWeight) || 0,
+          preferredSize
+        ].join('|');
+        if (!textGroups.has(key)) textGroups.set(key, { preferredSize, tokens: [] });
+        textGroups.get(key).tokens.push(token);
+      });
+      let textGroupIndex = 0;
+      textGroups.forEach(entry => {
+        if (entry.tokens.length < 2) return;
+        const sizes = entry.tokens.map(token => Number(token.rawValue.fontSize));
+        if ([...new Set(sizes)].length < 2) return;
+        const minSize = sizes.reduce((min, value) => Math.min(min, value), Infinity);
+        const maxSize = sizes.reduce((max, value) => Math.max(max, value), -Infinity);
+        const font = entry.tokens[0].rawValue.fontName;
+        const key = `smart-text-${textGroupIndex++}`;
+        groups[key] = {
+          name: `Detecção Inteligente: Tipografia (${font.family} ${minSize}px – ${maxSize}px; comum: ${entry.preferredSize}px)`,
+          type: 'text',
+          source: entry.tokens[0].source,
+          tokenKind: 'text-style',
+          propertiesText: `${font.family} (${minSize}px a ${maxSize}px)`,
+          tokens: entry.tokens
+        };
+      });
 
       // Build array
       const result = [];
@@ -2316,6 +3032,7 @@
             key: key,
             type: groups[key].type,
             source: groups[key].source,
+            tokenKind: groups[key].tokenKind || null,
             propertiesText: groups[key].propertiesText,
             name: groups[key].name,
             tokens: groups[key].tokens
@@ -2324,7 +3041,7 @@
       }
 
       computedDuplicates = result;
-      showToast("Detecção Inteligente ativada por proximidade de valores!");
+      if (showNotification) showToast("Detecção Inteligente atualizada pelas escalas comuns configuradas.");
       renderDuplicatesList();
     }
 
@@ -2362,12 +3079,12 @@
               const g = Math.round(t.rawValue.g * 255);
               const b = Math.round(t.rawValue.b * 255);
               const a = t.rawValue.a !== undefined ? Math.round(t.rawValue.a * 100) : 100;
-              key = `${t.source}-color-${r}-${g}-${b}-${ignoreColorOpacity ? 'any' : a}`;
+              key = `${getDuplicateColorScope(t)}-color-${r}-${g}-${b}-${ignoreColorOpacity ? 'any' : a}`;
             }
           }
         } else if (t.category === 'spacing' && t.subType === 'FLOAT') {
           if (t.rawValue !== null && typeof t.rawValue === 'number') {
-            key = `spacing-${t.rawValue}`;
+            key = `numeric-${t.source}-${getDuplicateNumericScope(t)}-${t.rawValue}`;
           }
         } else if (t.category === 'text' && t.subType === 'text') {
           const rv = t.rawValue;
@@ -2376,7 +3093,7 @@
               textTokens.push(t);
               return;
             }
-            let parts = ['textstyle'];
+            let parts = ['textstyle', t.source];
             if (checkFamily) parts.push(rv.fontName.family);
             if (checkWeight) parts.push(rv.fontName.style);
             if (checkSize) {
@@ -2395,7 +3112,7 @@
           }
         } else if (t.category === 'text' && t.subType === 'STRING') {
           if (t.rawValue !== null) {
-            key = `stringvar-${t.rawValue}`;
+            key = `stringvar-${t.source}-${t.tokenKind || ''}-${t.rawValue}`;
           }
         }
 
@@ -2419,6 +3136,7 @@
         function sameTextProperties(a, b) {
           const av = a.rawValue, bv = b.rawValue;
           if (!av || !bv || !av.fontName || !bv.fontName) return false;
+          if (a.source !== b.source) return false;
           if (checkFamily && av.fontName.family !== bv.fontName.family) return false;
           if (checkWeight && av.fontName.style !== bv.fontName.style) return false;
           if (Math.abs(av.fontSize - bv.fontSize) > textSizeTolerance) return false;
@@ -2464,8 +3182,8 @@
 
         for (let i = 0; i < colorTokens.length; i++) {
           for (let j = i + 1; j < colorTokens.length; j++) {
-            // Only group same source tokens
-            if (colorTokens[i].source !== colorTokens[j].source) continue;
+            // Only group colors from the same token/style scope.
+            if (getDuplicateColorScope(colorTokens[i]) !== getDuplicateColorScope(colorTokens[j])) continue;
             if (!ignoreColorOpacity) {
               const alphaI = colorTokens[i].rawValue.a !== undefined ? colorTokens[i].rawValue.a : 1;
               const alphaJ = colorTokens[j].rawValue.a !== undefined ? colorTokens[j].rawValue.a : 1;
@@ -2500,6 +3218,7 @@
             key: key,
             type: groups[key][0].category,
             subType: groups[key][0].subType,
+            tokenKind: groups[key][0].tokenKind || (groups[key][0].category === 'text' && groups[key][0].subType === 'text' ? 'text-style' : null),
             source: groups[key][0].source,
             propertiesText: groups[key][0].propertiesText,
             rawValue: groups[key][0].rawValue,
@@ -2564,11 +3283,7 @@
       const container = document.getElementById('duplicates-container');
       container.innerHTML = '';
 
-      // Filter by type
-      let filtered = computedDuplicates;
-      if (dupFilter !== 'all') {
-        filtered = computedDuplicates.filter(g => g.type === dupFilter);
-      }
+      const filtered = getFilteredDuplicateGroups();
 
       // Update counter
       const counterEl = document.getElementById('dup-counter');
@@ -2580,9 +3295,13 @@
 
       if (filtered.length === 0) {
         const tolerance = parseInt(document.getElementById('color-tolerance').value) || 0;
-        const hint = tolerance > 0 || isSmartMode
-          ? 'Tente aumentar a tolerância, resetar a detecção ou mudar o filtro de tipo.'
-          : 'Não encontramos nenhum token com propriedades duplicadas no seu documento.';
+        const hint = computedDuplicates.length > 0
+          ? 'Nenhum grupo corresponde a esta categoria ou subcategoria. Ajuste os filtros para ver outros grupos.'
+          : isSmartMode
+            ? 'A Detecção Inteligente usa as escalas comuns configuradas no cabeçalho. Ajuste essas escalas ou use a detecção padrão.'
+            : tolerance > 0
+              ? 'Tente aumentar a tolerância de cor ou alterar as propriedades de texto comparadas.'
+              : 'Não encontramos nenhum token com propriedades duplicadas no seu documento.';
         container.innerHTML = `
           <div class="empty-state">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
@@ -2617,8 +3336,11 @@
           ).join('');
         }
 
-        const typeLabels = { color: 'Cor', text: 'Texto', spacing: 'Espaçamento', other: 'Outro' };
-        const typeLabel = typeLabels[group.type] || group.type;
+        const typeLabels = {
+          color: 'Cor', padding: 'Padding', spacing: 'Espaçamento', radius: 'Raio',
+          stroke: 'Borda', opacity: 'Opacidade', typography: 'Tipografia', effect: 'Efeito', other: 'Outro'
+        };
+        const typeLabel = typeLabels[getDuplicateFilterCategory(group)] || group.type;
         const groupTitle = group.name ? group.name : group.propertiesText;
 
         groupEl.innerHTML = `
@@ -2629,6 +3351,9 @@
               <strong style="font-size: 13px;">${groupTitle}</strong>
               <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-transform: uppercase;">
                 ${typeLabel}
+              </span>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); text-transform: uppercase;">
+                ${group.source === 'variable' ? 'Token' : 'Style'}
               </span>
             </div>
             <span style="font-size: 11px; color: var(--text-muted);">${group.tokens.length} tokens similares</span>
@@ -2698,12 +3423,7 @@
     }
 
     function handleConsolidateSubmit(groupIndex) {
-      let filtered = computedDuplicates;
-      if (dupFilter !== 'all') {
-        filtered = computedDuplicates.filter(g => g.type === dupFilter);
-      }
-
-      const group = filtered[groupIndex];
+      const group = getFilteredDuplicateGroups()[groupIndex];
       if (!group) return;
 
       const radios = document.getElementsByName(`dup-group-${groupIndex}-canonical`);
@@ -2735,10 +3455,7 @@
     }
 
     function handleConsolidateAll() {
-      let filtered = computedDuplicates;
-      if (dupFilter !== 'all') {
-        filtered = computedDuplicates.filter(g => g.type === dupFilter);
-      }
+      const filtered = getFilteredDuplicateGroups();
 
       const groups = [];
       filtered.forEach((group, gIdx) => {
@@ -2807,34 +3524,54 @@
 
     function processDetachedElements() {
       const groupsMap = new Map();
+      const variableCandidateGroups = new Map();
 
       detachedElements.forEach(item => {
         // Keep the UI defensive against stale/legacy analysis payloads that
         // may still contain layout values rendered as 0.00.
         if (item.category === 'spacing' && typeof item.rawValue === 'number' &&
             Math.round(item.rawValue * 100) / 100 === 0) return;
+        if (item.category === 'text-variable' || item.category === 'effect-variable') {
+          const normalizedValue = typeof item.rawValue === 'string'
+            ? item.rawValue.toLowerCase()
+            : typeof item.rawValue === 'number'
+              ? String(Math.round(item.rawValue * 10000) / 10000)
+              : String(item.rawValue);
+          const key = `${item.category}|${item.tokenKind}|${item.measureUnit || ''}|${normalizedValue}`;
+          if (!variableCandidateGroups.has(key)) {
+            variableCandidateGroups.set(key, {
+              key: `variable-${key}`, prop: item.prop, category: item.category,
+              tokenKind: item.tokenKind, variableType: item.variableType,
+              measureUnit: item.measureUnit || null, rawValue: item.rawValue,
+              formattedValue: item.formattedValue, nodes: [], properties: new Map()
+            });
+          }
+          variableCandidateGroups.get(key).nodes.push({
+            nodeId: item.nodeId, nodeName: item.nodeName, nodeType: item.nodeType,
+            pageId: item.pageId, pageName: item.pageName, prop: item.prop,
+            effectIndex: item.effectIndex, rawValue: item.rawValue, hasVariable: false
+          });
+          return;
+        }
         let key = '';
         if (item.category === 'color') {
           const r = Math.round(item.rawValue.r * 255);
           const g = Math.round(item.rawValue.g * 255);
           const b = Math.round(item.rawValue.b * 255);
           const a = Math.round((item.rawValue.a !== undefined ? item.rawValue.a : 1) * 100);
-          // Keep direct-variable usage separate from genuinely unbound paint,
-          // so the correction can specifically recommend the equivalent style.
-          const usageKind = item.preferStyle ? '-direct-variable' : '';
-          key = `${item.prop}-color-${r}-${g}-${b}-${a}${usageKind}`;
+          // Keep style context and variable alias separate. Variables can be
+          // recombined later, while Paint Styles remain context-specific.
+          const styleContext = item.styleContext || item.prop;
+          const usageKind = item.variableId ? `-variable-${item.variableId}` : item.preferStyle ? '-direct-variable' : '';
+          key = `${item.prop}-color-${styleContext}-${r}-${g}-${b}-${a}${usageKind}`;
         } else if (item.category === 'text') {
-          const font = item.rawValue.fontName || {};
-          const fam = font.family || 'Inter';
-          const sty = font.style || 'Regular';
-          const size = item.rawValue.fontSize || 16;
-          const lhUnit = item.rawValue.lineHeight ? item.rawValue.lineHeight.unit : 'AUTO';
-          const lhVal = item.rawValue.lineHeight ? item.rawValue.lineHeight.value || 0 : 0;
-          key = `text-${fam}-${sty}-${size}-${lhUnit}-${lhVal}`;
+          key = `text-${textTypographyKey(item.rawValue)}-${stableSerialize(item.styleVariableIds || {})}`;
         } else if (item.category === 'spacing') {
-          // Layout fields with the same value share one suggestion. Their
-          // token kind keeps spacing, radius, stroke and opacity separate.
-          key = `${item.tokenKind || 'unclassified'}-numeric-${item.rawValue}`;
+          // Padding and gap use the same Figma variable type, but stay in
+          // separate correction groups and match only their own token names.
+          const isPadding = item.tokenKind === 'spacing' && String(item.prop || '').toLowerCase().indexOf('padding') === 0;
+          const semanticCategory = item.tokenKind === 'spacing' ? (isPadding ? 'padding' : 'spacing') : item.tokenKind;
+          key = `${item.tokenKind || 'unclassified'}-${semanticCategory}-numeric-${item.rawValue}`;
         } else if (item.prop === 'effect') {
           // Effects must be grouped by their complete visual definition, not
           // only by the number/type of shadows. Blur, spread, offset, color
@@ -2850,9 +3587,16 @@
             prop: item.category === 'spacing' ? item.tokenKind : item.prop,
             category: item.category,
             tokenKind: item.tokenKind,
+            semanticCategory: item.category === 'spacing' && item.tokenKind === 'spacing'
+              ? (String(item.prop || '').toLowerCase().indexOf('padding') === 0 ? 'padding' : 'spacing')
+              : null,
+            styleContext: item.styleContext || item.prop,
             rawValue: item.rawValue,
             formattedValue: item.formattedValue,
             preferStyle: !!item.preferStyle,
+            variableId: item.variableId || null,
+            styleVariableIds: item.styleVariableIds || null,
+            correctionEligible: item.correctionEligible !== false,
             properties: new Map(),
             nodes: []
           });
@@ -2869,9 +3613,17 @@
           pageId: item.pageId,
           pageName: item.pageName,
           paintIndex: item.paintIndex,
+          paintCount: item.paintCount,
+          effectIndex: item.effectIndex,
           prop: item.prop,
+          rawValue: item.rawValue,
+          styleContext: item.styleContext || item.prop,
           propLabel: item.propLabel,
-          tokenKind: item.tokenKind
+          tokenKind: item.tokenKind,
+          hasVariable: item.hasVariable === true,
+          variableId: item.variableId || null,
+          styleVariableIds: item.styleVariableIds || null,
+          correctionEligible: item.correctionEligible !== false
         });
       });
 
@@ -2882,8 +3634,9 @@
         typeof t.rawValue === 'number' && t.tokenKind && t.tokenKind !== 'unclassified'
       );
       const effectTokens = tokens.filter(t => t.subType === 'effect');
-      const colorTokensByValue = new Map();
-      const styleColorTokensByValue = new Map();
+      const variableColorTokensByValue = new Map();
+      const variableTokensByKindAndValue = new Map();
+      const styleColorTokensByContextAndBinding = new Set();
       const textTokensByValue = new Map();
       const numericTokensByKindAndValue = new Map();
       const numericTokensByKind = new Map();
@@ -2895,17 +3648,28 @@
         return `${Math.round(raw.r * 255)}-${Math.round(raw.g * 255)}-${Math.round(raw.b * 255)}-${Math.round(alpha * 100)}`;
       };
       const textValueKey = raw => {
-        const font = raw && raw.fontName || {};
-        return `${(font.family || '').toLowerCase()}|${(font.style || '').toLowerCase()}|${raw && raw.fontSize || 0}`;
+        return textTypographyKey(raw);
       };
 
       colorTokens.forEach(token => {
         const key = colorValueKey(token.rawValue);
         if (!key) return;
-        if (!colorTokensByValue.has(key)) colorTokensByValue.set(key, token);
-        if (token.source === 'style' && !styleColorTokensByValue.has(key)) {
-          styleColorTokensByValue.set(key, token);
+        if (token.source === 'variable' && !variableColorTokensByValue.has(key)) {
+          variableColorTokensByValue.set(key, token);
         }
+        if (token.source === 'style' && token.styleContext) {
+          styleColorTokensByContextAndBinding.add(`${token.styleContext}|${key}|${token.variableId || 'independent'}`);
+        }
+      });
+      tokens.filter(token => token.source === 'variable').forEach(token => {
+        if (!token.tokenKind || token.rawValue === null || token.rawValue === undefined) return;
+        const expectedType = token.tokenKind === 'font-family' || token.tokenKind === 'font-style' ? 'STRING' : 'FLOAT';
+        if (token.subType !== expectedType) return;
+        const value = typeof token.rawValue === 'string'
+          ? token.rawValue.toLowerCase()
+          : String(Math.round(Number(token.rawValue) * 10000) / 10000);
+        const key = `${token.tokenKind}|${value}`;
+        if (!variableTokensByKindAndValue.has(key)) variableTokensByKindAndValue.set(key, token);
       });
       textTokens.forEach(token => {
         const key = textValueKey(token.rawValue);
@@ -2924,6 +3688,75 @@
 
       const processed = [];
 
+      const findVariableFor = (kind, value, preferredId) => {
+        const expectedType = kind === 'font-family' || kind === 'font-style' ? 'STRING' : 'FLOAT';
+        if (preferredId) {
+          const preferred = tokens.find(token => token.id === preferredId && token.source === 'variable' && token.subType === expectedType);
+          if (preferred) return preferred;
+        }
+        const normalized = typeof value === 'string'
+          ? value.toLowerCase()
+          : String(Math.round(Number(value) * 10000) / 10000);
+        return variableTokensByKindAndValue.get(`${kind}|${normalized}`) || null;
+      };
+
+      const textStyleVariablesFor = group => {
+        const raw = group.rawValue || {};
+        const existing = group.styleVariableIds || {};
+        const values = [
+          ['fontFamily', 'font-family', raw.fontName && raw.fontName.family],
+          ['fontSize', 'font-size', raw.fontSize],
+          ['fontWeight', 'font-weight', raw.fontWeight]
+        ];
+        if (raw.lineHeight && (raw.lineHeight.unit === 'PIXELS' || raw.lineHeight.unit === 'PERCENT')) {
+          values.push(['lineHeight', `line-height-${raw.lineHeight.unit === 'PERCENT' ? 'percent' : 'pixels'}`, raw.lineHeight.value]);
+        }
+        if (raw.letterSpacing && (raw.letterSpacing.unit === 'PIXELS' || raw.letterSpacing.unit === 'PERCENT')) {
+          values.push(['letterSpacing', `letter-spacing-${raw.letterSpacing.unit === 'PERCENT' ? 'percent' : 'pixels'}`, raw.letterSpacing.value]);
+        }
+        const ids = {};
+        for (const [field, kind, value] of values) {
+          if (value === null || value === undefined) return null;
+          const variable = findVariableFor(kind, value, existing[field]);
+          if (!variable) return null;
+          ids[field] = variable.id;
+        }
+        return ids;
+      };
+
+      const effectStyleVariablesFor = effects => {
+        const aliases = [];
+        for (let index = 0; index < (effects || []).length; index++) {
+          const effect = effects[index];
+          if (!effect || effect.visible === false) continue;
+          const bound = effect.boundVariables || {};
+          const fields = {};
+          if (effect.color) {
+            const key = colorValueKey(effect.color);
+            const preferred = bound.color && (bound.color.id || bound.color.variableId);
+            const variable = (preferred && tokens.find(token => token.id === preferred && token.source === 'variable')) || variableColorTokensByValue.get(key);
+            if (!variable) return null;
+            fields.color = variable.id;
+          }
+          for (const field of ['radius', 'spread', 'offsetX', 'offsetY']) {
+            const fieldValue = field === 'offsetX'
+              ? effect.offset && effect.offset.x
+              : field === 'offsetY'
+                ? effect.offset && effect.offset.y
+                : effect[field];
+            if (typeof fieldValue !== 'number') continue;
+            const kind = field === 'radius' ? 'effect-radius' : field === 'spread' ? 'effect-spread' : field === 'offsetX' ? 'effect-offset-x' : 'effect-offset-y';
+            const binding = bound[field];
+            const preferred = binding && (binding.id || binding.variableId);
+            const variable = findVariableFor(kind, fieldValue, preferred);
+            if (!variable) return null;
+            fields[field] = variable.id;
+          }
+          aliases[index] = fields;
+        }
+        return aliases.length > 0 ? aliases : null;
+      };
+
       groupsMap.forEach(group => {
         let matchType = 'none';
         let matchedToken = null;
@@ -2938,19 +3771,24 @@
           const b = Math.round(raw.b * 255);
           const a = Math.round((raw.a !== undefined ? raw.a : 1) * 100);
 
-          // Direct variable usage should migrate to an equivalent Paint Style.
-          // Prefer styles for that case even when the variable is listed first.
+          // Prefer a Paint Style for variable-bound paint only when the style
+          // can preserve the same variable binding.
+          const contextualStyles = colorTokens.filter(t => t.source === 'style' &&
+            (!t.styleContext || t.styleContext === group.styleContext));
           const exactColorTokens = group.preferStyle
-            ? [...colorTokens.filter(t => t.source === 'style'), ...colorTokens.filter(t => t.source !== 'style')]
-            : colorTokens;
+            ? [...contextualStyles.filter(t => t.variableId === group.variableId), ...colorTokens.filter(t => t.source === 'variable')]
+            : [...contextualStyles, ...colorTokens.filter(t => t.source === 'variable')];
 
           // 1. Exact Match. The index covers the common exact-value path;
           // the loop remains as a fallback to preserve the prior rounding
           // behavior for every existing document.
           const colorKey = `${r}-${g}-${b}-${a}`;
+          const exactContextStyle = contextualStyles.find(token => colorValueKey(token.rawValue) === colorKey);
           matchedToken = group.preferStyle
-            ? (styleColorTokensByValue.get(colorKey) || colorTokensByValue.get(colorKey) || null)
-            : (colorTokensByValue.get(colorKey) || null);
+            ? (group.variableId
+              ? contextualStyles.find(token => token.variableId === group.variableId && colorValueKey(token.rawValue) === colorKey) || null
+              : null)
+            : (exactContextStyle || variableColorTokensByValue.get(colorKey) || null);
           if (matchedToken) {
             matchType = 'exact';
             confidence = 100;
@@ -2971,13 +3809,11 @@
           }
 
           // 2. Fuzzy Match via Delta-E
-          if (!matchedToken && colorTokens.length > 0) {
+          if (!matchedToken && exactColorTokens.length > 0) {
             let minDistance = Infinity;
             let bestCandidate = null;
 
-            const fuzzyColorTokens = group.preferStyle
-              ? colorTokens.filter(t => t.source === 'style')
-              : colorTokens;
+            const fuzzyColorTokens = exactColorTokens;
             for (const t of fuzzyColorTokens) {
               if (t.rawValue && t.rawValue.r !== undefined) {
                 const dist = colorDeltaE(raw, t.rawValue);
@@ -2999,22 +3835,17 @@
           const raw = group.rawValue;
           const font = raw.fontName || {};
           const fam = (font.family || '').toLowerCase();
-          const sty = (font.style || '').toLowerCase();
           const size = raw.fontSize || 16;
 
-          // 1. Exact Match, indexed before the tolerance-compatible fallback.
-          matchedToken = textTokensByValue.get(`${fam}|${sty}|${size}`) || null;
+          // Exact matches compare the full typography signature, including
+          // line height and letter spacing, so distinct treatments stay apart.
+          matchedToken = textTokensByValue.get(textValueKey(raw)) || null;
           if (matchedToken) {
             matchType = 'exact';
             confidence = 100;
           }
           for (const t of matchedToken ? [] : textTokens) {
-            const tf = t.rawValue?.fontName || {};
-            if (
-              (tf.family || '').toLowerCase() === fam &&
-              (tf.style || '').toLowerCase() === sty &&
-              Math.abs((t.rawValue?.fontSize || 0) - size) < 0.1
-            ) {
+            if (textValueKey(t.rawValue) === textValueKey(raw)) {
               matchType = 'exact';
               matchedToken = t;
               confidence = 100;
@@ -3026,14 +3857,21 @@
           if (!matchedToken && textTokens.length > 0) {
             let bestCandidate = null;
             let minSizeDiff = Infinity;
+            const preferredSize = getNearestCommonTokenValue(size, 'fontSize');
+            let bestUsesPreferredSize = false;
 
             for (const t of textTokens) {
               const tf = t.rawValue?.fontName || {};
               if ((tf.family || '').toLowerCase() === fam) {
                 const diff = Math.abs((t.rawValue?.fontSize || 0) - size);
-                if (diff < minSizeDiff) {
+                if (diff > 10) continue;
+                const usesPreferredSize = preferredSize !== null &&
+                  getNearestCommonTokenValue(Number(t.rawValue?.fontSize || 0), 'fontSize') === preferredSize;
+                if ((usesPreferredSize && !bestUsesPreferredSize) ||
+                    (usesPreferredSize === bestUsesPreferredSize && diff < minSizeDiff)) {
                   minSizeDiff = diff;
                   bestCandidate = t;
+                  bestUsesPreferredSize = usesPreferredSize;
                 }
               }
             }
@@ -3049,10 +3887,15 @@
           // padding value therefore cannot be linked to Font Size, Radius,
           // Stroke or Opacity merely because the raw number is the same.
           const rawValue = group.rawValue;
-          const compatibleTokens = numericTokensByKind.get(group.tokenKind) || [];
+          const correctionCategory = getCorrectionFilterCategory(group);
+          const compatibleTokens = (numericTokensByKind.get(group.tokenKind) || []).filter(token => {
+            if (correctionCategory === 'padding' || correctionCategory === 'spacing') {
+              return getTokenFilterCategory(token) === correctionCategory;
+            }
+            return true;
+          });
           const threshold = numericMatchThresholds[group.tokenKind];
-          matchedToken = numericTokensByKindAndValue.get(`${group.tokenKind}|${rawValue}`) ||
-            (threshold !== 0 && compatibleTokens.find(t => Math.abs(t.rawValue - rawValue) < 0.001)) || null;
+          matchedToken = compatibleTokens.find(token => Math.abs(token.rawValue - rawValue) < 0.001) || null;
           if (matchedToken) {
             matchType = 'exact';
             confidence = 100;
@@ -3063,11 +3906,21 @@
             if (threshold !== undefined && threshold > 0) {
               let closest = null;
               let minDiff = Infinity;
+              const scaleCategory = getCommonScaleCategoryForCorrectionGroup(group);
+              const preferredValue = scaleCategory
+                ? getNearestCommonTokenValue(rawValue, scaleCategory)
+                : null;
+              let closestUsesPreferredValue = false;
               compatibleTokens.forEach(token => {
                 const diff = Math.abs(token.rawValue - rawValue);
-                if (diff < minDiff) {
+                if (diff > threshold) return;
+                const usesPreferredValue = preferredValue !== null &&
+                  getNearestCommonTokenValue(Number(token.rawValue), scaleCategory) === preferredValue;
+                if ((usesPreferredValue && !closestUsesPreferredValue) ||
+                    (usesPreferredValue === closestUsesPreferredValue && diff < minDiff)) {
                   minDiff = diff;
                   closest = token;
+                  closestUsesPreferredValue = usesPreferredValue;
                 }
               });
               if (closest && minDiff <= threshold) {
@@ -3090,14 +3943,72 @@
           }
         }
 
+        const boundLocalColor = group.category === 'color'
+          ? group.nodes.find(node => node.variableId && tokens.some(token => token.id === node.variableId && token.source === 'variable' && token.subType === 'COLOR'))
+          : null;
+        const styleVariableId = group.category === 'color'
+          ? (boundLocalColor || {}).variableId || (variableColorTokensByValue.get(colorValueKey(group.rawValue)) || {}).id || null
+          : null;
+        const textStyleVariableIds = group.category === 'text' ? textStyleVariablesFor(group) : null;
+        const effectStyleVariableIds = group.category === 'other' && group.prop === 'effect'
+          ? effectStyleVariablesFor(group.rawValue) : null;
+
         processed.push({
           ...group,
+          correctionEligible: group.correctionEligible !== false &&
+            !(group.category === 'color' && matchedToken && matchedToken.source === 'style' &&
+              group.nodes.some(node => node.paintCount !== 1 || node.paintIndex !== 0)),
+          tokenCandidate: group.category === 'color'
+            ? !variableColorTokensByValue.has(colorValueKey(group.rawValue)) && group.nodes.some(node => !node.hasVariable)
+            : group.category === 'spacing'
+              ? !numericTokensByKindAndValue.has(`${group.tokenKind}|${group.rawValue}`)
+              : false,
+          styleVariableId,
+          styleVariableIds: textStyleVariableIds || effectStyleVariableIds || group.styleVariableIds || null,
+          styleCandidate: group.category === 'color'
+            ? group.styleContext !== 'effect' &&
+              !styleColorTokensByContextAndBinding.has(`${group.styleContext}|${colorValueKey(group.rawValue)}|${styleVariableId}`) &&
+              group.nodes.some(node => {
+                const canPreserveTokenBinding = node.hasVariable
+                  ? !!styleVariableId && node.variableId === styleVariableId
+                  : true;
+                return canPreserveTokenBinding && node.paintCount === 1 && node.paintIndex === 0;
+              })
+            : group.category === 'text'
+              ? !!group.rawValue && typeof group.rawValue.fontSize === 'number' &&
+                Number.isFinite(group.rawValue.fontSize) && typeof group.rawValue.fontWeight === 'number' &&
+                Number.isFinite(group.rawValue.fontWeight) && !!group.rawValue.fontName &&
+                !!group.rawValue.fontName.family && !!group.rawValue.fontName.style &&
+                !textTokensByValue.has(textValueKey(group.rawValue))
+              : group.category === 'other' && group.prop === 'effect'
+                ? !effectTokensBySignature.has(effectSignature(group.rawValue))
+                : false,
           matchType: matchType,
           matchedToken: matchedToken,
           confidence: confidence,
           deltaE: deltaE,
           deltaValue: deltaValue,
           selectedTokenId: matchedToken ? matchedToken.id : ''
+        });
+      });
+
+      variableCandidateGroups.forEach(group => {
+        const normalized = typeof group.rawValue === 'string'
+          ? group.rawValue.toLowerCase()
+          : String(Math.round(Number(group.rawValue) * 10000) / 10000);
+        const existingVariable = variableTokensByKindAndValue.get(`${group.tokenKind}|${normalized}`);
+        const canReuseEffectVariable = group.category === 'effect-variable' && !!existingVariable;
+        processed.push({
+          ...group,
+          correctionEligible: false,
+          tokenCandidate: !existingVariable || group.category === 'effect-variable',
+          existingTokenId: canReuseEffectVariable ? existingVariable.id : null,
+          existingTokenName: canReuseEffectVariable ? existingVariable.name : null,
+          styleCandidate: false,
+          matchType: 'none',
+          matchedToken: null,
+          confidence: 0,
+          selectedTokenId: ''
         });
       });
 
@@ -3110,10 +4021,11 @@
     }
 
     function updateFixesSummary() {
-      const totalNodes = groupedDetached.reduce((acc, g) => acc + g.nodes.length, 0);
-      const exactGroups = groupedDetached.filter(g => g.matchType === 'exact');
+      const correctionGroups = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType !== 'none');
+      const totalNodes = correctionGroups.reduce((acc, g) => acc + g.nodes.length, 0);
+      const exactGroups = correctionGroups.filter(g => g.matchType === 'exact');
       const exactNodes = exactGroups.reduce((acc, g) => acc + g.nodes.length, 0);
-      const fuzzyGroups = groupedDetached.filter(g => g.matchType === 'fuzzy');
+      const fuzzyGroups = correctionGroups.filter(g => g.matchType === 'fuzzy');
       const fuzzyNodes = fuzzyGroups.reduce((acc, g) => acc + g.nodes.length, 0);
 
       const totalEl = document.getElementById('fixes-stat-total');
@@ -3148,175 +4060,1233 @@
         }
       }
 
-      const suggestionsCount = groupedDetached.filter(g => g.matchType === 'none').length;
-      const suggestionsBadge = document.getElementById('fixes-suggestions-count');
-      if (suggestionsBadge) suggestionsBadge.textContent = suggestionsCount > 0 ? `(${suggestionsCount})` : '';
     }
 
-    function suggestionMatchesFilter(group, filter) {
+    function suggestionMatchesFilter(group, filter, tab) {
       if (filter === 'all') return true;
+      if (tab === 'tokens') {
+        if (filter === 'color') return group.category === 'color';
+        if (filter === 'typography') {
+          return group.category === 'text-variable' &&
+            (typographyCreationSubFilter === 'all' || group.tokenKind === typographyCreationSubFilter);
+        }
+        if (filter === 'effect') return group.category === 'effect-variable';
+        if (group.category !== 'spacing') return false;
+        if (filter === 'radius') return group.tokenKind === 'radius';
+        if (filter === 'stroke') return group.tokenKind === 'stroke';
+        if (filter === 'opacity') return group.tokenKind === 'opacity';
+        const properties = group.properties ? [...group.properties.keys()] : [];
+        const nodes = group.nodes || [];
+        const isPaddingProperty = prop => String(prop || '').toLowerCase().indexOf('padding') === 0;
+        const hasPadding = nodes.length > 0
+          ? nodes.some(node => isPaddingProperty(node.prop))
+          : properties.some(isPaddingProperty);
+        const hasNonPaddingSpacing = nodes.length > 0
+          ? nodes.some(node => node.prop && !isPaddingProperty(node.prop))
+          : properties.some(prop => !isPaddingProperty(prop));
+        // Gap and padding candidates are split by actual property so each uses its own common scale.
+        if (filter === 'padding') return hasPadding;
+        if (filter === 'spacing') return group.tokenKind === 'spacing' && hasNonPaddingSpacing;
+        return false;
+      }
+      if (filter === 'fill') return group.category === 'color' && group.styleContext === 'fill';
+      if (filter === 'text-color') return group.category === 'color' && group.styleContext === 'text-fill';
+      if (filter === 'stroke') return group.category === 'color' && group.styleContext === 'stroke';
+      if (filter === 'text') return group.category === 'text';
       if (filter === 'effect') return group.category === 'other' && group.prop === 'effect';
-      if (filter === 'color' || filter === 'text') return group.category === filter;
-      if (group.category !== 'spacing') return false;
-      if (filter === 'radius') return group.tokenKind === 'radius';
-      if (filter === 'stroke') return group.tokenKind === 'stroke';
-      if (filter === 'opacity') return group.tokenKind === 'opacity';
-      if (filter === 'padding') {
-        return group.properties && [...group.properties.keys()].some(prop => prop.indexOf('padding') === 0);
-      }
-      if (filter === 'spacing') {
-        return group.tokenKind === 'spacing' &&
-          (!group.properties || ![...group.properties.keys()].some(prop => prop.indexOf('padding') === 0));
-      }
       return false;
     }
 
-    function setSuggestionsFilter(filter) {
-      suggestionsFilter = filter;
-      document.querySelectorAll('#suggestions-filters .filter-pill').forEach(pill => {
-        pill.classList.toggle('active', pill.dataset.filter === filter);
-      });
-      renderSuggestionsList();
+    function isPaddingVariableToken(token) {
+      const normalizePath = value => String(value || '').toLowerCase().replace(/[\s_\-/]+/g, ' ').trim();
+      const tokenName = normalizePath(token.name);
+      if (/\bpadding\b/.test(tokenName)) return true;
+      if (/\b(spacing|gap)\b/.test(tokenName)) return false;
+      return /\bpadding\b/.test(normalizePath(token.collectionOrFolder));
     }
 
-    function renderSuggestionsList() {
-      const container = document.getElementById('fixes-suggestions-container');
-      if (!container) return;
-      const suggestions = groupedDetached
-        .filter(g => g.matchType === 'none' && suggestionMatchesFilter(g, suggestionsFilter))
-        .sort((a, b) => b.nodes.length - a.nodes.length);
+    function getCreationSortBucket(group, tab) {
+      if (tab === 'tokens') {
+        if (group.category === 'spacing') return `spacing|${group.preferenceCategory || group.tokenKind || group.prop}`;
+        return `${group.category}|${group.tokenKind || group.prop || ''}`;
+      }
+      if (group.category === 'color') return `color|${group.styleContext || group.prop}`;
+      if (group.category === 'text') {
+        const font = group.rawValue && group.rawValue.fontName || {};
+        return `text|${String(font.family || '').toLowerCase()}`;
+      }
+      return `${group.category}|${group.prop || group.tokenKind || ''}`;
+    }
 
-      if (suggestions.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <h3>Nenhuma sugestão encontrada</h3>
-            <p>Valores sem token ou style correspondente aparecerão aqui, mesmo quando aparecem uma única vez.</p>
-          </div>`;
+    function getCreationSortValue(group) {
+      if (typeof group.rawValue === 'number' && Number.isFinite(group.rawValue)) return group.rawValue;
+      if (group.category === 'text' && Number.isFinite(Number(group.rawValue && group.rawValue.fontSize))) {
+        return Number(group.rawValue.fontSize);
+      }
+      if (group.category === 'other' && group.prop === 'effect' && Array.isArray(group.rawValue)) {
+        const firstVisible = group.rawValue.find(effect => effect && effect.visible !== false);
+        if (!firstVisible) return null;
+        if (typeof firstVisible.radius === 'number') return firstVisible.radius;
+        if (typeof firstVisible.spread === 'number') return firstVisible.spread;
+        const offset = firstVisible.offset || {};
+        if (typeof offset.x === 'number' || typeof offset.y === 'number') {
+          return Math.hypot(Number(offset.x) || 0, Number(offset.y) || 0);
+        }
+      }
+      return null;
+    }
+
+    function sortCreationSuggestionsAscending(groups, tab = 'tokens') {
+      const bucketOrder = new Map();
+      return groups.map((group, index) => {
+        const bucket = getCreationSortBucket(group, tab);
+        if (!bucketOrder.has(bucket)) bucketOrder.set(bucket, bucketOrder.size);
+        return { group, index, bucket, bucketOrder: bucketOrder.get(bucket), value: getCreationSortValue(group) };
+      }).sort((a, b) => {
+        if (a.bucketOrder !== b.bucketOrder) return a.bucketOrder - b.bucketOrder;
+        if (a.value !== null && b.value !== null && a.value !== b.value) return a.value - b.value;
+        return a.index - b.index;
+      }).map(entry => entry.group);
+    }
+
+    function getCreationCandidates(tab = 'tokens', filter = 'all') {
+      const eligible = groupedDetached.filter(group => {
+        if (tab === 'tokens') return group.tokenCandidate === true;
+        if (group.styleCandidate !== true) return false;
+        if ((group.category === 'text' || (group.category === 'other' && group.prop === 'effect')) &&
+            styleRequirementsContainSuppressedToken(buildStyleVariableRequirements(group, ''))) return false;
+        if (group.category === 'color') return ['fill', 'text-fill', 'stroke'].includes(group.styleContext);
+        if (group.category === 'text') return true;
+        if (group.category === 'other' && group.prop === 'effect') return true;
+        return false;
+      });
+      let candidates = eligible;
+      if (tab === 'tokens') {
+        const byColor = new Map();
+        eligible.filter(group => group.category === 'color').forEach(group => {
+          const raw = group.rawValue;
+          const colorKey = [Math.round(raw.r * 255), Math.round(raw.g * 255), Math.round(raw.b * 255), Math.round((raw.a === undefined ? 1 : raw.a) * 100)].join('-');
+          if (!byColor.has(colorKey)) byColor.set(colorKey, Object.assign({}, group, {
+            key: 'token-color-' + colorKey,
+            prop: 'color',
+            preferStyle: false,
+            nodes: [],
+            properties: new Map()
+          }));
+          const candidate = byColor.get(colorKey);
+          group.nodes.filter(node => !node.hasVariable).forEach(node => candidate.nodes.push(node));
+          if (group.properties) group.properties.forEach((label, prop) => candidate.properties.set(prop, label));
+        });
+        // Keep values grouped by their token concept, while applying an
+        // editable common-value scale to each numeric category.
+        const getCommonValueCategory = group => {
+          if (group.preferenceCategory) return group.preferenceCategory;
+          if (group.category === 'spacing') {
+            if (group.tokenKind === 'radius') return 'radius';
+            if (group.tokenKind === 'stroke') return 'stroke';
+            if (group.tokenKind === 'opacity') return 'opacity';
+            if (group.tokenKind === 'spacing') return null;
+          }
+          if (group.category === 'effect-variable') {
+            if (group.tokenKind === 'effect-radius') return 'effectRadius';
+            if (group.tokenKind === 'effect-spread') return 'effectSpread';
+            if (group.tokenKind === 'effect-offset-x' || group.tokenKind === 'effect-offset-y') return 'effectOffset';
+          }
+          if (group.category === 'text-variable') {
+            if (group.tokenKind === 'font-size') return 'fontSize';
+            if (group.tokenKind === 'font-weight') return 'fontWeight';
+            if (group.tokenKind === 'line-height-pixels') return 'lineHeight';
+            if (group.tokenKind === 'letter-spacing-pixels') return 'letterSpacing';
+          }
+          return null;
+        };
+        const isCommonNumericGroup = group =>
+          (group.category === 'spacing' && ['spacing', 'radius', 'stroke', 'opacity'].includes(group.tokenKind)) ||
+          group.category === 'effect-variable' ||
+          (group.category === 'text-variable' &&
+            ['font-size', 'font-weight', 'line-height-pixels', 'letter-spacing-pixels'].includes(group.tokenKind));
+        const commonNumericGroups = eligible.filter(isCommonNumericGroup).flatMap(group => {
+          if (group.category !== 'spacing' || group.tokenKind !== 'spacing') {
+            const preferenceCategory = getCommonValueCategory(group);
+            return preferenceCategory ? [Object.assign({}, group, { preferenceCategory })] : [];
+          }
+          return ['gap', 'padding'].map(preferenceCategory => {
+            const nodes = (group.nodes || []).filter(node =>
+              preferenceCategory === 'padding'
+                ? String(node.prop || '').indexOf('padding') === 0
+                : String(node.prop || '').indexOf('padding') !== 0
+            );
+            if (nodes.length === 0) return null;
+            const properties = new Map();
+            nodes.forEach(node => {
+              if (!node.prop) return;
+              const label = group.properties && group.properties.get(node.prop);
+              properties.set(node.prop, label || node.propLabel || node.prop);
+            });
+            return Object.assign({}, group, {
+              key: group.key + '-category-' + preferenceCategory,
+              preferenceCategory,
+              nodes,
+              properties
+            });
+          }).filter(Boolean);
+        });
+        const numericGroupsByCategory = new Map();
+        commonNumericGroups.forEach(group => {
+          if (!numericGroupsByCategory.has(group.preferenceCategory)) numericGroupsByCategory.set(group.preferenceCategory, []);
+          numericGroupsByCategory.get(group.preferenceCategory).push(group);
+        });
+        const pixelTolerance = Math.max(0, Number(numericMatchThresholds.radius) || 0);
+        const groupedNumericCandidates = [];
+        numericGroupsByCategory.forEach((groups, preferenceCategory) => {
+          groups.sort((a, b) => Number(a.rawValue) - Number(b.rawValue));
+          const tokenKind = groups[0].tokenKind;
+          const categoryTolerance = preferenceCategory === 'opacity'
+            ? Math.max(0, Number(numericMatchThresholds.opacity) || 0)
+            : preferenceCategory === 'fontWeight' ? 50 : pixelTolerance;
+          const preferredValues = preferredTokenValuesByCategory[preferenceCategory] || [];
+          if (autoTokenDetectionEnabled && preferredValues.length === 0) return;
+          let existingTokens = tokens.filter(token => token.source === 'variable' && token.tokenKind === tokenKind &&
+            token.subType === 'FLOAT' && typeof token.rawValue === 'number');
+          if (tokenKind === 'spacing' && (preferenceCategory === 'padding' || preferenceCategory === 'gap')) {
+            existingTokens = existingTokens.filter(token =>
+              isPaddingVariableToken(token) === (preferenceCategory === 'padding')
+            );
+          }
+          const candidateClusters = [];
+          if (autoTokenDetectionEnabled) {
+            const clustersByCommonValue = new Map();
+            const smallestCommonValue = preferredValues[0];
+            const largestCommonValue = preferredValues[preferredValues.length - 1];
+            groups.forEach(group => {
+              const detectedValue = Number(group.rawValue);
+              if (detectedValue < smallestCommonValue || detectedValue > largestCommonValue) return;
+              const preferredOptions = preferredValues
+                .map(value => ({ value, distance: Math.abs(value - detectedValue) }))
+                .sort((a, b) => a.distance - b.distance || a.value - b.value);
+              // Values are sorted by distance, then by numeric value, so exact ties
+              // deterministically choose the lower common value.
+              const nearestPreferred = preferredOptions[0];
+              const selectedValue = nearestPreferred.value;
+              const valueKey = String(selectedValue);
+              if (!clustersByCommonValue.has(valueKey)) {
+                clustersByCommonValue.set(valueKey, { groups: [], selectedValue, auto: true });
+              }
+              clustersByCommonValue.get(valueKey).groups.push(group);
+            });
+            clustersByCommonValue.forEach(plan => candidateClusters.push(plan));
+          } else {
+            for (let index = 0; index < groups.length;) {
+              const cluster = [groups[index]];
+              const anchor = Number(groups[index].rawValue);
+              index++;
+              while (index < groups.length && Number(groups[index].rawValue) - anchor <= categoryTolerance + 0.0001) {
+                cluster.push(groups[index++]);
+              }
+              candidateClusters.push({ groups: cluster, auto: false });
+            }
+          }
+
+          candidateClusters.forEach(plan => {
+            const cluster = plan.groups;
+            const clusterMidpoint = (Number(cluster[0].rawValue) + Number(cluster[cluster.length - 1].rawValue)) / 2;
+            const preferredOptions = plan.auto ? [] : preferredValues
+              .map(value => ({ value, distance: Math.abs(value - clusterMidpoint) }))
+              .sort((a, b) => a.distance - b.distance || a.value - b.value);
+            const nearestPreferred = preferredOptions[0];
+            const hasUnambiguousPreferredValue = nearestPreferred &&
+              nearestPreferred.distance <= categoryTolerance + 0.0001 &&
+              (!preferredOptions[1] || Math.abs(preferredOptions[1].distance - nearestPreferred.distance) > 0.0001);
+            const representativeValue = plan.auto
+              ? plan.selectedValue
+              : hasUnambiguousPreferredValue ? nearestPreferred.value : undefined;
+            const representativeOptions = cluster.map(group => ({
+              group,
+              distance: Math.abs(Number(group.rawValue) - (representativeValue === undefined ? clusterMidpoint : representativeValue))
+            }));
+            representativeOptions.sort((a, b) =>
+              (a.distance - b.distance) ||
+              (b.group.nodes.length - a.group.nodes.length) ||
+              Number(a.group.rawValue) - Number(b.group.rawValue)
+            );
+            const representative = representativeOptions[0].group;
+            const rawSelectedValue = representativeValue === undefined
+              ? Number(representative.rawValue)
+              : representativeValue;
+            const selectedValuePrecision = preferenceCategory === 'opacity' ? 10000 : 100;
+            const selectedValue = Math.round(rawSelectedValue * selectedValuePrecision) / selectedValuePrecision;
+            const existingAtSuggestedValue = existingTokens.find(token => plan.auto
+              ? Math.abs(token.rawValue - selectedValue) < 0.0001
+              : Math.abs(token.rawValue - selectedValue) <= categoryTolerance + 0.0001);
+            if (existingAtSuggestedValue && representative.category !== 'effect-variable') return;
+            const values = [...new Set(cluster.map(group => Number(group.rawValue)))].sort((a, b) => a - b);
+            const properties = new Map();
+            cluster.forEach(group => group.properties && group.properties.forEach((label, prop) => properties.set(prop, label)));
+            const formatValue = value => {
+              const numericValue = Number(value);
+              if (preferenceCategory === 'opacity') return String(Math.round(numericValue * 10000) / 100) + '%';
+              if (preferenceCategory === 'fontWeight') return String(Math.round(numericValue * 100) / 100);
+              return String(Math.round(numericValue * 100) / 100) + 'px';
+            };
+            groupedNumericCandidates.push(Object.assign({}, representative, {
+              key: 'token-numeric-' + preferenceCategory + '-' + tokenKind + '-' +
+                values.map(value => String(value).replace('.', '_')).join('_') + '-as-' + String(selectedValue).replace('.', '_'),
+              preferenceCategory,
+              existingTokenId: representative.category === 'effect-variable'
+                ? existingAtSuggestedValue && existingAtSuggestedValue.id || null
+                : null,
+              existingTokenName: representative.category === 'effect-variable'
+                ? existingAtSuggestedValue && existingAtSuggestedValue.name || null
+                : null,
+              rawValue: selectedValue,
+              formattedValue: values.length > 1
+                ? formatValue(selectedValue) + ' (detected ' + formatValue(values[0]) + '-' + formatValue(values[values.length - 1]) + ')'
+                : formatValue(selectedValue),
+              pixelClusterValues: values,
+              properties,
+              nodes: cluster.flatMap(group => group.nodes)
+            }));
+          });
+        });
+        const mergedNumericCandidatesByValue = new Map();
+        groupedNumericCandidates.forEach(candidate => {
+          const valuePrecision = candidate.preferenceCategory === 'opacity' ? 10000 : 100;
+          const numericValue = Math.round(Number(candidate.rawValue) * valuePrecision) / valuePrecision;
+          const valueIdentity = String(numericValue);
+          // Preserve category boundaries: gap and padding may recommend the
+          // same numeric token value, but their detections and element sets
+          // belong to different filters.
+          const mergeKey = [candidate.preferenceCategory || '', candidate.tokenKind || '', valueIdentity].join('|');
+          let merged = mergedNumericCandidatesByValue.get(mergeKey);
+          if (!merged) {
+            const safeValueKey = valueIdentity.replace(/[^0-9a-z]/gi, '_');
+            merged = Object.assign({}, candidate, {
+              key: 'token-numeric-' + String(candidate.preferenceCategory || 'general') + '-' +
+                String(candidate.tokenKind || 'number') + '-as-' + safeValueKey,
+              rawValue: numericValue,
+              pixelClusterValues: [],
+              properties: new Map(),
+              nodes: []
+            });
+            mergedNumericCandidatesByValue.set(mergeKey, merged);
+          }
+
+          candidate.pixelClusterValues.forEach(value => merged.pixelClusterValues.push(Number(value)));
+          if (candidate.properties) {
+            candidate.properties.forEach((label, prop) => merged.properties.set(prop, label));
+          }
+
+          const nodeKeys = new Set(merged.nodes.map(node => [
+            node.nodeId || '',
+            node.prop || candidate.prop || '',
+            node.paintIndex === undefined ? '' : node.paintIndex,
+            node.effectIndex === undefined ? '' : node.effectIndex
+          ].join('|')));
+          candidate.nodes.forEach(node => {
+            const nodeKey = [
+              node.nodeId || '',
+              node.prop || candidate.prop || '',
+              node.paintIndex === undefined ? '' : node.paintIndex,
+              node.effectIndex === undefined ? '' : node.effectIndex
+            ].join('|');
+            if (nodeKeys.has(nodeKey)) return;
+            nodeKeys.add(nodeKey);
+            merged.nodes.push(node);
+          });
+        });
+        const mergedNumericCandidates = [...mergedNumericCandidatesByValue.values()].map(candidate => {
+          const values = [...new Set(candidate.pixelClusterValues)].sort((a, b) => a - b);
+          const formatValue = value => {
+            const numericValue = Number(value);
+            if (candidate.preferenceCategory === 'opacity') return String(Math.round(numericValue * 10000) / 100) + '%';
+            if (candidate.preferenceCategory === 'fontWeight') return String(Math.round(numericValue * 100) / 100);
+            return String(Math.round(numericValue * 100) / 100) + 'px';
+          };
+          const detectedValues = values.length <= 4
+            ? values.map(formatValue).join(', ')
+            : values.slice(0, 4).map(formatValue).join(', ') + ', +' + (values.length - 4) + ' mais';
+          const alreadyAtSuggestedValue = values.length === 1 &&
+            Math.abs(values[0] - Number(candidate.rawValue)) < 0.0001;
+          return Object.assign({}, candidate, {
+            pixelClusterValues: values,
+            formattedValue: alreadyAtSuggestedValue
+              ? formatValue(candidate.rawValue)
+              : formatValue(candidate.rawValue) + ' (detectado: ' + detectedValues + ')'
+          });
+        });
+        const nonPixel = eligible.filter(group =>
+          !isCommonNumericGroup(group) &&
+          !(autoTokenDetectionEnabled && typeof group.rawValue === 'number'));
+        candidates = [...byColor.values()].filter(group => group.nodes.length > 0)
+          .concat(nonPixel.filter(group => group.category !== 'color'), mergedNumericCandidates);
+      } else {
+        const byPaintStyle = new Map();
+        eligible.filter(group => group.category === 'color').forEach(group => {
+          const raw = group.rawValue;
+          const colorKey = [Math.round(raw.r * 255), Math.round(raw.g * 255), Math.round(raw.b * 255), Math.round((raw.a === undefined ? 1 : raw.a) * 100)].join('-');
+          const styleKey = [group.styleContext || group.prop, colorKey, group.styleVariableId || 'independent'].join('|');
+          if (!byPaintStyle.has(styleKey)) byPaintStyle.set(styleKey, Object.assign({}, group, {
+            key: 'style-color-' + styleKey,
+            nodes: [],
+            properties: new Map()
+          }));
+          const candidate = byPaintStyle.get(styleKey);
+          group.nodes.filter(node => {
+            const canPreserveTokenBinding = node.hasVariable
+              ? !!group.styleVariableId && node.variableId === group.styleVariableId
+              : true;
+            return canPreserveTokenBinding && node.paintCount === 1 && node.paintIndex === 0;
+          })
+            .forEach(node => candidate.nodes.push(node));
+        });
+        candidates = [...byPaintStyle.values()].filter(group => group.nodes.length > 0).concat(eligible.filter(group => group.category !== 'color'));
+      }
+      const filteredCandidates = candidates.filter(group => suggestionMatchesFilter(group, filter, tab));
+      const displayedCandidates = tab === 'tokens' && (filter === 'padding' || filter === 'spacing')
+        ? filteredCandidates.flatMap(group => {
+            if (group.category !== 'spacing' || group.tokenKind !== 'spacing') return [group];
+            const nodes = group.nodes.filter(node => {
+              const isPadding = String(node.prop || '').toLowerCase().indexOf('padding') === 0;
+              return filter === 'padding' ? isPadding : !isPadding;
+            });
+            if (nodes.length === 0) return [];
+            const values = [...new Set(nodes.map(node => Number(node.rawValue)))].sort((a, b) => a - b);
+            const representative = Number(group.rawValue);
+
+            const formatPx = value => String(Math.round(Number(value) * 100) / 100);
+            const properties = new Map();
+            nodes.forEach(node => properties.set(node.prop, node.propLabel || node.prop));
+            const valueSignature = values.map(value => String(value).replace('.', '_')).join('_');
+            return [Object.assign({}, group, {
+              preferenceCategory: filter === 'padding' ? 'padding' : 'gap',
+              key: `${group.key}-${filter}-${valueSignature}`,
+              rawValue: representative,
+              formattedValue: values.length > 1
+                ? `${formatPx(representative)}px (detected ${formatPx(values[0])}-${formatPx(values[values.length - 1])}px)`
+                : `${formatPx(representative)}px`,
+              nodes,
+              properties
+            })];
+          })
+        : filteredCandidates;
+      return sortCreationSuggestionsAscending(displayedCandidates, tab);
+    }
+
+    function getSuggestionName(group, tab = 'tokens') {
+      if (group.existingTokenName) {
+        suggestionNames.set(group.key, group.existingTokenName);
+        return group.existingTokenName;
+      }
+      if (suggestionNames.has(group.key)) return suggestionNames.get(group.key);
+      const segment = value => String(value || '').trim().replace(/[\/]+/g, '-').replace(/\s+/g, '-');
+      const number = value => String(Math.round(Number(value) * 100) / 100).replace(/\./g, '-');
+      let name = 'Token/Detected';
+      if (group.category === 'color') {
+        const raw = group.rawValue;
+        const hex = [raw.r, raw.g, raw.b].map(channel => Math.round(channel * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+        const alpha = raw.a === undefined ? 1 : raw.a;
+        const valueName = hex + (alpha < 1 ? '-' + Math.round(alpha * 100) : '');
+        const colorVariable = group.styleVariableId ? tokens.find(token => token.id === group.styleVariableId) : null;
+        const remoteVariableSuffix = group.styleVariableId ? '-' + String(group.styleVariableId).slice(-6) : '';
+        const styleValueName = colorVariable ? colorVariable.name : 'Color-' + valueName + remoteVariableSuffix;
+        const styleFolder = group.styleContext === 'text-fill' ? 'Texts' : group.styleContext === 'stroke' ? 'Strokes' : 'Backgrounds';
+        const tokenPath = styleValueName.split('/').filter(Boolean);
+        if (['color', 'colors', 'cor', 'cores'].includes(String(tokenPath[0] || '').toLowerCase())) tokenPath.shift();
+        name = tab === 'tokens' ? 'Color/' + valueName : 'Color Styles/' + styleFolder + '/' + (tokenPath.join('/') || valueName);
+      } else if (group.category === 'text') {
+        const font = group.rawValue.fontName || {};
+        if (tab === 'styles') {
+          const formatTypographyNumber = value => String(Math.round(Number(value) * 100) / 100);
+          const family = (String(font.family || 'Font').trim() || 'Font').split('/').join('-');
+          const fontSize = formatTypographyNumber(group.rawValue.fontSize) + 'px';
+          const fontStyle = String(font.style || '').trim();
+          const styleParts = [fontSize];
+          if (fontStyle) styleParts.push(fontStyle);
+          else if (typeof group.rawValue.fontWeight === 'number') {
+            styleParts.push('Weight ' + formatTypographyNumber(group.rawValue.fontWeight));
+          } else styleParts.push('Regular');
+
+          const normalizedStyle = fontStyle.toLowerCase().split('-').join(' ').split('_').join(' ');
+          const knownStyleWeight = normalizedStyle.includes('extra bold') || normalizedStyle.includes('ultra bold') || normalizedStyle.includes('extrabold')
+            ? 800
+            : normalizedStyle.includes('semi bold') || normalizedStyle.includes('demi bold') || normalizedStyle.includes('semibold') || normalizedStyle.includes('demibold')
+              ? 600
+              : normalizedStyle.includes('black') || normalizedStyle.includes('heavy')
+                ? 900
+                : normalizedStyle.includes('bold')
+                  ? 700
+                  : normalizedStyle.includes('medium')
+                    ? 500
+                    : normalizedStyle.includes('extra light') || normalizedStyle.includes('ultra light') || normalizedStyle.includes('extralight')
+                      ? 200
+                      : normalizedStyle.includes('light')
+                        ? 300
+                        : normalizedStyle.includes('regular') || normalizedStyle.includes('normal') || normalizedStyle.includes('book') || normalizedStyle.includes('italic')
+                          ? 400
+                          : null;
+          if (typeof group.rawValue.fontWeight === 'number' && fontStyle &&
+              (knownStyleWeight === null || Math.abs(group.rawValue.fontWeight - knownStyleWeight) > 0.01)) {
+            styleParts.push('Weight ' + formatTypographyNumber(group.rawValue.fontWeight));
+          }
+
+          const lineHeight = group.rawValue.lineHeight;
+          if (lineHeight && (lineHeight.unit === 'PIXELS' || lineHeight.unit === 'PERCENT')) {
+            styleParts.push('Line Height ' + formatTypographyNumber(lineHeight.value) + (lineHeight.unit === 'PERCENT' ? '%' : 'px'));
+          }
+          const letterSpacing = group.rawValue.letterSpacing;
+          if (letterSpacing && Number(letterSpacing.value) !== 0) {
+            styleParts.push('Letter Spacing ' + formatTypographyNumber(letterSpacing.value) + (letterSpacing.unit === 'PERCENT' ? '%' : 'px'));
+          }
+          if (font.variationSettings && Object.keys(font.variationSettings).length > 0) {
+            const axes = Object.keys(font.variationSettings).sort().map(axis =>
+              axis + ' ' + formatTypographyNumber(font.variationSettings[axis])
+            );
+            styleParts.push(axes.join(', '));
+          }
+          name = 'Text Styles/' + family + '/' + fontSize + '/' + styleParts.join(' - ');
+        } else {
+          const parts = ['Typography', segment(font.family) || 'Font', segment(font.style) || 'Regular', number(group.rawValue.fontSize) + 'px'];
+          if (font.variationSettings && Object.keys(font.variationSettings).length > 0) {
+            const axes = stableSerialize(font.variationSettings);
+            let hash = 2166136261;
+            for (let index = 0; index < axes.length; index++) hash = Math.imul(hash ^ axes.charCodeAt(index), 16777619);
+            parts.push('Axes-' + (hash >>> 0).toString(16).slice(0, 6));
+          }
+          const lineHeight = group.rawValue.lineHeight;
+          if (lineHeight && lineHeight.unit !== 'AUTO') parts.push('Line-' + segment(lineHeight.unit) + '-' + number(lineHeight.value));
+          const letterSpacing = group.rawValue.letterSpacing;
+          if (letterSpacing && Number(letterSpacing.value) !== 0) parts.push('Tracking-' + number(letterSpacing.value) + '-' + segment(letterSpacing.unit));
+          name = parts.join('/');
+        }
+      } else if (group.category === 'spacing') {
+        const kind = group.tokenKind === 'radius' ? 'Radius' : group.tokenKind === 'stroke' ? 'Stroke' : group.tokenKind === 'opacity' ? 'Opacity' : group.preferenceCategory === 'padding' ? 'Padding' : 'Spacing';
+        const suffix = group.tokenKind === 'opacity' ? number(Number(group.rawValue) * 100) + '%' : number(group.rawValue) + 'px';
+        name = kind + '/' + suffix;
+      } else if (group.category === 'text-variable') {
+        const kindLabels = {
+          'font-family': 'Font Family', 'font-style': 'Font Style', 'font-size': 'Font Size',
+          'font-weight': 'Font Weight', 'line-height-pixels': 'Line Height Pixels',
+          'line-height-percent': 'Line Height Percent', 'letter-spacing-pixels': 'Letter Spacing Pixels',
+          'letter-spacing-percent': 'Letter Spacing Percent'
+        };
+        const suffix = group.measureUnit ? number(group.rawValue) + (group.measureUnit === 'PERCENT' ? '%' : 'px') : segment(group.rawValue);
+        name = 'Typography/' + (kindLabels[group.tokenKind] || 'Text') + '/' + suffix;
+      } else if (group.category === 'effect-variable') {
+        const labels = {
+          'effect-radius': 'Effect Radius', 'effect-spread': 'Effect Spread',
+          'effect-offset-x': 'Effect Offset X', 'effect-offset-y': 'Effect Offset Y'
+        };
+        name = 'Effects/' + (labels[group.tokenKind] || 'Effect') + '/' + number(group.rawValue) + 'px';
+      } else if (group.category === 'other' && group.prop === 'effect') {
+        const firstEffect = Array.isArray(group.rawValue) ? group.rawValue.find(effect => effect && effect.visible !== false) : null;
+        const effectType = segment(firstEffect && firstEffect.type ? firstEffect.type.toLowerCase().replace(/_/g, '-') : 'effect');
+        const radius = firstEffect && typeof firstEffect.radius === 'number' ? '-' + number(firstEffect.radius) + 'px' : '';
+        const signature = stableSerialize(group.rawValue);
+        let hash = 2166136261;
+        for (let index = 0; index < signature.length; index++) hash = Math.imul(hash ^ signature.charCodeAt(index), 16777619);
+        name = (tab === 'styles' ? 'Effect Styles/' : 'Effects/') + effectType + radius + '/' + (hash >>> 0).toString(16).slice(0, 6);
+      }
+      suggestionNames.set(group.key, name);
+      return name;
+    }
+
+    function renderSuggestionCollectionSelect() {
+      const select = document.getElementById('suggestion-collection');
+      if (!select) return;
+      const previous = select.value;
+      if (variableCollections.length === 0) {
+        select.innerHTML = '<option value="">Criar coleção “Tokens”</option>';
+        return;
+      }
+      select.innerHTML = variableCollections.map(collection => '<option value="' + escapeHtml(collection.id) + '">' + escapeHtml(collection.name) + '</option>').join('');
+      if (variableCollections.some(collection => collection.id === previous)) select.value = previous;
+    }
+
+    function creationSelectionKey(tab, key) {
+      return tab + "|" + key;
+    }
+
+    function encodeSuggestionKey(tab, key) {
+      return encodeGroupKey(JSON.stringify([tab, key]));
+    }
+
+    function decodeSuggestionKey(encodedKey) {
+      try {
+        const parsed = JSON.parse(decodeGroupKey(encodedKey));
+        return Array.isArray(parsed) && parsed.length === 2
+          ? { tab: parsed[0], key: parsed[1] }
+          : { tab: "tokens", key: decodeGroupKey(encodedKey) };
+      } catch (error) {
+        return { tab: "tokens", key: decodeGroupKey(encodedKey) };
+      }
+    }
+
+    function getVisibleCreationItems() {
+      return [
+        ...getCreationCandidates("tokens", tokenCreationFilter).map(group => ({ group, tab: "tokens" })),
+        ...getCreationCandidates("styles", styleCreationFilter).map(group => ({ group, tab: "styles" }))
+      ];
+    }
+
+    function getStyleRequirementReferences(requirements) {
+      const refs = [];
+      if (requirements && requirements.color) refs.push(requirements.color);
+      Object.values((requirements && requirements.text) || {}).forEach(ref => refs.push(ref));
+      ((requirements && requirements.effects) || []).forEach(effect =>
+        Object.values(effect || {}).forEach(ref => refs.push(ref))
+      );
+      return refs;
+    }
+
+    function countImplicitDependencyVariables(styleItems) {
+      const collectionSelect = document.getElementById("suggestion-collection");
+      const collectionId = collectionSelect ? collectionSelect.value : "";
+      const unique = new Set();
+      styleItems.forEach(item => {
+        const group = item.group || item;
+        const requirements = item.styleVariableRequirements || buildStyleVariableRequirements(group, collectionId);
+        getStyleRequirementReferences(requirements).forEach(ref => {
+          if (!ref || ref.id || ref.candidateKey || ref.suppressed) return;
+          unique.add(JSON.stringify([
+            ref.collectionId || collectionId, ref.variableType, ref.tokenKind,
+            ref.measureUnit || "", ref.rawValue
+          ]));
+        });
+      });
+      return unique.size;
+    }
+
+    function updateSuggestionBulkButtons(candidatesByTab) {
+      const tokenCandidates = candidatesByTab && candidatesByTab.tokens || getCreationCandidates("tokens");
+      const styleCandidates = candidatesByTab && candidatesByTab.styles || getCreationCandidates("styles");
+      const visibleItems = candidatesByTab
+        ? [...tokenCandidates.map(group => ({ group, tab: "tokens" })), ...styleCandidates.map(group => ({ group, tab: "styles" }))]
+        : getVisibleCreationItems();
+      const selectedCount = visibleItems.filter(item =>
+        selectedSuggestionKeys.has(creationSelectionKey(item.tab, item.group.key))
+      ).length;
+      const selectedButton = document.getElementById("create-selected-suggestions-btn");
+      const allButton = document.getElementById("create-all-suggestions-btn");
+      const selectAllButton = document.querySelector("#tab-create-content .suggestions-toolbar button");
+      const implicitDependencyCount = countImplicitDependencyVariables(styleCandidates);
+      const totalTokenCount = tokenCandidates.length + implicitDependencyCount;
+      const totalCount = totalTokenCount + styleCandidates.length;
+      const tokenCount = document.getElementById("token-candidate-count");
+      const styleCount = document.getElementById("style-candidate-count");
+      const planSummary = document.getElementById("creation-plan-summary");
+      const totalNodes = new Set([...tokenCandidates, ...styleCandidates].flatMap(group =>
+        (group.nodes || []).map(node => node.nodeId)
+      )).size;
+      if (tokenCount) tokenCount.textContent = tokenCandidates.length + " identificados";
+      if (styleCount) styleCount.textContent = styleCandidates.length + " identificados";
+      if (planSummary) planSummary.textContent =
+        totalTokenCount + " tokens - " + styleCandidates.length + " styles - " + totalNodes + " camadas";
+      if (selectedButton) {
+        selectedButton.disabled = selectedCount === 0;
+        selectedButton.textContent = "Criar/aplicar selecionados (" + selectedCount + ")";
+      }
+      if (allButton) {
+        allButton.disabled = totalCount === 0;
+        allButton.textContent = "Criar/aplicar tokens + styles (" + totalCount + ")";
+      }
+      if (selectAllButton) {
+        const allVisibleSelected = visibleItems.length > 0 && visibleItems.every(item =>
+          selectedSuggestionKeys.has(creationSelectionKey(item.tab, item.group.key))
+        );
+        selectAllButton.textContent = allVisibleSelected ? "Desmarcar visiveis" : "Selecionar visiveis";
+      }
+    }
+
+    function toggleSuggestionSelection(encodedKey, isChecked) {
+      const { tab, key } = decodeSuggestionKey(encodedKey);
+      const selectionKey = creationSelectionKey(tab, key);
+      if (isChecked) selectedSuggestionKeys.add(selectionKey);
+      else selectedSuggestionKeys.delete(selectionKey);
+      updateSuggestionBulkButtons();
+    }
+
+    function toggleSelectAllSuggestions() {
+      const visibleItems = getVisibleCreationItems();
+      const shouldSelect = visibleItems.some(item =>
+        !selectedSuggestionKeys.has(creationSelectionKey(item.tab, item.group.key))
+      );
+      visibleItems.forEach(item => {
+        const key = creationSelectionKey(item.tab, item.group.key);
+        if (shouldSelect) selectedSuggestionKeys.add(key);
+        else selectedSuggestionKeys.delete(key);
+      });
+      renderCreationList();
+    }
+
+    function updateSuggestionName(encodedKey, value) {
+      const { key } = decodeSuggestionKey(encodedKey);
+      suggestionNames.set(key, value);
+    }
+
+    function sameVariableValue(token, rawValue, variableType) {
+      if (!token || token.source !== "variable" || token.subType !== variableType) return false;
+      if (variableType === "COLOR") {
+        const first = token.rawValue || {};
+        const second = rawValue || {};
+        const rgbKey = value => [value.r, value.g, value.b].map(channel => Math.round((Number(channel) || 0) * 255)).join("-");
+        return rgbKey(first) === rgbKey(second) &&
+          Math.round(((first.a === undefined ? 1 : first.a) || 0) * 100) ===
+          Math.round(((second.a === undefined ? 1 : second.a) || 0) * 100);
+      }
+      if (typeof rawValue === "string") return String(token.rawValue).toLowerCase() === rawValue.toLowerCase();
+      return typeof token.rawValue === "number" &&
+        Math.abs(Number(token.rawValue) - Number(rawValue)) < 0.0001;
+    }
+
+    function buildVariableRequirement(tokenKind, rawValue, variableType, measureUnit, preferredId, collectionId) {
+      const existing = (preferredId && tokens.find(token => token.id === preferredId && sameVariableValue(token, rawValue, variableType))) ||
+        tokens.find(token => token.tokenKind === tokenKind && sameVariableValue(token, rawValue, variableType));
+      if (existing) return { id: existing.id, tokenKind, variableType, rawValue, measureUnit: measureUnit || null };
+
+      const candidates = getStyleDependencyTokenCandidates();
+      const candidate = candidates.find(item => {
+        const candidateType = item.variableType || (item.category === "color" ? "COLOR" : "FLOAT");
+        if (item.tokenKind !== tokenKind || candidateType !== variableType) return false;
+        if (variableType === "COLOR") return sameVariableValue({ source: "variable", subType: "COLOR", rawValue: item.rawValue }, rawValue, variableType);
+        if (typeof rawValue === "string") return String(item.rawValue).toLowerCase() === rawValue.toLowerCase();
+        const values = Array.isArray(item.pixelClusterValues) ? item.pixelClusterValues : [item.rawValue];
+        return values.some(value => Math.abs(Number(value) - Number(rawValue)) < 0.0001);
+      });
+      if (candidate) {
+        return {
+          candidateKey: candidate.key,
+          name: getSuggestionName(candidate, "tokens"),
+          tokenKind,
+          variableType,
+          rawValue: candidate.rawValue,
+          measureUnit: candidate.measureUnit || measureUnit || null,
+          collectionId: collectionId || ""
+        };
+      }
+
+      if (typeof rawValue === "number" && autoTokenDetectionEnabled) {
+        return { suppressed: true, tokenKind, variableType, rawValue, measureUnit: measureUnit || null };
+      }
+
+      if (typeof rawValue === "number") {
+        const tolerance = tokenKind === "font-weight"
+          ? 50
+          : tokenKind === "opacity"
+            ? Math.max(0, Number(numericMatchThresholds.opacity) || 0)
+            : Math.max(0, Number(numericMatchThresholds.radius) || 0);
+        const nearby = tokens
+          .filter(token => token.tokenKind === tokenKind && sameVariableValue(token, rawValue, variableType))
+          .filter(token => Math.abs(Number(token.rawValue) - Number(rawValue)) <= tolerance + 0.0001)
+          .sort((first, second) => Math.abs(Number(first.rawValue) - Number(rawValue)) - Math.abs(Number(second.rawValue) - Number(rawValue)))[0];
+        if (nearby) return { id: nearby.id, tokenKind, variableType, rawValue, measureUnit: measureUnit || null };
+      }
+
+      const number = value => String(Math.round(Number(value) * 100) / 100).replace(/\./g, "-");
+      const labels = {
+        "font-family": "Font Family", "font-style": "Font Style", "font-size": "Font Size",
+        "font-weight": "Font Weight", "line-height-pixels": "Line Height Pixels",
+        "line-height-percent": "Line Height Percent", "letter-spacing-pixels": "Letter Spacing Pixels",
+        "letter-spacing-percent": "Letter Spacing Percent", "effect-radius": "Effect Radius",
+        "effect-spread": "Effect Spread", "effect-offset-x": "Effect Offset X", "effect-offset-y": "Effect Offset Y"
+      };
+      let suffix = typeof rawValue === "number"
+        ? number(rawValue) + (measureUnit === "PERCENT" ? "%" : "px")
+        : String(rawValue).trim().replace(/[\/]+/g, "-").replace(/\s+/g, "-");
+      let name = "Typography/" + (labels[tokenKind] || "Value") + "/" + suffix;
+      if (tokenKind === "color") {
+        const color = rawValue || {};
+        const hex = [color.r, color.g, color.b].map(channel => Math.round((Number(channel) || 0) * 255).toString(16).padStart(2, "0")).join("").toUpperCase();
+        name = "Color/" + hex + ((color.a !== undefined && color.a < 1) ? "-" + Math.round(color.a * 100) : "");
+      }
+      if (tokenKind.indexOf("effect-") === 0) name = "Effects/" + (labels[tokenKind] || "Effect") + "/" + suffix;
+      return { name, tokenKind, variableType, rawValue, measureUnit: measureUnit || null, collectionId: collectionId || "" };
+    }
+
+    function getStyleDependencyTokenCandidates() {
+      if (!styleDependencyTokenCandidatesCache) {
+        styleDependencyTokenCandidatesCache = getCreationCandidates("tokens");
+      }
+      return styleDependencyTokenCandidatesCache;
+    }
+
+    function buildStyleVariableRequirements(group, collectionId) {
+      const requirements = { color: null, text: null, effects: null };
+      if (group.category === "color") {
+        requirements.color = buildVariableRequirement("color", group.rawValue, "COLOR", null, group.styleVariableId, collectionId);
+      } else if (group.category === "text") {
+        const raw = group.rawValue || {};
+        const existing = group.styleVariableIds || {};
+        const definitions = [
+          ["fontFamily", "font-family", raw.fontName && raw.fontName.family, "STRING", null],
+          ["fontSize", "font-size", raw.fontSize, "FLOAT", null],
+          ["fontWeight", "font-weight", raw.fontWeight, "FLOAT", null]
+        ];
+        if (raw.lineHeight && (raw.lineHeight.unit === "PIXELS" || raw.lineHeight.unit === "PERCENT")) {
+          definitions.push(["lineHeight", "line-height-" + (raw.lineHeight.unit === "PERCENT" ? "percent" : "pixels"), raw.lineHeight.value, "FLOAT", raw.lineHeight.unit]);
+        }
+        if (raw.letterSpacing && (raw.letterSpacing.unit === "PIXELS" || raw.letterSpacing.unit === "PERCENT")) {
+          definitions.push(["letterSpacing", "letter-spacing-" + (raw.letterSpacing.unit === "PERCENT" ? "percent" : "pixels"), raw.letterSpacing.value, "FLOAT", raw.letterSpacing.unit]);
+        }
+        requirements.text = {};
+        definitions.forEach(([field, kind, value, type, unit]) => {
+          if (value !== null && value !== undefined) {
+            requirements.text[field] = buildVariableRequirement(kind, value, type, unit, existing[field], collectionId);
+          }
+        });
+      } else if (group.category === "other" && group.prop === "effect") {
+        requirements.effects = (group.rawValue || []).map(effect => {
+          const fields = {};
+          if (!effect || effect.visible === false) return fields;
+          if (effect.color) fields.color = buildVariableRequirement("color", effect.color, "COLOR", null, null, collectionId);
+          const values = {
+            radius: effect.radius,
+            spread: effect.spread,
+            offsetX: effect.offset && effect.offset.x,
+            offsetY: effect.offset && effect.offset.y
+          };
+          Object.keys(values).forEach(field => {
+            if (typeof values[field] !== "number") return;
+            const kind = field === "radius" ? "effect-radius" :
+              field === "spread" ? "effect-spread" :
+              field === "offsetX" ? "effect-offset-x" : "effect-offset-y";
+            fields[field] = buildVariableRequirement(kind, values[field], "FLOAT", null, null, collectionId);
+          });
+          return fields;
+        });
+      }
+      return requirements;
+    }
+
+    function styleRequirementsContainSuppressedToken(requirements) {
+      const refs = [];
+      if (requirements.color) refs.push(requirements.color);
+      Object.values(requirements.text || {}).forEach(ref => refs.push(ref));
+      (requirements.effects || []).forEach(effect => Object.values(effect || {}).forEach(ref => refs.push(ref)));
+      return refs.some(ref => ref && ref.suppressed);
+    }
+
+    function buildSuggestionPayload(group, tab) {
+      const key = encodeSuggestionKey(tab, group.key);
+      const nameInput = document.getElementById("suggestion-name-" + key);
+      const collectionSelect = document.getElementById("suggestion-collection");
+      const collectionId = collectionSelect ? collectionSelect.value : "";
+      const name = nameInput ? nameInput.value.trim() : getSuggestionName(group, tab);
+      suggestionNames.set(group.key, name);
+      const payload = {
+        key: group.key,
+        name,
+        source: tab === "tokens" ? "variable" : "style",
+        existingTokenId: tab === "tokens" ? group.existingTokenId || null : null,
+        variableId: tab === "styles" ? group.styleVariableId || null : null,
+        collectionId,
+        category: group.category,
+        prop: group.prop,
+        tokenKind: group.tokenKind,
+        variableType: group.variableType || null,
+        measureUnit: group.measureUnit || null,
+        styleVariableIds: tab === "styles" ? group.styleVariableIds || null : null,
+        sourceValues: Array.isArray(group.pixelClusterValues) ? group.pixelClusterValues : [group.rawValue],
+        rawValue: group.rawValue,
+        nodes: group.nodes.map(node => ({
+          nodeId: node.nodeId, prop: node.prop || group.prop,
+          paintIndex: node.paintIndex, effectIndex: node.effectIndex,
+          rawValue: node.rawValue
+        }))
+      };
+      if (tab === "styles") {
+        payload.styleVariableRequirements = buildStyleVariableRequirements(group, collectionId);
+      }
+      return payload;
+    }
+
+    function submitSuggestionCandidates(items) {
+      if (!items.length) {
+        showToast("Selecione pelo menos uma sugestao.");
+        return;
+      }
+      const tokenGroups = new Map();
+      const styleItems = [];
+      items.forEach(item => {
+        if (item.tab === "tokens") tokenGroups.set(item.group.key, item.group);
+        else styleItems.push(item);
+      });
+
+      const stylePayloads = styleItems.map(item => buildSuggestionPayload(item.group, "styles"));
+      stylePayloads.forEach(payload => {
+        const refs = [];
+        const requirements = payload.styleVariableRequirements || {};
+        if (requirements.color) refs.push(requirements.color);
+        Object.values(requirements.text || {}).forEach(ref => refs.push(ref));
+        (requirements.effects || []).forEach(effect => Object.values(effect || {}).forEach(ref => refs.push(ref)));
+        refs.forEach(ref => {
+          if (!ref.candidateKey || tokenGroups.has(ref.candidateKey)) return;
+          const candidate = getCreationCandidates("tokens").find(group => group.key === ref.candidateKey);
+          if (candidate) tokenGroups.set(candidate.key, candidate);
+        });
+      });
+
+      const tokenItems = sortCreationSuggestionsAscending([...tokenGroups.values()], "tokens")
+        .map(group => buildSuggestionPayload(group, "tokens"));
+      const orderedStyles = sortCreationSuggestionsAscending(styleItems.map(item => item.group), "styles");
+      const orderedStylePayloads = orderedStyles.map(group =>
+        stylePayloads.find(payload => payload.key === group.key) || buildSuggestionPayload(group, "styles")
+      );
+      const plan = { tokens: tokenItems, styles: orderedStylePayloads };
+      if ([...plan.tokens, ...plan.styles].some(candidate => !candidate.name)) {
+        showToast("Cada item precisa de um nome.");
+        return;
+      }
+      const styleNodeCount = new Set(orderedStyles.flatMap(group => group.nodes.map(node => node.nodeId))).size;
+      const variableCount = tokenItems.filter(candidate => !candidate.existingTokenId).length +
+        countImplicitDependencyVariables(orderedStylePayloads);
+      const reusedTokenCount = tokenItems.filter(candidate => !!candidate.existingTokenId).length;
+      if (orderedStylePayloads.length > 0 && !confirm(
+        "Serao criados " + variableCount + " tokens, reutilizados " + reusedTokenCount + " tokens existentes e criados " + orderedStylePayloads.length +
+        " styles, que serao aplicados a " + styleNodeCount + " camadas. Continuar?"
+      )) return;
+
+      const total = variableCount + orderedStylePayloads.length;
+      showLoader(true, total === 0 && reusedTokenCount > 0
+        ? "Aplicando tokens existentes..."
+        : total === 1 ? "Criando token/style..." : "Criando tokens e styles...");
+      parent.postMessage({ pluginMessage: { type: "create-suggestion-plan", plan } }, "*");
+    }
+
+    function createSuggestionToken(encodedKey) {
+      const { tab, key } = decodeSuggestionKey(encodedKey);
+      const filter = tab === "tokens" ? tokenCreationFilter : styleCreationFilter;
+      const group = getCreationCandidates(tab, filter).find(item => item.key === key);
+      if (group) submitSuggestionCandidates([{ group, tab }]);
+    }
+
+    function createSelectedSuggestions() {
+      const items = getVisibleCreationItems().filter(item =>
+        selectedSuggestionKeys.has(creationSelectionKey(item.tab, item.group.key))
+      );
+      submitSuggestionCandidates(items);
+    }
+
+    function createAllSuggestions() {
+      const items = [
+        ...getCreationCandidates("tokens").map(group => ({ group, tab: "tokens" })),
+        ...getCreationCandidates("styles").map(group => ({ group, tab: "styles" }))
+      ];
+      submitSuggestionCandidates(items);
+    }
+
+    function setTypographyCreationSubFilter(filter) {
+      typographyCreationSubFilter = filter;
+      setActiveFilterPills("#typography-token-subfilters", filter);
+      renderCreationList();
+    }
+
+    function setCreationFilter(tab, filter) {
+      if (tab === "tokens") tokenCreationFilter = filter;
+      else styleCreationFilter = filter;
+      setActiveFilterPills(tab === "tokens" ? "#token-creation-filters" : "#style-creation-filters", filter);
+      if (tab === "tokens") {
+        const typographySubfilters = document.getElementById("typography-token-subfilters");
+        if (typographySubfilters) {
+          typographySubfilters.classList.toggle("hidden", filter !== "typography");
+          setActiveFilterPills("#typography-token-subfilters", typographyCreationSubFilter);
+        }
+      }
+      renderCreationList();
+    }
+
+    function selectCreationCandidateNodes(encodedKey) {
+      const { tab, key } = decodeSuggestionKey(encodedKey);
+      const filter = tab === "tokens" ? tokenCreationFilter : styleCreationFilter;
+      const candidate = getCreationCandidates(tab, filter).find(group => group.key === key);
+      if (!candidate || candidate.nodes.length === 0) return;
+      parent.postMessage({ pluginMessage: { type: "select-detached-nodes", nodeIds: [...new Set(candidate.nodes.map(node => node.nodeId))] } }, "*");
+    }
+
+    function renderCreationCandidateSections(candidates, tab, renderCard) {
+      const colorCandidates = candidates.filter(group => group.category === 'color');
+      const textStyleCandidates = tab === 'styles'
+        ? candidates.filter(group => group.category === 'text')
+        : [];
+      const otherCandidates = candidates.filter(group =>
+        group.category !== 'color' && !(tab === 'styles' && group.category === 'text')
+      );
+      const sections = [];
+      const makeSection = (title, groups, html) => {
+        if ((groups && groups.length) || html) sections.push({ title, groups: groups || [], html });
+      };
+      const ignoreOpacity = !!document.getElementById('create-color-ignore-opacity')?.checked;
+      const shouldGroupColors = createColorTolerance > 0 || ignoreOpacity;
+      const groupSimilarColors = groups => {
+        const parent = groups.map((_, index) => index);
+        const findRoot = index => {
+          while (parent[index] !== index) {
+            parent[index] = parent[parent[index]];
+            index = parent[index];
+          }
+          return index;
+        };
+        const colorOpacity = group => Math.round(((group.rawValue && group.rawValue.a) - 1) * 100);
+        const colorRgbKey = group => {
+          const raw = group.rawValue || {};
+          return [raw.r, raw.g, raw.b].map(channel => Math.round((Number(channel) || 0) * 255)).join('-');
+        };
+        for (let left = 0; left < groups.length; left++) {
+          for (let right = left + 1; right < groups.length; right++) {
+            const first = groups[left];
+            const second = groups[right];
+            if (tab === 'styles' && first.styleContext !== second.styleContext) continue;
+            if (!ignoreOpacity && colorOpacity(first) !== colorOpacity(second)) continue;
+            const colorsMatch = createColorTolerance === 0
+              ? colorRgbKey(first) === colorRgbKey(second)
+              : colorDeltaE(first.rawValue, second.rawValue) <= createColorTolerance;
+            if (colorsMatch) {
+              const leftRoot = findRoot(left);
+              const rightRoot = findRoot(right);
+              if (leftRoot !== rightRoot) parent[rightRoot] = leftRoot;
+            }
+          }
+        }
+        const clusters = new Map();
+        groups.forEach((group, index) => {
+          const root = findRoot(index);
+          if (!clusters.has(root)) clusters.set(root, []);
+          clusters.get(root).push(group);
+        });
+        return [...clusters.values()].sort((a, b) =>
+          b.length - a.length || String(a[0].formattedValue).localeCompare(String(b[0].formattedValue))
+        );
+      };
+
+      if (createSmartColorDetection) {
+        const families = new Map();
+        colorCandidates.forEach(group => {
+          const raw = group.rawValue || {};
+          const family = getColorFamilyName(raw.r || 0, raw.g || 0, raw.b || 0);
+          const context = tab === 'styles'
+            ? group.styleContext === 'text-fill' ? 'Texts'
+              : group.styleContext === 'stroke' ? 'Strokes' : 'Backgrounds'
+            : '';
+          const key = `${context}|${family}`;
+          if (!families.has(key)) families.set(key, { context, family, groups: [] });
+          families.get(key).groups.push(group);
+        });
+        [...families.values()]
+          .sort((a, b) => {
+            const contextOrder = { Texts: 0, Backgrounds: 1, Strokes: 2 };
+            return (contextOrder[a.context] - 3) - (contextOrder[b.context] - 3) || a.family.localeCompare(b.family);
+          })
+          .forEach(family => {
+            const familyTitle = family.context ? `${family.context} · ${family.family}` : family.family;
+            const clusters = shouldGroupColors
+              ? groupSimilarColors(family.groups)
+              : [family.groups];
+            const familyCards = clusters.map(cluster => {
+              const cards = cluster.map(renderCard).join('');
+              if (!shouldGroupColors || cluster.length < 2) return cards;
+              const groupLabel = createColorTolerance > 0
+                ? cluster.length + ' tons próximos · ΔE ≤ ' + createColorTolerance + (ignoreOpacity ? ' · opacidade ignorada' : '')
+                : cluster.length + ' cores iguais · opacidade ignorada';
+              return '<div class="suggestion-color-cluster"><div class="suggestion-color-cluster-label">' +
+                groupLabel + '</div>' + cards + '</div>';
+            }).join('');
+            makeSection(familyTitle, null, familyCards);
+          });
+      } else if (shouldGroupColors && colorCandidates.length > 0) {
+        groupSimilarColors(colorCandidates).forEach(cluster => {
+            const context = tab === 'styles'
+              ? cluster[0].styleContext === 'text-fill' ? 'Texts · '
+                : cluster[0].styleContext === 'stroke' ? 'Strokes · ' : 'Backgrounds · '
+              : '';
+            const title = cluster.length > 1
+              ? createColorTolerance > 0
+                ? `${context}Cores próximas (ΔE ≤ ${createColorTolerance}${ignoreOpacity ? '; opacidade ignorada' : ''})`
+                : `${context}Cores iguais (opacidade ignorada)`
+              : '';
+            makeSection(title, cluster);
+        });
+      } else {
+        makeSection('', colorCandidates);
+      }
+
+      if (textStyleCandidates.length) {
+        const fontFamilies = new Map();
+        textStyleCandidates.forEach(group => {
+          const font = group.rawValue && group.rawValue.fontName || {};
+          const familyName = String(font.family || 'Font').trim() || 'Font';
+          const familyKey = familyName.toLowerCase();
+          if (!fontFamilies.has(familyKey)) fontFamilies.set(familyKey, { name: familyName, groups: [], sizes: new Map() });
+          const family = fontFamilies.get(familyKey);
+          family.groups.push(group);
+          const fontSize = Number(group.rawValue && group.rawValue.fontSize) || 0;
+          const sizeKey = String(Math.round(fontSize * 10000) / 10000);
+          if (!family.sizes.has(sizeKey)) {
+            family.sizes.set(sizeKey, {
+              label: String(Math.round(fontSize * 100) / 100) + 'px',
+              value: fontSize,
+              groups: []
+            });
+          }
+          family.sizes.get(sizeKey).groups.push(group);
+        });
+        fontFamilies.forEach(family => {
+          const sizeHtml = [...family.sizes.values()].sort((a, b) => a.value - b.value).map(size =>
+            '<div class="suggestion-subsection-heading"><span>' + escapeHtml(size.label) + '</span>' +
+            '<span class="suggestion-section-count">' + size.groups.length + ' styles</span></div>' +
+            size.groups.map(renderCard).join('')
+          ).join('');
+          makeSection(family.name, family.groups, sizeHtml);
+        });
+      }
+
+      if (otherCandidates.length) {
+        makeSection(createSmartColorDetection && colorCandidates.length ? 'Outras sugestões' : '', otherCandidates);
+      }
+
+      return sections.map(section =>
+        (section.title ? '<div class="suggestion-section-heading"><span>' + escapeHtml(section.title) +
+          '</span><span class="suggestion-section-count">' + section.groups.length + ' sugestões</span></div>' : '') +
+        (section.html !== undefined ? section.html : section.groups.map(renderCard).join(''))
+      ).join('');
+    }
+
+    function renderCreationCandidatesForTab(tab, container, candidates) {
+      if (!container) return;
+      if (candidates.length === 0) {
+        container.innerHTML = '<div class="empty-state"><h3>Nenhuma ' +
+          (tab === "tokens" ? "variavel" : "style") + ' para criar</h3><p>' +
+          (tab === "tokens"
+            ? "Valores sem uma variavel equivalente aparecem aqui. Gap e padding podem ser vinculados diretamente as camadas."
+            : "Styles podem criar os tokens de que precisam e serao aplicados as camadas correspondentes.") +
+          "</p></div>";
         return;
       }
 
       const propLabels = {
-        fill: 'Preenchimento', stroke: 'Contorno', text: 'Texto', effect: 'Efeito',
-        spacing: 'Layout / Espaçamento', radius: 'Raios', opacity: 'Opacidade',
-        paddingTop: 'Padding superior', paddingRight: 'Padding direito',
-        paddingBottom: 'Padding inferior', paddingLeft: 'Padding esquerdo',
-        itemSpacing: 'Espaçamento entre itens', counterAxisSpacing: 'Espaçamento no eixo cruzado',
-        gridRowGap: 'Gap entre linhas', gridColumnGap: 'Gap entre colunas',
-        cornerRadius: 'Raio dos cantos', topLeftRadius: 'Raio superior esquerdo',
-        topRightRadius: 'Raio superior direito', bottomRightRadius: 'Raio inferior direito',
-        bottomLeftRadius: 'Raio inferior esquerdo', strokeWeight: 'Peso da borda',
-        strokeTopWeight: 'Peso da borda superior', strokeRightWeight: 'Peso da borda direita',
-        strokeBottomWeight: 'Peso da borda inferior', strokeLeftWeight: 'Peso da borda esquerda',
-        opacity: 'Opacidade'
+        fill: "Fill", stroke: "Stroke", color: "Cor", text: "Texto", effect: "Efeito", "effect-color": "Effect color",
+        fontFamily: "Font family", fontStyle: "Font style", fontSize: "Font size", fontWeight: "Font weight",
+        lineHeight: "Line height", letterSpacing: "Letter spacing",
+        "effect-radius": "Effect radius", "effect-spread": "Effect spread",
+        "effect-offsetX": "Effect offset X", "effect-offsetY": "Effect offset Y",
+        spacing: "Layout / Espacamento", radius: "Raio", opacity: "Opacidade",
+        paddingTop: "Padding superior", paddingRight: "Padding direito", paddingBottom: "Padding inferior", paddingLeft: "Padding esquerdo",
+        itemSpacing: "Espacamento entre itens", counterAxisSpacing: "Espacamento no eixo cruzado",
+        gridRowGap: "Gap entre linhas", gridColumnGap: "Gap entre colunas", cornerRadius: "Raio dos cantos",
+        topLeftRadius: "Raio superior esquerdo", topRightRadius: "Raio superior direito",
+        bottomRightRadius: "Raio inferior direito", bottomLeftRadius: "Raio inferior esquerdo",
+        strokeWeight: "Peso da borda", strokeTopWeight: "Peso da borda superior",
+        strokeRightWeight: "Peso da borda direita", strokeBottomWeight: "Peso da borda inferior",
+        strokeLeftWeight: "Peso da borda esquerda"
       };
-      container.innerHTML = suggestions.map(group => {
-        let preview = '';
-        if (group.category === 'color') {
+
+      const renderCandidateCard = group => {
+        let preview = "";
+        if (group.category === "color") {
           const raw = group.rawValue;
           const r = Math.round(raw.r * 255), g = Math.round(raw.g * 255), b = Math.round(raw.b * 255);
-          const a = raw.a !== undefined ? raw.a : 1;
-          preview = `<div class="preview-color" style="background: rgba(${r}, ${g}, ${b}, ${a}); width: 28px; height: 28px; border-radius: 7px;"></div>`;
-        } else if (group.category === 'text') {
-          preview = `<div class="preview-text" style="font-size: 14px; font-weight: 700; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">Aa</div>`;
-        } else if (group.category === 'spacing') {
+          const a = raw.a === undefined ? 1 : raw.a;
+          preview = '<div class="preview-color" style="background: rgba(' + r + ", " + g + ", " + b + ", " + a + '); width: 28px; height: 28px; border-radius: 7px;"></div>';
+        } else if (group.category === "text" || group.category === "text-variable") {
+          preview = '<div class="preview-text" style="font-size: 14px; font-weight: 700; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">Aa</div>';
+        } else if (group.category === "spacing" || group.category === "effect-variable") {
           const previewWidth = Math.max(8, Math.min(28, Number(group.rawValue) || 8));
-          preview = `<div class="preview-spacing" style="width: ${previewWidth}px; height: 6px;"></div>`;
+          preview = '<div class="preview-spacing" style="width: ' + previewWidth + 'px; height: 6px;"></div>';
         } else {
-          preview = `<div class="preview-other" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">◆</div>`;
+          preview = '<div class="preview-other" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">&#9671;</div>';
         }
 
-        const details = group.category === 'color'
-          ? `Valor: ${group.formattedValue}`
-          : group.category === 'text'
-            ? `Fonte: ${group.formattedValue}`
-            : group.category === 'other' && group.prop === 'effect'
+        const details = group.category === "color"
+          ? "Valor: " + group.formattedValue
+          : group.category === "text"
+            ? "Fonte: " + group.formattedValue
+            : group.category === "other" && group.prop === "effect"
               ? effectDetails(group.rawValue)
-            : group.formattedValue;
-        const propertyTitle = group.category === 'spacing' && group.properties
-          ? [...group.properties.values()].join(' • ')
-          : (propLabels[group.prop] || group.prop);
-        let compatibleTokens = [];
-        if (expandedFixKeys.has(group.key)) {
-          if (group.category === 'color') {
-            compatibleTokens = tokens.filter(t => t.category === 'color');
-          } else if (group.category === 'text') {
-            compatibleTokens = tokens.filter(t => t.category === 'text' && t.subType === 'text');
-          } else if (group.category === 'spacing') {
-            compatibleTokens = tokens.filter(t =>
-              t.category === 'spacing' && t.subType === 'FLOAT' &&
-              typeof t.rawValue === 'number' && t.tokenKind === group.tokenKind
-            );
-          } else if (group.category === 'other') {
-            compatibleTokens = tokens.filter(t => t.subType === 'effect');
-          }
-        }
-        const suggestionOptions = compatibleTokens.map(t =>
-          `<option value="${t.id}">${t.name} (${t.collectionOrFolder}) - ${t.propertiesText}</option>`
-        ).join('');
-        const suggestionControls = `
-          <div class="form-group" style="margin-top: 10px;">
-            <label style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Vincular a um token existente:</label>
-            <div style="display: flex; gap: 8px;">
-              <select id="suggestion-select-${encodeGroupKey(group.key)}" style="flex: 1;">
-                <option value="">Selecionar token...</option>${suggestionOptions}
-              </select>
-              <button class="btn-primary btn-small" onclick="applySuggestionFromDropdown('${encodeGroupKey(group.key)}')" ${compatibleTokens.length === 0 ? 'disabled' : ''}>
-                Vincular
-              </button>
-            </div>
-          </div>`;
-        const nodeItems = expandedFixKeys.has(group.key) ? group.nodes.map(n => `
-          <div class="fix-node-item" onclick="selectSpecificNode('${n.nodeId}')" title="Clique para focar no Figma">
-            <span><strong>${n.nodeName}</strong> <span style="opacity: 0.6;">(${n.nodeType})</span></span>
-            <span style="opacity: 0.5;">pág: ${n.pageName}</span>
-          </div>`).join('') : '';
+              : group.formattedValue;
+        const propertyTitle = tab === "styles" && group.category === "color"
+          ? (group.styleContext === "text-fill" ? "Text Color" : group.styleContext === "stroke" ? "Stroke Color" : "Background Color")
+          : group.category === "spacing" && group.properties ? [...group.properties.values()].join(" / ") : (propLabels[group.prop] || group.prop);
+        const encodedKey = encodeSuggestionKey(tab, group.key);
+        const expandedKey = JSON.stringify([tab, group.key]);
+        const suggestedName = getSuggestionName(group, tab);
+        const kindLabel = tab === "tokens"
+          ? (group.category === "color" ? "COLOR variable" : (group.variableType || "FLOAT") + " variable")
+          : (group.category === "color" ? "Paint Style" : group.category === "text" ? "Text Style" : "Effect Style");
+        const createActionLabel = tab === "tokens"
+          ? group.existingTokenId ? "Aplicar token existente" : "Criar token"
+          : "Criar style + tokens";
+        const candidateStatus = group.existingTokenId
+          ? "Token existente / " + group.nodes.length + " ocorrencias"
+          : "Novo " + kindLabel + " / " + group.nodes.length + " ocorrencias";
+        const nodeItems = expandedFixKeys.has(expandedKey) ? group.nodes.map(node =>
+          '<div class="fix-node-item" onclick="selectSpecificNode(\'' + escapeHtml(node.nodeId) + '\')" title="Clique para focar no Figma">' +
+          "<span><strong>" + escapeHtml(node.nodeName) + "</strong> <span style=\"opacity: 0.6;\">(" + escapeHtml(node.nodeType) + ")</span></span>" +
+          "<span style=\"opacity: 0.5;\">pag: " + escapeHtml(node.pageName) + "</span></div>"
+        ).join("") : "";
+        const isSelected = selectedSuggestionKeys.has(creationSelectionKey(tab, group.key));
+        const styleDependencyHint = tab === "styles"
+          ? '<span style="font-size: 10px; color: var(--text-muted);">Tokens necessarios serao reutilizados ou criados automaticamente</span>'
+          : "";
 
-        return `<div class="fix-card suggestion-card">
-          <div class="fix-card-header" onclick="toggleFixDetails('${encodeGroupKey(group.key)}')">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-              ${preview}
-              <div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span class="prop-tag ${group.prop}">${propertyTitle}</span>
-                  <strong style="font-size: 13px; color: var(--text-main);">${details}</strong>
-                </div>
-                <span style="font-size: 11px; color: var(--text-muted);">Possível novo token/style</span>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="badge-fuzzy">${group.nodes.length} ocorrências</span>
-              <button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectGroupNodes('${encodeGroupKey(group.key)}')" title="Selecionar todos os elementos desta sugestão">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
-              </button>
-              <svg class="arrow-icon" style="transform: ${expandedFixKeys.has(group.key) ? 'rotate(180deg)' : 'rotate(0deg)'}; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
-          </div>
-          <div class="fix-card-body ${expandedFixKeys.has(group.key) ? '' : 'hidden'}">
-            <div class="fix-comparison-box">
-              <div class="fix-side-item">${preview}<div><div style="font-size: 10px; color: #fbbf24; text-transform: uppercase; font-weight: 600;">Oportunidade identificada</div><div style="font-size: 12px; color: var(--text-main);">Este valor aparece em ${group.nodes.length} elemento(s), mas ainda não possui token/style correspondente.</div></div></div>
-            </div>
-            ${suggestionControls}
-            <div class="fix-node-accordion"><div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Camadas no Figma (${group.nodes.length}):</div><div class="fix-node-list">${nodeItems}</div></div>
-          </div>
-        </div>`;
-      }).join('');
+        return '<div class="fix-card suggestion-card">' +
+          '<div class="fix-card-header" onclick="toggleFixDetails(\'' + encodedKey + '\')">' +
+            '<div style="display: flex; align-items: center; gap: 10px; flex: 1;">' + preview +
+              "<div><div style=\"display: flex; flex-direction: column; align-items: flex-start; gap: 4px;\">" +
+                '<strong style="font-size: 13px; color: var(--text-main);">' + escapeHtml(details) + "</strong>" +
+                '<span class="prop-tag ' + escapeHtml(group.prop) + '">' + escapeHtml(propertyTitle) + "</span>" +
+              '</div><span style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(candidateStatus) + "</span><br>" + styleDependencyHint + "</div>" +
+            '</div><div style="display: flex; align-items: center; gap: 8px;">' +
+              '<label onclick="event.stopPropagation();" title="Selecionar para criacao em lote" style="display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-muted);"><input type="checkbox" ' + (isSelected ? "checked" : "") + ' onchange="toggleSuggestionSelection(\'' + encodedKey + '\', this.checked)"> Lote</label>' +
+              '<button class="btn-primary btn-small" onclick="event.stopPropagation(); createSuggestionToken(\'' + encodedKey + '\')">' + createActionLabel + "</button>" +
+              '<button class="btn-icon" style="width: 28px; height: 28px;" onclick="event.stopPropagation(); selectCreationCandidateNodes(\'' + encodedKey + '\')" title="Selecionar camadas no Figma"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg></button>' +
+              '<svg class="arrow-icon" style="transform: ' + (expandedFixKeys.has(expandedKey) ? "rotate(180deg)" : "rotate(0deg)") + '; transition: transform 0.2s;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+            "</div></div>" +
+          '<div class="fix-card-body ' + (expandedFixKeys.has(expandedKey) ? "" : "hidden") + '">' +
+            '<div class="fix-comparison-box"><div class="fix-side-item">' + preview + '<div><div style="font-size: 10px; color: #fbbf24; text-transform: uppercase; font-weight: 600;">Valor identificado</div><div style="font-size: 12px; color: var(--text-main);">Este valor aparece em ' + group.nodes.length + " ocorrencias.</div></div></div></div>" +
+            '<div class="form-group" style="margin-top: 10px;"><label for="suggestion-name-' + encodedKey + '" style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Nome do ' + (tab === "tokens" ? "token" : "style") + "</label>" +
+              '<div style="display: flex; gap: 8px; align-items: center;"><input type="text" id="suggestion-name-' + encodedKey + '" value="' + escapeHtml(suggestedName) + '"' + (group.existingTokenId ? ' disabled title="Este token será reutilizado"' : ' oninput="updateSuggestionName(\'' + encodedKey + '\', this.value)"') + ' style="flex: 1; min-width: 0;"><span style="font-size: 11px; color: var(--text-muted); white-space: nowrap;">' + (group.existingTokenId ? 'Token existente' : kindLabel) + '</span><button class="btn-primary btn-small" onclick="event.stopPropagation(); createSuggestionToken(\'' + encodedKey + '\')">' + createActionLabel + "</button></div></div>" +
+            '<div class="fix-node-accordion"><div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Camadas no Figma (' + group.nodes.length + "):</div><div class=\"fix-node-list\">" + nodeItems + "</div></div>" +
+          "</div></div>";
+      };
+      container.innerHTML = renderCreationCandidateSections(candidates, tab, renderCandidateCard);
     }
 
+    function renderCreationList() {
+      styleDependencyTokenCandidatesCache = null;
+      renderSuggestionCollectionSelect();
+      const typographySubfilters = document.getElementById("typography-token-subfilters");
+      if (typographySubfilters) {
+        typographySubfilters.classList.toggle("hidden", tokenCreationFilter !== "typography");
+        setActiveFilterPills("#typography-token-subfilters", typographyCreationSubFilter);
+      }
+
+      const hasColorCandidates =
+        (tokenCreationFilter === "all" || tokenCreationFilter === "color") ||
+        ["all", "fill", "text-color", "stroke"].includes(styleCreationFilter);
+      document.getElementById("create-color-settings")?.classList.toggle("hidden", !hasColorCandidates);
+      document.getElementById("create-color-settings-help")?.classList.toggle("hidden", !hasColorCandidates);
+
+      const tokenContainer = document.getElementById("token-candidates-container");
+      const styleContainer = document.getElementById("style-candidates-container");
+      const tokenCandidates = getCreationCandidates("tokens", tokenCreationFilter);
+      const styleCandidates = getCreationCandidates("styles", styleCreationFilter);
+      renderCreationCandidatesForTab("tokens", tokenContainer, tokenCandidates);
+      renderCreationCandidatesForTab("styles", styleContainer, styleCandidates);
+      updateSuggestionBulkButtons({ tokens: getCreationCandidates("tokens"), styles: getCreationCandidates("styles") });
+    }
     function renderFixesList() {
       const container = document.getElementById('fixes-container');
       if (!container) return;
       container.innerHTML = '';
 
-      // Values without a matching token/style live in the separate Suggestions
-      // subtab, including values that occur only once.
-      let filtered = groupedDetached.filter(g => g.matchType !== 'none');
+      let filtered = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType !== 'none');
 
       if (fixesFilter !== 'all') {
-        filtered = filtered.filter(g =>
-          (fixesFilter === 'spacing' && g.category === 'spacing') ||
-          g.prop === fixesFilter ||
-          (fixesFilter === 'other' && (g.prop === 'effect' || g.category === 'other'))
-        );
+        filtered = filtered.filter(g => getCorrectionFilterCategory(g) === fixesFilter);
+      }
+      if (fixesFilter === 'color') {
+        filtered = filtered.filter(g => correctionGroupMatchesColorSubFilter(g, fixesColorSubFilter));
+      }
+      if (fixesFilter === 'typography') {
+        filtered = filtered.filter(g => correctionGroupMatchesTypographySubFilter(g, fixesTypographySubFilter));
       }
 
       if (fixesStatusFilter !== 'all') {
@@ -3332,13 +5302,19 @@
         });
       }
 
+      const filteredCounter = document.getElementById('fixes-filtered-counter');
+      if (filteredCounter) {
+        const occurrenceCount = filtered.reduce((total, group) => total + group.nodes.length, 0);
+        filteredCounter.textContent = `${filtered.length} grupo${filtered.length === 1 ? '' : 's'} de correção (${occurrenceCount} ocorrências)`;
+      }
+
       if (filtered.length === 0) {
-        if (groupedDetached.length === 0) {
+        if (!groupedDetached.some(g => g.correctionEligible !== false && g.matchType !== 'none')) {
           container.innerHTML = `
             <div class="empty-state">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              <h3>Design 100% Tokenizado!</h3>
-              <p>Não encontramos nenhum elemento com estilos, cores ou propriedades numéricas soltas (detached) no documento.</p>
+              <h3>Nenhuma correção necessária</h3>
+              <p>Não encontramos valores com um token ou style existente que precise ser aplicado. Novas oportunidades de criação estão na aba Criar Tokens.</p>
             </div>`;
         } else {
           container.innerHTML = `
@@ -3513,8 +5489,42 @@
       });
     }
 
+    function getCorrectionFilterCategory(group) {
+      if (!group) return 'other';
+      if (group.category === 'color') return 'color';
+      if (group.category === 'text') return 'typography';
+      if (group.category === 'effect-variable' || group.prop === 'effect') return 'effect';
+      if (group.category === 'spacing') {
+        if (group.tokenKind === 'radius' || group.tokenKind === 'stroke' || group.tokenKind === 'opacity') return group.tokenKind;
+        if (group.semanticCategory === 'padding' || group.semanticCategory === 'spacing') return group.semanticCategory;
+        const propertyNames = group.properties instanceof Map ? [...group.properties.keys()] : [];
+        const hasPadding = propertyNames.some(name => String(name).toLowerCase().indexOf('padding') === 0);
+        const hasOtherSpacing = propertyNames.some(name => String(name).toLowerCase().indexOf('padding') !== 0);
+        if (hasPadding && !hasOtherSpacing) return 'padding';
+        if (group.tokenKind === 'spacing' || hasOtherSpacing) return 'spacing';
+        return 'other';
+      }
+      if (group.category === 'other') return group.prop === 'effect' ? 'effect' : 'other';
+      return 'other';
+    }
+
+    function correctionGroupMatchesTypographySubFilter(group, filter) {
+      if (filter === 'all') return true;
+      if (group.tokenKind === filter) return true;
+      return group.category === 'text' && textValueHasTypographyProperty(group.rawValue, filter);
+    }
+
+    function correctionGroupMatchesColorSubFilter(group, filter) {
+      if (filter === 'all') return true;
+      if (group.category !== 'color') return false;
+      if (filter === 'fill') return group.styleContext === 'fill' || (group.prop === 'fill' && group.styleContext !== 'text-fill');
+      if (filter === 'text-color') return group.styleContext === 'text-fill';
+      if (filter === 'stroke-color') return group.styleContext === 'stroke' || group.prop === 'stroke';
+      return false;
+    }
+
     function handleAutoFixAll() {
-      const exactGroups = groupedDetached.filter(g => g.matchType === 'exact' && g.matchedToken);
+      const exactGroups = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType === 'exact' && g.matchedToken);
       if (exactGroups.length === 0) {
         showToast("Nenhum elemento com match exato disponível para Auto Fix.");
         return;
@@ -3543,7 +5553,7 @@
     }
 
     function handleAutoFixFuzzy() {
-      const fuzzyGroups = groupedDetached.filter(g => g.matchType === 'fuzzy' && g.matchedToken);
+      const fuzzyGroups = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType === 'fuzzy' && g.matchedToken);
       if (fuzzyGroups.length === 0) {
         showToast("Nenhuma sugestão próxima disponível para correção.");
         return;
@@ -3649,35 +5659,35 @@
       } else {
         expandedFixKeys.add(groupKey);
       }
-      if (fixesSubtab === 'suggestions') renderSuggestionsList();
+      if (activeTab === 'create') renderCreationList();
       else renderFixesList();
     }
 
     function setFixesFilter(filter) {
       fixesFilter = filter;
-      const pills = document.querySelectorAll('#tab-fixes-content .filters-row:first-of-type .filter-pill');
-      pills.forEach(pill => {
-        pill.classList.toggle('active', pill.textContent.toLowerCase().includes(
-          filter === 'all' ? 'todas' :
-          filter === 'fill' ? 'preenchimento' :
-          filter === 'stroke' ? 'contorno' :
-          filter === 'text' ? 'texto' :
-          filter === 'spacing' ? 'layout / espaçamentos' : 'efeito'
-        ));
-      });
+      setActiveFilterPills('#fixes-property-filters', filter);
+      const colorFilters = document.getElementById('fixes-color-subfilters');
+      const typographyFilters = document.getElementById('fixes-typography-subfilters');
+      if (colorFilters) colorFilters.classList.toggle('hidden', filter !== 'color');
+      if (typographyFilters) typographyFilters.classList.toggle('hidden', filter !== 'typography');
+      renderFixesList();
+    }
+
+    function setFixesColorSubFilter(filter) {
+      fixesColorSubFilter = filter;
+      setActiveFilterPills('#fixes-color-subfilters', filter);
+      renderFixesList();
+    }
+
+    function setFixesTypographySubFilter(filter) {
+      fixesTypographySubFilter = filter;
+      setActiveFilterPills('#fixes-typography-subfilters', filter);
       renderFixesList();
     }
 
     function setFixesStatusFilter(status) {
       fixesStatusFilter = status;
-      const pills = document.querySelectorAll('#tab-fixes-content .filters-row:last-of-type .filter-pill');
-      pills.forEach(pill => {
-        pill.classList.toggle('active', pill.textContent.toLowerCase().includes(
-          status === 'all' ? 'todos os status' :
-          status === 'exact' ? 'match exato' :
-          status === 'fuzzy' ? 'sugestão' : 'sem correspondência'
-        ));
-      });
+      setActiveFilterPills('#fixes-status-filters', status);
       renderFixesList();
     }
 
@@ -3757,6 +5767,18 @@
         toast.classList.add('hidden');
       }, 3000);
     }
+
+    initializePreferredTokenValues();
+    initializeAutoTokenDetection();
+    setDupFilter(dupFilter);
+
+    document.addEventListener('click', event => {
+      const control = document.getElementById('header-tolerance-control');
+      if (control && !control.contains(event.target)) closeToleranceSettings();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeToleranceSettings();
+    });
   </script>
 </body>
 </html>
