@@ -1599,13 +1599,17 @@
         </label>
       </div>
       <div id="create-color-settings-help" style="color: var(--text-muted); font-size: 10px;">O agrupamento organiza sugestões; cada cor e cada style continuam com valor e criação próprios.</div>
+      <div class="creation-typography-options" aria-label="Opções de tipografia para criação" style="display: flex; gap: 12px; flex-wrap: wrap; color: var(--text-muted); font-size: 11px;">
+        <label title="Define line-height como Auto nos Text Styles criados"><input type="checkbox" id="create-ignore-line-height" onchange="updateIgnoredTypographyOptions()"> Ignorar line-height</label>
+        <label title="Define letter-spacing como 0 px nos Text Styles criados"><input type="checkbox" id="create-ignore-letter-spacing" onchange="updateIgnoredTypographyOptions()"> Ignorar letter-spacing</label>
+      </div>
       <div style="display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;">
         <button class="btn-secondary btn-small" onclick="toggleSelectAllSuggestions()">Selecionar visíveis</button>
         <button id="create-selected-suggestions-btn" class="btn-secondary btn-small" onclick="createSelectedSuggestions()" disabled>Criar selecionados (0)</button>
         <button id="create-all-suggestions-btn" class="btn-primary btn-small" onclick="createAllSuggestions()" disabled>Criar tokens + styles (0)</button>
       </div>
     </div>
-    <div id="creation-plan-summary" class="token-counter-text" style="margin: 0 0 10px; font-size: 11px;"> 0 tokens - 0 styles - 0 camadas</div>
+    <div id="creation-plan-summary" class="token-counter-text" style="margin: 0 0 10px; font-size: 11px;">0 tokens na lista - 0 styles - 0 camadas</div>
     <div class="suggestion-section-heading"><span>Tokens</span><span class="suggestion-section-count" id="token-candidate-count">0</span></div>
     <div class="filters-row" id="token-creation-filters" style="margin-bottom: 12px;">
       <button class="filter-pill active" data-filter="all" onclick="setCreationFilter('tokens', 'all')">Todos</button>
@@ -1697,6 +1701,7 @@
     let groupedDetached = [];
     const selectedSuggestionKeys = new Set();
     const suggestionNames = new Map();
+    const manuallyEditedSuggestionNames = new Set();
     let styleDependencyTokenCandidatesCache = null;
     let activeTab = 'all';
     let createColorTolerance = 0;
@@ -1728,12 +1733,12 @@
     const LEGACY_COMMON_TOKEN_VALUES_STORAGE_KEY = 'figma-token-organizer.preferred-pixel-values';
     const AUTO_TOKEN_DETECTION_STORAGE_KEY = 'figma-token-organizer.auto-common-values-detection';
     const COMMON_TOKEN_VALUE_CATEGORIES = [
-      { key: 'gap', section: 'Espaçamento', label: 'Gap / entre itens', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 48, 52, 56] },
-      { key: 'padding', section: 'Espaçamento', label: 'Padding', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 48, 52, 56] },
-      { key: 'radius', section: 'Forma e borda', label: 'Raio', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 16, 20, 24, 32] },
+      { key: 'gap', section: 'Espaçamento', label: 'Gap / entre itens', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 24, 32, 48] },
+      { key: 'padding', section: 'Espaçamento', label: 'Padding', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 24, 32, 48] },
+      { key: 'radius', section: 'Forma e borda', label: 'Raio', unit: 'px', legacyPixelScale: true, defaults: [0, 2, 4, 8, 12, 16, 24, 32] },
       { key: 'stroke', section: 'Forma e borda', label: 'Stroke', unit: 'px', legacyPixelScale: true, defaults: [0, 0.5, 1, 2, 3, 4, 6] },
-      { key: 'fontSize', section: 'Tipografia', label: 'Font size', unit: 'px', legacyPixelScale: true, defaults: [10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 34, 36, 40, 45, 57, 60, 68] },
-      { key: 'fontWeight', section: 'Tipografia', label: 'Font weight', unit: '', legacyPixelScale: false, defaults: [400, 500, 600, 700, 800, 900] },
+      { key: 'fontSize', section: 'Tipografia', label: 'Font size', unit: 'px', legacyPixelScale: true, defaults: [10, 12, 14, 16, 18, 24, 32, 36] },
+      { key: 'fontWeight', section: 'Tipografia', label: 'Font weight', unit: '', legacyPixelScale: false, defaults: [400, 600, 900] },
       { key: 'lineHeight', section: 'Tipografia', label: 'Line height', unit: 'px', legacyPixelScale: true, defaults: [14, 16, 18, 20, 22, 24, 25, 26, 28, 32, 34, 36, 40, 41, 44, 52, 64, 70, 72, 92] },
       { key: 'letterSpacing', section: 'Tipografia', label: 'Letter spacing', unit: 'px', legacyPixelScale: true, defaults: [0, 0.15, 0.25, 0.5] },
       { key: 'opacity', section: 'Opacidade', label: 'Opacity (0–1)', unit: '', legacyPixelScale: false, defaults: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] },
@@ -2029,6 +2034,19 @@
 
     function updateCreateSmartColorDetection(enabled) {
       createSmartColorDetection = !!enabled;
+      const colorKeys = [
+        ...getCreationCandidates('tokens').filter(group => group.category === 'color'),
+        ...getCreationCandidates('styles').filter(group => group.category === 'color')
+      ].map(group => group.key);
+      colorKeys.forEach(key => {
+        if (!manuallyEditedSuggestionNames.has(key)) suggestionNames.delete(key);
+      });
+      renderCreationList();
+    }
+
+    function updateIgnoredTypographyOptions() {
+      suggestionNames.clear();
+      manuallyEditedSuggestionNames.clear();
       renderCreationList();
     }
 
@@ -2638,6 +2656,7 @@
         }
       }
       suggestionNames.clear();
+      manuallyEditedSuggestionNames.clear();
       selectedSuggestionKeys.clear();
       renderCreationList();
     }
@@ -2750,6 +2769,7 @@
 
     function refreshCommonValueDependentViews() {
       suggestionNames.clear();
+      manuallyEditedSuggestionNames.clear();
       selectedSuggestionKeys.clear();
       if (isSmartMode) runSmartDetection(false);
       processDetachedElements();
@@ -3530,7 +3550,7 @@
         // Keep the UI defensive against stale/legacy analysis payloads that
         // may still contain layout values rendered as 0.00.
         if (item.category === 'spacing' && typeof item.rawValue === 'number' &&
-            Math.round(item.rawValue * 100) / 100 === 0) return;
+            Math.round(item.rawValue * 100) / 100 === 0 && !item.brokenToken) return;
         if (item.category === 'text-variable' || item.category === 'effect-variable') {
           const normalizedValue = typeof item.rawValue === 'string'
             ? item.rawValue.toLowerCase()
@@ -3543,13 +3563,23 @@
               key: `variable-${key}`, prop: item.prop, category: item.category,
               tokenKind: item.tokenKind, variableType: item.variableType,
               measureUnit: item.measureUnit || null, rawValue: item.rawValue,
-              formattedValue: item.formattedValue, nodes: [], properties: new Map()
+              formattedValue: item.formattedValue, nodes: [], properties: new Map(),
+              brokenToken: !!item.brokenToken, correctionEligible: !!item.correctionEligible,
+              brokenVariableId: item.brokenVariableId || null, brokenStyleId: item.brokenStyleId || null
             });
+          } else if (item.brokenToken) {
+            variableCandidateGroups.get(key).brokenToken = true;
+            variableCandidateGroups.get(key).correctionEligible = true;
           }
           variableCandidateGroups.get(key).nodes.push({
             nodeId: item.nodeId, nodeName: item.nodeName, nodeType: item.nodeType,
             pageId: item.pageId, pageName: item.pageName, prop: item.prop,
-            effectIndex: item.effectIndex, rawValue: item.rawValue, hasVariable: false
+            effectIndex: item.effectIndex, textRangeStart: item.textRangeStart,
+            textRangeEnd: item.textRangeEnd, rawValue: item.rawValue, hasVariable: false,
+            measureUnit: item.measureUnit || null,
+            brokenToken: !!item.brokenToken,
+            brokenVariableId: item.brokenVariableId || null,
+            brokenStyleId: item.brokenStyleId || null
           });
           return;
         }
@@ -3563,7 +3593,8 @@
           // recombined later, while Paint Styles remain context-specific.
           const styleContext = item.styleContext || item.prop;
           const usageKind = item.variableId ? `-variable-${item.variableId}` : item.preferStyle ? '-direct-variable' : '';
-          key = `${item.prop}-color-${styleContext}-${r}-${g}-${b}-${a}${usageKind}`;
+          const brokenStyleKind = item.brokenStyleId ? `-broken-style-${item.brokenStyleId}` : '';
+          key = `${item.prop}-color-${styleContext}-${r}-${g}-${b}-${a}${usageKind}${brokenStyleKind}`;
         } else if (item.category === 'text') {
           key = `text-${textTypographyKey(item.rawValue)}-${stableSerialize(item.styleVariableIds || {})}`;
         } else if (item.category === 'spacing') {
@@ -3595,11 +3626,20 @@
             formattedValue: item.formattedValue,
             preferStyle: !!item.preferStyle,
             variableId: item.variableId || null,
+            brokenVariableId: item.brokenVariableId || null,
+            brokenStyleId: item.brokenStyleId || null,
             styleVariableIds: item.styleVariableIds || null,
             correctionEligible: item.correctionEligible !== false,
+            brokenToken: !!item.brokenToken,
             properties: new Map(),
             nodes: []
           });
+        } else if (item.brokenToken) {
+          const existingGroup = groupsMap.get(key);
+          existingGroup.brokenToken = true;
+          existingGroup.correctionEligible = true;
+          existingGroup.brokenVariableId = existingGroup.brokenVariableId || item.brokenVariableId || null;
+          existingGroup.brokenStyleId = existingGroup.brokenStyleId || item.brokenStyleId || null;
         }
 
         if (item.category === 'spacing') {
@@ -3615,6 +3655,8 @@
           paintIndex: item.paintIndex,
           paintCount: item.paintCount,
           effectIndex: item.effectIndex,
+          textRangeStart: item.textRangeStart,
+          textRangeEnd: item.textRangeEnd,
           prop: item.prop,
           rawValue: item.rawValue,
           styleContext: item.styleContext || item.prop,
@@ -3622,8 +3664,11 @@
           tokenKind: item.tokenKind,
           hasVariable: item.hasVariable === true,
           variableId: item.variableId || null,
+          brokenVariableId: item.brokenVariableId || null,
+          brokenStyleId: item.brokenStyleId || null,
           styleVariableIds: item.styleVariableIds || null,
-          correctionEligible: item.correctionEligible !== false
+          correctionEligible: item.correctionEligible !== false,
+          brokenToken: !!item.brokenToken
         });
       });
 
@@ -3745,6 +3790,7 @@
                 ? effect.offset && effect.offset.y
                 : effect[field];
             if (typeof fieldValue !== 'number') continue;
+            if (field === 'spread' && (fieldValue === 0 || Math.round(fieldValue * 100) / 100 === 0) && !bound.spread) continue;
             const kind = field === 'radius' ? 'effect-radius' : field === 'spread' ? 'effect-spread' : field === 'offsetX' ? 'effect-offset-x' : 'effect-offset-y';
             const binding = bound[field];
             const preferred = binding && (binding.id || binding.variableId);
@@ -3943,6 +3989,16 @@
           }
         }
 
+        const unsafePaintStyleMatch = group.category === 'color' && matchedToken && matchedToken.source === 'style' &&
+          group.nodes.some(node => node.paintCount !== 1 || node.paintIndex !== 0);
+        if (unsafePaintStyleMatch && group.brokenToken) {
+          // Keep the broken style visible for a manual choice, but do not let
+          // Auto Fix replace every paint on a multi-paint layer implicitly.
+          matchType = 'none';
+          matchedToken = null;
+          confidence = 0;
+        }
+
         const boundLocalColor = group.category === 'color'
           ? group.nodes.find(node => node.variableId && tokens.some(token => token.id === node.variableId && token.source === 'variable' && token.subType === 'COLOR'))
           : null;
@@ -3956,10 +4012,9 @@
         processed.push({
           ...group,
           correctionEligible: group.correctionEligible !== false &&
-            !(group.category === 'color' && matchedToken && matchedToken.source === 'style' &&
-              group.nodes.some(node => node.paintCount !== 1 || node.paintIndex !== 0)),
+            (!unsafePaintStyleMatch || !!group.brokenToken),
           tokenCandidate: group.category === 'color'
-            ? !variableColorTokensByValue.has(colorValueKey(group.rawValue)) && group.nodes.some(node => !node.hasVariable)
+            ? !variableColorTokensByValue.has(colorValueKey(group.rawValue)) && group.nodes.some(node => !node.hasVariable || node.brokenToken)
             : group.category === 'spacing'
               ? !numericTokensByKindAndValue.has(`${group.tokenKind}|${group.rawValue}`)
               : false,
@@ -3970,7 +4025,7 @@
               !styleColorTokensByContextAndBinding.has(`${group.styleContext}|${colorValueKey(group.rawValue)}|${styleVariableId}`) &&
               group.nodes.some(node => {
                 const canPreserveTokenBinding = node.hasVariable
-                  ? !!styleVariableId && node.variableId === styleVariableId
+                  ? (!!styleVariableId && node.variableId === styleVariableId) || (!!node.brokenToken && !!node.brokenVariableId)
                   : true;
                 return canPreserveTokenBinding && node.paintCount === 1 && node.paintIndex === 0;
               })
@@ -4000,15 +4055,15 @@
         const canReuseEffectVariable = group.category === 'effect-variable' && !!existingVariable;
         processed.push({
           ...group,
-          correctionEligible: false,
+          correctionEligible: !!group.brokenToken,
           tokenCandidate: !existingVariable || group.category === 'effect-variable',
           existingTokenId: canReuseEffectVariable ? existingVariable.id : null,
           existingTokenName: canReuseEffectVariable ? existingVariable.name : null,
           styleCandidate: false,
-          matchType: 'none',
-          matchedToken: null,
-          confidence: 0,
-          selectedTokenId: ''
+          matchType: group.brokenToken && existingVariable ? 'exact' : 'none',
+          matchedToken: group.brokenToken ? existingVariable || null : null,
+          confidence: group.brokenToken && existingVariable ? 100 : 0,
+          selectedTokenId: group.brokenToken && existingVariable ? existingVariable.id : ''
         });
       });
 
@@ -4021,7 +4076,7 @@
     }
 
     function updateFixesSummary() {
-      const correctionGroups = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType !== 'none');
+      const correctionGroups = groupedDetached.filter(g => g.correctionEligible !== false && (g.matchType !== 'none' || g.brokenToken));
       const totalNodes = correctionGroups.reduce((acc, g) => acc + g.nodes.length, 0);
       const exactGroups = correctionGroups.filter(g => g.matchType === 'exact');
       const exactNodes = exactGroups.reduce((acc, g) => acc + g.nodes.length, 0);
@@ -4149,16 +4204,74 @@
       }).map(entry => entry.group);
     }
 
+    function getIgnoredTypographyOptions() {
+      return {
+        lineHeight: !!document.getElementById('create-ignore-line-height')?.checked,
+        letterSpacing: !!document.getElementById('create-ignore-letter-spacing')?.checked
+      };
+    }
+
+    function getAutoTypographyCommonValue(tokenKind, value) {
+      if (!autoTokenDetectionEnabled || typeof value !== 'number' || !Number.isFinite(value)) return null;
+      const categoryByKind = { 'font-size': 'fontSize' };
+      const category = categoryByKind[tokenKind];
+      const commonValues = category && preferredTokenValuesByCategory[category] || [];
+      if (!commonValues.length || value < commonValues[0] || value > commonValues[commonValues.length - 1]) return null;
+      return commonValues.reduce((nearest, candidate) => {
+        const distance = Math.abs(candidate - value);
+        const nearestDistance = Math.abs(nearest - value);
+        return distance < nearestDistance || (distance === nearestDistance && candidate < nearest) ? candidate : nearest;
+      }, commonValues[0]);
+    }
+
+    function normalizeTextStyleCandidate(group, ignored = getIgnoredTypographyOptions()) {
+      if (group.category !== 'text') return group;
+      const rawValue = Object.assign({}, group.rawValue);
+      const sourceFontSize = Number(group.autoOriginalFontSize !== undefined ? group.autoOriginalFontSize : rawValue.fontSize);
+      const sourceFontSizes = Array.isArray(group.autoSourceFontSizes) ? group.autoSourceFontSizes : [sourceFontSize];
+      const autoFontSize = getAutoTypographyCommonValue('font-size', sourceFontSize);
+      const autoNormalizedFontSize = autoFontSize !== null;
+      if (autoNormalizedFontSize) rawValue.fontSize = autoFontSize;
+      if (ignored.lineHeight) rawValue.lineHeight = { unit: 'AUTO' };
+      if (ignored.letterSpacing) rawValue.letterSpacing = { unit: 'PIXELS', value: 0 };
+      if (!autoNormalizedFontSize && !ignored.lineHeight && !ignored.letterSpacing) return group;
+      const font = rawValue.fontName || {};
+      const lineHeight = rawValue.lineHeight || { unit: 'AUTO' };
+      const letterSpacing = rawValue.letterSpacing || { unit: 'PIXELS', value: 0 };
+      const measureText = (measure, auto) => measure.unit === 'AUTO'
+        ? auto
+        : String(Math.round(Number(measure.value) * 100) / 100) + (measure.unit === 'PERCENT' ? '%' : 'px');
+      return Object.assign({}, group, {
+        key: 'style-text-normalized-' + textTypographyKey(rawValue),
+        rawValue,
+        autoNormalizeTextStyle: autoTokenDetectionEnabled,
+        autoNormalizedFontSize,
+        autoOriginalFontSize: sourceFontSize,
+        autoSourceFontSizes: sourceFontSizes,
+        ignoreLineHeight: ignored.lineHeight,
+        ignoreLetterSpacing: ignored.letterSpacing,
+        formattedValue: `${font.family || 'Fonte'} ${font.style || ''}, ${rawValue.fontSize}px / ${measureText(lineHeight, 'Auto')} · letras ${measureText(letterSpacing, '0px')}`
+      });
+    }
+
     function getCreationCandidates(tab = 'tokens', filter = 'all') {
-      const eligible = groupedDetached.filter(group => {
-        if (tab === 'tokens') return group.tokenCandidate === true;
-        if (group.styleCandidate !== true) return false;
-        if ((group.category === 'text' || (group.category === 'other' && group.prop === 'effect')) &&
-            styleRequirementsContainSuppressedToken(buildStyleVariableRequirements(group, ''))) return false;
-        if (group.category === 'color') return ['fill', 'text-fill', 'stroke'].includes(group.styleContext);
-        if (group.category === 'text') return true;
-        if (group.category === 'other' && group.prop === 'effect') return true;
-        return false;
+      const ignored = getIgnoredTypographyOptions();
+      const existingTextStyleKeys = tab === 'styles' && (autoTokenDetectionEnabled || ignored.lineHeight || ignored.letterSpacing)
+        ? new Set(tokens.filter(token => token.source === 'style' && token.subType === 'text')
+          .map(token => textTypographyKey(normalizeTextStyleCandidate({ category: 'text', rawValue: token.rawValue }, ignored).rawValue)))
+        : null;
+      const eligible = [];
+      groupedDetached.forEach(group => {
+        if (tab === 'tokens') {
+          if (group.tokenCandidate !== true) return;
+          eligible.push(group);
+          return;
+        }
+        if (group.styleCandidate !== true) return;
+        const normalizedGroup = normalizeTextStyleCandidate(group, ignored);
+        if (group.category === 'color' && !['fill', 'text-fill', 'stroke'].includes(group.styleContext)) return;
+        if (group.category === 'color' || group.category === 'text' ||
+            (group.category === 'other' && group.prop === 'effect')) eligible.push(normalizedGroup);
       });
       let candidates = eligible;
       if (tab === 'tokens') {
@@ -4174,7 +4287,9 @@
             properties: new Map()
           }));
           const candidate = byColor.get(colorKey);
-          group.nodes.filter(node => !node.hasVariable).forEach(node => candidate.nodes.push(node));
+          candidate.brokenToken = candidate.brokenToken || group.brokenToken;
+          candidate.correctionEligible = candidate.correctionEligible || group.correctionEligible;
+          group.nodes.filter(node => !node.hasVariable || node.brokenToken).forEach(node => candidate.nodes.push(node));
           if (group.properties) group.properties.forEach((label, prop) => candidate.properties.set(prop, label));
         });
         // Keep values grouped by their token concept, while applying an
@@ -4344,6 +4459,8 @@
                 : formatValue(selectedValue),
               pixelClusterValues: values,
               properties,
+              brokenToken: cluster.some(group => group.brokenToken),
+              correctionEligible: cluster.some(group => group.correctionEligible),
               nodes: cluster.flatMap(group => group.nodes)
             }));
           });
@@ -4393,6 +4510,8 @@
             nodeKeys.add(nodeKey);
             merged.nodes.push(node);
           });
+          merged.brokenToken = merged.brokenToken || candidate.brokenToken;
+          merged.correctionEligible = merged.correctionEligible || candidate.correctionEligible;
         });
         const mergedNumericCandidates = [...mergedNumericCandidatesByValue.values()].map(candidate => {
           const values = [...new Set(candidate.pixelClusterValues)].sort((a, b) => a - b);
@@ -4431,17 +4550,45 @@
             properties: new Map()
           }));
           const candidate = byPaintStyle.get(styleKey);
+          candidate.brokenToken = candidate.brokenToken || group.brokenToken;
+          candidate.correctionEligible = candidate.correctionEligible || group.correctionEligible;
           group.nodes.filter(node => {
             const canPreserveTokenBinding = node.hasVariable
-              ? !!group.styleVariableId && node.variableId === group.styleVariableId
+              ? (!!group.styleVariableId && node.variableId === group.styleVariableId) || (!!node.brokenToken && !!node.brokenVariableId)
               : true;
             return canPreserveTokenBinding && node.paintCount === 1 && node.paintIndex === 0;
           })
             .forEach(node => candidate.nodes.push(node));
         });
-        candidates = [...byPaintStyle.values()].filter(group => group.nodes.length > 0).concat(eligible.filter(group => group.category !== 'color'));
+        const otherStyles = eligible.filter(group => group.category !== 'color');
+        const mergedTextStyles = new Map();
+        otherStyles.forEach(group => {
+          const needsNormalizationMerge = group.autoNormalizeTextStyle || group.ignoreLineHeight || group.ignoreLetterSpacing;
+          if (group.category !== 'text' || !needsNormalizationMerge) return;
+          const existing = mergedTextStyles.get(group.key);
+          if (existing) {
+            existing.nodes.push(...group.nodes);
+            existing.brokenToken = existing.brokenToken || group.brokenToken;
+            existing.correctionEligible = existing.correctionEligible || group.correctionEligible;
+            existing.autoNormalizedFontSize = existing.autoNormalizedFontSize || group.autoNormalizedFontSize;
+            existing.autoSourceFontSizes = [...new Set([...(existing.autoSourceFontSizes || []), ...(group.autoSourceFontSizes || [])])];
+          }
+          else mergedTextStyles.set(group.key, Object.assign({}, group, { nodes: group.nodes.slice() }));
+        });
+        candidates = [...byPaintStyle.values()].filter(group => group.nodes.length > 0).concat(
+          otherStyles.filter(group => group.category !== 'text' ||
+            (!group.autoNormalizeTextStyle && !group.ignoreLineHeight && !group.ignoreLetterSpacing)),
+          [...mergedTextStyles.values()]
+        );
       }
-      const filteredCandidates = candidates.filter(group => suggestionMatchesFilter(group, filter, tab));
+      const validCandidates = tab === 'styles' ? candidates.filter(group => {
+        if ((group.category === 'text' || (group.category === 'other' && group.prop === 'effect')) &&
+            styleRequirementsContainSuppressedToken(buildStyleVariableRequirements(group, ''))) return false;
+        if (existingTextStyleKeys && group.category === 'text' &&
+            existingTextStyleKeys.has(textTypographyKey(group.rawValue))) return false;
+        return true;
+      }) : candidates;
+      const filteredCandidates = validCandidates.filter(group => suggestionMatchesFilter(group, filter, tab));
       const displayedCandidates = tab === 'tokens' && (filter === 'padding' || filter === 'spacing')
         ? filteredCandidates.flatMap(group => {
             if (group.category !== 'spacing' || group.tokenKind !== 'spacing') return [group];
@@ -4492,7 +4639,15 @@
         const styleFolder = group.styleContext === 'text-fill' ? 'Texts' : group.styleContext === 'stroke' ? 'Strokes' : 'Backgrounds';
         const tokenPath = styleValueName.split('/').filter(Boolean);
         if (['color', 'colors', 'cor', 'cores'].includes(String(tokenPath[0] || '').toLowerCase())) tokenPath.shift();
-        name = tab === 'tokens' ? 'Color/' + valueName : 'Color Styles/' + styleFolder + '/' + (tokenPath.join('/') || valueName);
+        if (createSmartColorDetection) {
+          const family = segment(getColorFamilyName(raw.r || 0, raw.g || 0, raw.b || 0));
+          const styleLeaf = colorVariable ? tokenPath[tokenPath.length - 1] || valueName : valueName;
+          name = tab === 'tokens'
+            ? 'Color/' + family + '/' + valueName
+            : 'Color Styles/' + styleFolder + '/' + family + '/' + styleLeaf;
+        } else {
+          name = tab === 'tokens' ? 'Color/' + valueName : 'Color Styles/' + styleFolder + '/' + (tokenPath.join('/') || valueName);
+        }
       } else if (group.category === 'text') {
         const font = group.rawValue.fontName || {};
         if (tab === 'styles') {
@@ -4530,11 +4685,12 @@
           }
 
           const lineHeight = group.rawValue.lineHeight;
-          if (lineHeight && (lineHeight.unit === 'PIXELS' || lineHeight.unit === 'PERCENT')) {
+          if (!document.getElementById('create-ignore-line-height')?.checked && lineHeight &&
+              (lineHeight.unit === 'PIXELS' || lineHeight.unit === 'PERCENT')) {
             styleParts.push('Line Height ' + formatTypographyNumber(lineHeight.value) + (lineHeight.unit === 'PERCENT' ? '%' : 'px'));
           }
           const letterSpacing = group.rawValue.letterSpacing;
-          if (letterSpacing && Number(letterSpacing.value) !== 0) {
+          if (!document.getElementById('create-ignore-letter-spacing')?.checked && letterSpacing && Number(letterSpacing.value) !== 0) {
             styleParts.push('Letter Spacing ' + formatTypographyNumber(letterSpacing.value) + (letterSpacing.unit === 'PERCENT' ? '%' : 'px'));
           }
           if (font.variationSettings && Object.keys(font.variationSettings).length > 0) {
@@ -4657,8 +4813,8 @@
     }
 
     function updateSuggestionBulkButtons(candidatesByTab) {
-      const tokenCandidates = candidatesByTab && candidatesByTab.tokens || getCreationCandidates("tokens");
-      const styleCandidates = candidatesByTab && candidatesByTab.styles || getCreationCandidates("styles");
+      const tokenCandidates = candidatesByTab && candidatesByTab.tokens || getCreationCandidates("tokens", tokenCreationFilter);
+      const styleCandidates = candidatesByTab && candidatesByTab.styles || getCreationCandidates("styles", styleCreationFilter);
       const visibleItems = candidatesByTab
         ? [...tokenCandidates.map(group => ({ group, tab: "tokens" })), ...styleCandidates.map(group => ({ group, tab: "styles" }))]
         : getVisibleCreationItems();
@@ -4668,9 +4824,7 @@
       const selectedButton = document.getElementById("create-selected-suggestions-btn");
       const allButton = document.getElementById("create-all-suggestions-btn");
       const selectAllButton = document.querySelector("#tab-create-content .suggestions-toolbar button");
-      const implicitDependencyCount = countImplicitDependencyVariables(styleCandidates);
-      const totalTokenCount = tokenCandidates.length + implicitDependencyCount;
-      const totalCount = totalTokenCount + styleCandidates.length;
+      const totalCount = tokenCandidates.length + styleCandidates.length;
       const tokenCount = document.getElementById("token-candidate-count");
       const styleCount = document.getElementById("style-candidate-count");
       const planSummary = document.getElementById("creation-plan-summary");
@@ -4680,7 +4834,7 @@
       if (tokenCount) tokenCount.textContent = tokenCandidates.length + " identificados";
       if (styleCount) styleCount.textContent = styleCandidates.length + " identificados";
       if (planSummary) planSummary.textContent =
-        totalTokenCount + " tokens - " + styleCandidates.length + " styles - " + totalNodes + " camadas";
+        tokenCandidates.length + " tokens na lista - " + styleCandidates.length + " styles - " + totalNodes + " camadas";
       if (selectedButton) {
         selectedButton.disabled = selectedCount === 0;
         selectedButton.textContent = "Criar/aplicar selecionados (" + selectedCount + ")";
@@ -4721,6 +4875,7 @@
     function updateSuggestionName(encodedKey, value) {
       const { key } = decodeSuggestionKey(encodedKey);
       suggestionNames.set(key, value);
+      manuallyEditedSuggestionNames.add(key);
     }
 
     function sameVariableValue(token, rawValue, variableType) {
@@ -4739,6 +4894,31 @@
     }
 
     function buildVariableRequirement(tokenKind, rawValue, variableType, measureUnit, preferredId, collectionId) {
+      const autoValue = tokenKind === "font-size"
+        ? getAutoTypographyCommonValue(tokenKind, Number(rawValue))
+        : null;
+      if (autoValue !== null) {
+        const autoExisting = tokens.find(token => token.tokenKind === tokenKind && sameVariableValue(token, autoValue, variableType));
+        if (autoExisting) return { id: autoExisting.id, tokenKind, variableType, rawValue: autoValue, measureUnit: measureUnit || null };
+        const autoCandidate = getStyleDependencyTokenCandidates().find(item => {
+          const candidateType = item.variableType || (item.category === "color" ? "COLOR" : "FLOAT");
+          const sourceValues = Array.isArray(item.pixelClusterValues) ? item.pixelClusterValues : [item.rawValue];
+          return item.tokenKind === tokenKind && candidateType === variableType &&
+            Math.abs(Number(item.rawValue) - autoValue) < 0.0001 &&
+            sourceValues.some(value => Math.abs(Number(value) - Number(rawValue)) < 0.0001);
+        });
+        if (autoCandidate) {
+          return {
+            candidateKey: autoCandidate.key,
+            name: getSuggestionName(autoCandidate, "tokens"),
+            tokenKind,
+            variableType,
+            rawValue: autoCandidate.rawValue,
+            measureUnit: autoCandidate.measureUnit || measureUnit || null,
+            collectionId: collectionId || ""
+          };
+        }
+      }
       const existing = (preferredId && tokens.find(token => token.id === preferredId && sameVariableValue(token, rawValue, variableType))) ||
         tokens.find(token => token.tokenKind === tokenKind && sameVariableValue(token, rawValue, variableType));
       if (existing) return { id: existing.id, tokenKind, variableType, rawValue, measureUnit: measureUnit || null };
@@ -4818,13 +4998,14 @@
         const existing = group.styleVariableIds || {};
         const definitions = [
           ["fontFamily", "font-family", raw.fontName && raw.fontName.family, "STRING", null],
-          ["fontSize", "font-size", raw.fontSize, "FLOAT", null],
+          ["fontSize", "font-size", group.autoNormalizedFontSize ? group.autoOriginalFontSize : raw.fontSize, "FLOAT", null],
           ["fontWeight", "font-weight", raw.fontWeight, "FLOAT", null]
         ];
         if (raw.lineHeight && (raw.lineHeight.unit === "PIXELS" || raw.lineHeight.unit === "PERCENT")) {
           definitions.push(["lineHeight", "line-height-" + (raw.lineHeight.unit === "PERCENT" ? "percent" : "pixels"), raw.lineHeight.value, "FLOAT", raw.lineHeight.unit]);
         }
-        if (raw.letterSpacing && (raw.letterSpacing.unit === "PIXELS" || raw.letterSpacing.unit === "PERCENT")) {
+        if (!group.ignoreLetterSpacing && raw.letterSpacing &&
+            (raw.letterSpacing.unit === "PIXELS" || raw.letterSpacing.unit === "PERCENT")) {
           definitions.push(["letterSpacing", "letter-spacing-" + (raw.letterSpacing.unit === "PERCENT" ? "percent" : "pixels"), raw.letterSpacing.value, "FLOAT", raw.letterSpacing.unit]);
         }
         requirements.text = {};
@@ -4846,6 +5027,7 @@
           };
           Object.keys(values).forEach(field => {
             if (typeof values[field] !== "number") return;
+            if (field === "spread" && (values[field] === 0 || Math.round(values[field] * 100) / 100 === 0)) return;
             const kind = field === "radius" ? "effect-radius" :
               field === "spread" ? "effect-spread" :
               field === "offsetX" ? "effect-offset-x" : "effect-offset-y";
@@ -4871,6 +5053,15 @@
       const collectionSelect = document.getElementById("suggestion-collection");
       const collectionId = collectionSelect ? collectionSelect.value : "";
       const name = nameInput ? nameInput.value.trim() : getSuggestionName(group, tab);
+      const ignoreLineHeight = tab === "styles" && group.category === "text" &&
+        !!document.getElementById("create-ignore-line-height")?.checked;
+      const ignoreLetterSpacing = tab === "styles" && group.category === "text" &&
+        !!document.getElementById("create-ignore-letter-spacing")?.checked;
+      const payloadGroup = (ignoreLineHeight || ignoreLetterSpacing)
+        ? Object.assign({}, group, { rawValue: Object.assign({}, group.rawValue), ignoreLineHeight, ignoreLetterSpacing })
+        : group;
+      if (ignoreLineHeight) payloadGroup.rawValue.lineHeight = { unit: "AUTO" };
+      if (ignoreLetterSpacing) payloadGroup.rawValue.letterSpacing = { unit: "PIXELS", value: 0 };
       suggestionNames.set(group.key, name);
       const payload = {
         key: group.key,
@@ -4886,15 +5077,24 @@
         measureUnit: group.measureUnit || null,
         styleVariableIds: tab === "styles" ? group.styleVariableIds || null : null,
         sourceValues: Array.isArray(group.pixelClusterValues) ? group.pixelClusterValues : [group.rawValue],
-        rawValue: group.rawValue,
+        rawValue: payloadGroup.rawValue,
+        ignoreLineHeight,
+        ignoreLetterSpacing,
+        autoNormalizedFontSize: tab === "styles" && !!group.autoNormalizedFontSize,
+        autoSourceFontSizes: tab === "styles" && Array.isArray(group.autoSourceFontSizes) ? group.autoSourceFontSizes : null,
         nodes: group.nodes.map(node => ({
           nodeId: node.nodeId, prop: node.prop || group.prop,
           paintIndex: node.paintIndex, effectIndex: node.effectIndex,
-          rawValue: node.rawValue
+          textRangeStart: node.textRangeStart, textRangeEnd: node.textRangeEnd,
+          measureUnit: node.measureUnit || null,
+          rawValue: node.rawValue,
+          brokenToken: !!node.brokenToken,
+          brokenVariableId: node.brokenVariableId || null,
+          brokenStyleId: node.brokenStyleId || null
         }))
       };
       if (tab === "styles") {
-        payload.styleVariableRequirements = buildStyleVariableRequirements(group, collectionId);
+        payload.styleVariableRequirements = buildStyleVariableRequirements(payloadGroup, collectionId);
       }
       return payload;
     }
@@ -4904,6 +5104,8 @@
         showToast("Selecione pelo menos uma sugestao.");
         return;
       }
+      const previousResult = document.getElementById('creation-result-details');
+      if (previousResult) previousResult.style.display = 'none';
       const tokenGroups = new Map();
       const styleItems = [];
       items.forEach(item => {
@@ -4967,11 +5169,7 @@
     }
 
     function createAllSuggestions() {
-      const items = [
-        ...getCreationCandidates("tokens").map(group => ({ group, tab: "tokens" })),
-        ...getCreationCandidates("styles").map(group => ({ group, tab: "styles" }))
-      ];
-      submitSuggestionCandidates(items);
+      submitSuggestionCandidates(getVisibleCreationItems());
     }
 
     function setTypographyCreationSubFilter(filter) {
@@ -5166,7 +5364,7 @@
         fontFamily: "Font family", fontStyle: "Font style", fontSize: "Font size", fontWeight: "Font weight",
         lineHeight: "Line height", letterSpacing: "Letter spacing",
         "effect-radius": "Effect radius", "effect-spread": "Effect spread",
-        "effect-offsetX": "Effect offset X", "effect-offsetY": "Effect offset Y",
+        "effect-offset-x": "Effect offset X", "effect-offset-y": "Effect offset Y",
         spacing: "Layout / Espacamento", radius: "Raio", opacity: "Opacidade",
         paddingTop: "Padding superior", paddingRight: "Padding direito", paddingBottom: "Padding inferior", paddingLeft: "Padding esquerdo",
         itemSpacing: "Espacamento entre itens", counterAxisSpacing: "Espacamento no eixo cruzado",
@@ -5231,6 +5429,7 @@
             '<div style="display: flex; align-items: center; gap: 10px; flex: 1;">' + preview +
               "<div><div style=\"display: flex; flex-direction: column; align-items: flex-start; gap: 4px;\">" +
                 '<strong style="font-size: 13px; color: var(--text-main);">' + escapeHtml(details) + "</strong>" +
+                (group.brokenToken ? '<span class="badge-fuzzy" title="Há vínculo com token ou style que não existe mais">Token quebrado</span>' : '') +
                 '<span class="prop-tag ' + escapeHtml(group.prop) + '">' + escapeHtml(propertyTitle) + "</span>" +
               '</div><span style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(candidateStatus) + "</span><br>" + styleDependencyHint + "</div>" +
             '</div><div style="display: flex; align-items: center; gap: 8px;">' +
@@ -5270,14 +5469,14 @@
       const styleCandidates = getCreationCandidates("styles", styleCreationFilter);
       renderCreationCandidatesForTab("tokens", tokenContainer, tokenCandidates);
       renderCreationCandidatesForTab("styles", styleContainer, styleCandidates);
-      updateSuggestionBulkButtons({ tokens: getCreationCandidates("tokens"), styles: getCreationCandidates("styles") });
+      updateSuggestionBulkButtons({ tokens: tokenCandidates, styles: styleCandidates });
     }
     function renderFixesList() {
       const container = document.getElementById('fixes-container');
       if (!container) return;
       container.innerHTML = '';
 
-      let filtered = groupedDetached.filter(g => g.correctionEligible !== false && g.matchType !== 'none');
+      let filtered = groupedDetached.filter(g => g.correctionEligible !== false && (g.matchType !== 'none' || g.brokenToken));
 
       if (fixesFilter !== 'all') {
         filtered = filtered.filter(g => getCorrectionFilterCategory(g) === fixesFilter);
@@ -5309,7 +5508,7 @@
       }
 
       if (filtered.length === 0) {
-        if (!groupedDetached.some(g => g.correctionEligible !== false && g.matchType !== 'none')) {
+        if (!groupedDetached.some(g => g.correctionEligible !== false && (g.matchType !== 'none' || g.brokenToken))) {
           container.innerHTML = `
             <div class="empty-state">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -5393,6 +5592,13 @@
               t.category === 'spacing' && t.subType === 'FLOAT' &&
               typeof t.rawValue === 'number' && t.tokenKind === group.tokenKind
             );
+          } else if (group.category === 'text-variable') {
+            relevantTokens = tokens.filter(t => t.source === 'variable' &&
+              t.tokenKind === group.tokenKind &&
+              t.subType === (group.variableType || 'FLOAT'));
+          } else if (group.category === 'effect-variable') {
+            relevantTokens = tokens.filter(t => t.source === 'variable' &&
+              t.tokenKind === group.tokenKind && t.subType === 'FLOAT');
           } else {
             relevantTokens = tokens.filter(t => t.subType === 'effect');
           }
@@ -5447,6 +5653,7 @@
               <div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span class="prop-tag ${group.prop}">${propLabel}</span>
+                  ${group.brokenToken ? '<span class="badge-fuzzy" title="O elemento aponta para uma variável ou style que não existe mais">Token quebrado</span>' : ''}
                   <strong style="font-size: 13px; color: var(--text-main);">${group.category === 'other' && group.prop === 'effect' ? effectDetails(group.rawValue) : group.formattedValue}</strong>
                 </div>
                 <span style="font-size: 11px; color: var(--text-muted);">${group.nodes.length} elemento(s) afetado(s)</span>
@@ -5492,7 +5699,7 @@
     function getCorrectionFilterCategory(group) {
       if (!group) return 'other';
       if (group.category === 'color') return 'color';
-      if (group.category === 'text') return 'typography';
+      if (group.category === 'text' || group.category === 'text-variable') return 'typography';
       if (group.category === 'effect-variable' || group.prop === 'effect') return 'effect';
       if (group.category === 'spacing') {
         if (group.tokenKind === 'radius' || group.tokenKind === 'stroke' || group.tokenKind === 'opacity') return group.tokenKind;
@@ -5543,7 +5750,12 @@
             prop: n.prop || g.prop,
             targetTokenId: g.matchedToken.id,
             source: g.matchedToken.source,
-            paintIndex: n.paintIndex
+            paintIndex: n.paintIndex,
+            effectIndex: n.effectIndex,
+            textRangeStart: n.textRangeStart,
+            textRangeEnd: n.textRangeEnd,
+            brokenVariableId: n.brokenVariableId || null,
+            brokenStyleId: n.brokenStyleId || null
           });
         });
       });
@@ -5572,7 +5784,12 @@
             prop: n.prop || g.prop,
             targetTokenId: g.matchedToken.id,
             source: g.matchedToken.source,
-            paintIndex: n.paintIndex
+            paintIndex: n.paintIndex,
+            effectIndex: n.effectIndex,
+            textRangeStart: n.textRangeStart,
+            textRangeEnd: n.textRangeEnd,
+            brokenVariableId: n.brokenVariableId || null,
+            brokenStyleId: n.brokenStyleId || null
           });
         });
       });
@@ -5603,7 +5820,12 @@
         prop: n.prop || group.prop,
         targetTokenId: targetToken.id,
         source: targetToken.source,
-        paintIndex: n.paintIndex
+        paintIndex: n.paintIndex,
+        effectIndex: n.effectIndex,
+        textRangeStart: n.textRangeStart,
+        textRangeEnd: n.textRangeEnd,
+        brokenVariableId: n.brokenVariableId || null,
+        brokenStyleId: n.brokenStyleId || null
       }));
 
       showLoader(true, "Aplicando token aos elementos...");
