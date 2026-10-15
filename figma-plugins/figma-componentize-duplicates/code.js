@@ -1381,7 +1381,7 @@ function findSimilarNodes(referenceIds, preserveDifferences, compatibilityConfig
     }
   }
   results.sort(function (a, b) { return b.score - a.score; });
-  var visibleResults = results.slice(0, 100);
+  var visibleResults = results;
   for (var visibleIndex = 0; visibleIndex < visibleResults.length; visibleIndex++) {
     var visibleItem = visibleResults[visibleIndex];
     if (!visibleItem.isCompatible) {
